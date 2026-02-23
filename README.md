@@ -1,4 +1,7 @@
-Project Title: "PositiveNews"
+Project Title: "PositiveNews".
+
+Level: Educational.
+Status: Development.
 
 Description: 
 A web platform combats "doom-scrolling" by aggregating news from various sources, 
