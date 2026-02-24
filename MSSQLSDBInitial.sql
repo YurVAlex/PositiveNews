@@ -168,7 +168,7 @@ CREATE TABLE [Community].[Comments](
     [ArticleId] [bigint] NOT NULL,
     [UserId] [bigint] NOT NULL,
     [ParentId] [bigint] NULL, -- For threaded replies.
-    [Content] [nvarchar](max) NOT NULL,
+    [Content] [nvarchar](2000) NOT NULL, -- Security: Prevent "Text Bloat" attacks.
     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
     [EditedAt] [datetime2](7) NULL,
     [IsActive] [bit] NOT NULL DEFAULT 1,
@@ -288,6 +288,12 @@ INCLUDE ([Title], [ImageUrl], [SourceId], [PositivityScore], [ViewCount])
 WHERE [IsActive] = 1;
 GO
 
+-- Optimization for "Source Profile" pages (e.g., /source/reuters).
+CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_SourceId]
+ON [Catalog].[ArticlesMetadata] ([SourceId])
+INCLUDE ([PublishedAt], [IsActive]); -- Include IsActive to filter deleted items quickly.
+GO
+
 -- TOPIC LOOKUP: "Show me all articles about Technology"
 -- Essential because the PK is (ArticleId, TopicId). This creates the reverse lookup.
 CREATE NONCLUSTERED INDEX [IX_ArticleTopics_Topic_Lookup] 
@@ -312,4 +318,31 @@ CREATE NONCLUSTERED INDEX [IX_Comments_Article_Thread]
 ON [Community].[Comments] ([ArticleId], [CreatedAt] ASC)
 INCLUDE ([UserId], [Content])
 WHERE [IsActive] = 1;
+GO
+
+-- 10. ENFORCE DATA INTEGRITY (Check Constraints)
+-- Prevents "Impossible" numbers from breaking the algorithm.
+
+ALTER TABLE [Catalog].[ArticlesMetadata]
+ADD CONSTRAINT [CK_Articles_Positivity] CHECK ([PositivityScore] BETWEEN 0.0000 AND 1.0000);
+GO
+
+ALTER TABLE [Catalog].[Sources]
+ADD CONSTRAINT [CK_Sources_Trust] CHECK ([TrustScore] >= 0.00);
+GO
+
+ALTER TABLE [Identity].[UserFeedPreferences]
+ADD CONSTRAINT [CK_UserPrefs_MinPositivity] CHECK ([MinPositivity] BETWEEN 0.00 AND 1.00);
+GO
+
+-- 11. ENFORCE ENUM INTEGRITY (Without Lookup Tables)
+-- Ensures only valid strings are saved.
+
+ALTER TABLE [Catalog].[IngestionRuns]
+ADD CONSTRAINT [CK_Ingestion_Status] CHECK ([Status] IN ('Running', 'Success', 'Failed', 'Partial'));
+GO
+
+ALTER TABLE [Admin].[AuditLogs]
+ADD CONSTRAINT [CK_Audit_Entity] CHECK ([EntityType] IN ('Article', 'Comment', 'User', 'Source'));
+-- To be supplemented...
 GO
