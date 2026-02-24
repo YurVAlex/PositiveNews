@@ -346,3 +346,17 @@ ALTER TABLE [Admin].[AuditLogs]
 ADD CONSTRAINT [CK_Audit_Entity] CHECK ([EntityType] IN ('Article', 'Comment', 'User', 'Source'));
 -- To be supplemented...
 GO
+
+--12. Create a View for main news feed to keep LINQ queries simple.
+
+CREATE VIEW [Catalog].[vArticleFeed] AS
+SELECT 
+    m.Id, m.Title, m.ImageUrl, m.PublishedAt, m.PositivityScore,
+    s.Name AS SourceName, s.LogoUrl AS SourceLogo,
+    (SELECT STRING_AGG(t.Name, ', ') 
+     FROM [Catalog].[ArticleTopics] at 
+     JOIN [Catalog].[Topics] t ON at.TopicId = t.Id 
+     WHERE at.ArticleId = m.Id) AS TopicList
+FROM [Catalog].[ArticlesMetadata] m
+JOIN [Catalog].[Sources] s ON m.SourceId = s.Id
+WHERE m.IsActive = 1;
