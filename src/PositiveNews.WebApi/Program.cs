@@ -81,6 +81,11 @@ public class Program
         }
         catch (Exception ex)
         {
+            // Ignore the intentional exception thrown by EF Core tooling
+            if (ex.GetType().Name == "HostAbortedException")
+            {
+                throw;
+            }
             Log.Fatal(ex, "Application terminated unexpectedly.");
         }
         finally

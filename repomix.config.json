@@ -1,0 +1,44 @@
+{
+  "output": {
+    "filePath": "repomix-output.txt",
+    "style": "plain",
+    "removeComments": false,
+    "removeEmptyLines": false,
+    "showLineNumbers": true,
+    "copyToClipboard": false
+  },
+  "include": [
+    "**/*.cs",
+    "**/*.csproj",
+    "**/*.sln",
+    "**/*.json",
+    "**/*.sql",
+    "**/*.md",
+    "**/Dockerfile",
+    "**/.dockerignore"
+  ],
+  "ignore": {
+    "customPatterns": [
+      "**/bin/**",
+      "**/obj/**",
+      "**/.vs/**",
+      "**/.vscode/**",
+      "**/TestResults/**",
+      "**/*.user",
+      "**/*.suo",
+      "**/AppPackages/**",
+      "**/BundleArtifacts/**",
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/Migrations/**",
+      "**/appsettings.Development.json",
+      "**/appsettings.Local.json",
+      "repomix-output.txt"
+    ],
+    "useGitignore": true,
+    "useDefaultPatterns": true
+  },
+  "security": {
+    "enableChecking": true
+  }
+}
