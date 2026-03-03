@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PositiveNews.Application/PositiveNews.Application.csproj" />
+    <Project Path="src/PositiveNews.Domain/PositiveNews.Domain.csproj" />
+    <Project Path="src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj" />
+    <Project Path="src/PositiveNews.WebApi/PositiveNews.WebApi.csproj" />
+  </Folder>
+</Solution>
