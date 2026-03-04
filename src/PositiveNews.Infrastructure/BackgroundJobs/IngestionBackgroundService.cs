@@ -22,7 +22,7 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(15);
 
     public IngestionBackgroundService(   // Host Creates instances of IngestionBackgroundService when starts
-        IServiceScopeFactory scopeFactory,
+        IServiceScopeFactory scopeFactory, // This service added to ASP .NET IoC by default. Needed for creation scope in singleton
         ILogger<IngestionBackgroundService> logger,
         IConfiguration configuration)
     {

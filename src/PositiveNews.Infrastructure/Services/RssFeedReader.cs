@@ -9,11 +9,11 @@ namespace PositiveNews.Infrastructure.Services;
 
 /// <summary>
 /// Fetches and parses an RSS/Atom feed using System.ServiceModel.Syndication.
-/// This is the only class that makes HTTP calls to external sources.
+/// This class makes HTTP calls to external sources.
 /// </summary>
 public class RssFeedReader : IRssFeedReader
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientFactory _httpClientFactory; // registered in Infrastructure.DependencyInjection (services.AddHttpClient())
     private readonly ILogger<RssFeedReader> _logger;
 
     public RssFeedReader(IHttpClientFactory httpClientFactory, ILogger<RssFeedReader> logger)
@@ -81,7 +81,7 @@ public class RssFeedReader : IRssFeedReader
     /// Attempts to extract an image URL from common RSS extensions like media:thumbnail,
     /// media:content, or enclosure elements.
     /// </summary>
-    private static string? ExtractImageUrl(SyndicationItem item)
+    private static string? ExtractImageUrl(SyndicationItem item)  // !!!!!!!!! TODO - FIX THAT !!!!!!!!!
     {
         // 1. Try media:thumbnail or media:content (common in RSS 2.0 feeds)
         foreach (var extension in item.ElementExtensions)
