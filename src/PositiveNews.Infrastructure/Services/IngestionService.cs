@@ -26,7 +26,7 @@ public class IngestionService : IIngestionService
     /// <summary>
     /// Small delay between persisting individual articles within a single source batch.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(5);
 
     public IngestionService(
         IServiceScopeFactory scopeFactory,

@@ -77,6 +77,7 @@ public class Program
             // ---------------------------------------------------------------
             // 6. RUN
             // ---------------------------------------------------------------
+            Log.Information("Starting HTTP server...");
             await app.RunAsync();
         }
         catch (Exception ex)

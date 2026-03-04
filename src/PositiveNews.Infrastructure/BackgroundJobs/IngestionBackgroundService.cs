@@ -10,7 +10,7 @@ namespace PositiveNews.Infrastructure.BackgroundJobs;
 /// A long-running hosted service that periodically triggers the ingestion cycle.
 /// Interval is configurable via "Ingestion:IntervalMinutes" in appsettings.json.
 /// </summary>
-public class IngestionBackgroundService : BackgroundService
+public class IngestionBackgroundService : BackgroundService // ← Implements IHostedService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<IngestionBackgroundService> _logger;
@@ -21,7 +21,7 @@ public class IngestionBackgroundService : BackgroundService
     /// </summary>
     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(15);
 
-    public IngestionBackgroundService(
+    public IngestionBackgroundService(   // Host Creates instances of IngestionBackgroundService when starts
         IServiceScopeFactory scopeFactory,
         ILogger<IngestionBackgroundService> logger,
         IConfiguration configuration)
@@ -29,10 +29,14 @@ public class IngestionBackgroundService : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
 
+        // Read interval from appsettings.json
         var minutes = configuration.GetValue<int>("Ingestion:IntervalMinutes", 60);
         _interval = TimeSpan.FromMinutes(minutes);
     }
 
+    // THIS METHOD IS CALLED AUTOMATICALLY BY ASP.NET CORE WHEN HOST STARTS
+    // ASP.NET Core host calls ExecuteAsync(CancellationToken) for each service after app.RunAsync() in programm.cs
+    // because of BackgroundService implement IHostedService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation(
@@ -42,18 +46,19 @@ public class IngestionBackgroundService : BackgroundService
         // Wait for the application to fully initialize before the first run.
         await Task.Delay(InitialDelay, stoppingToken);
 
-        while (!stoppingToken.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
         {
             try
             {
-                using var scope = _scopeFactory.CreateScope();
+                using var scope = _scopeFactory.CreateScope(); // Create a fresh scope for this cycle
                 var ingestionService = scope.ServiceProvider.GetRequiredService<IIngestionService>();
-                await ingestionService.RunIngestionCycleAsync(stoppingToken);
+
+                await ingestionService.RunIngestionCycleAsync(stoppingToken);       // ---=== EXECUTE INGESTION ===---
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Ingestion Background Service is stopping.");
-                break;
+                break; // ← Exit loop on shutdown
             }
             catch (Exception ex)
             {
