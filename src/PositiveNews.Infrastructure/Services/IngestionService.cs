@@ -5,6 +5,7 @@ using PositiveNews.Application.Interfaces;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Enums;
 using PositiveNews.Infrastructure.Persistence;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PositiveNews.Infrastructure.Services;
 
@@ -14,19 +15,24 @@ namespace PositiveNews.Infrastructure.Services;
 /// </summary>
 public class IngestionService : IIngestionService
 {
+
     private readonly IServiceScopeFactory _scopeFactory;
+    // Each source gets its own DbContext scope, which prevents stale tracking and memory bloat.
+    // This follows Microsoft's recommended pattern for consuming scoped services from hosted services.
     private readonly IRssFeedReader _feedReader;
     private readonly ILogger<IngestionService> _logger;
 
     /// <summary>
     /// Polite delay between processing individual sources to avoid hammering external servers.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
 
     /// <summary>
     /// Small delay between persisting individual articles within a single source batch.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
+
+    // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
 
     public IngestionService(
         IServiceScopeFactory scopeFactory,
@@ -95,6 +101,9 @@ public class IngestionService : IIngestionService
         try
         {
             var feedItems = await _feedReader.ReadFeedAsync(source.FeedUrl!, cancellationToken);
+            //Separate ReadFeedAsync because of Single Responsibility Principle and Dependency Inversion.
+            //IRssFeedReader handles the HTTP + XML parsing concern only.
+            //IIngestionService orchestrates the business logic (deduplication, persistence, logging).
 
             if (feedItems.Count == 0)
             {
