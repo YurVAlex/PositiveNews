@@ -82,7 +82,8 @@ public static class DataSeeder
                 FeedUrl = "https://www.goodnewsnetwork.org/feed/",
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
-                Description = "Since 1997, the premier source of positive news."
+                Description = "Since 1997, the premier source of positive news.",
+                LogoUrl = "https://www.goodnewsnetwork.org/wp-content/uploads/2021/01/cropped-GNN-Logo-Circles-2017-1-32x32.png"
             },
             new()
             {
@@ -91,7 +92,8 @@ public static class DataSeeder
                 FeedUrl = "https://www.optimistdaily.com/feed/",
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
-                Description = "Making solutions the news."
+                Description = "Making solutions the news.",
+                LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
             },
             new()
             {
@@ -100,7 +102,8 @@ public static class DataSeeder
                 FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
-                Description = "Latest news from NASA."
+                Description = "Latest news from NASA.",
+                LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
             }
         };
 
