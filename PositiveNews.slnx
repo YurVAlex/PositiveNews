@@ -3,6 +3,7 @@
     <Project Path="src/PositiveNews.Application/PositiveNews.Application.csproj" />
     <Project Path="src/PositiveNews.Domain/PositiveNews.Domain.csproj" />
     <Project Path="src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj" />
+    <Project Path="src/PositiveNews.Web/PositiveNews.Web.csproj" />
   </Folder>
-  <Project Path="src/PositiveNews.Web/PositiveNews.Web.csproj" Id="3758c163-880a-4b6a-bf3f-834fa7921677" />
+  
 </Solution>

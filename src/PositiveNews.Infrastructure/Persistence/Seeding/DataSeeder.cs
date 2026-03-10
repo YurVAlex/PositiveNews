@@ -101,42 +101,6 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Latest news from NASA."
-            },
-            new()
-            {
-                Name = "Space.com",
-                BaseUrl = "https://www.space.com",
-                FeedUrl = "https://www.space.com/feeds/all",
-                TrustScore = 0.95m,
-                DefaultLanguageCode = "en",
-                Description = "Space exploration and astronomy news."
-            },
-            new()
-            {
-                Name = "National Geographic",
-                BaseUrl = "https://www.nationalgeographic.com",
-                FeedUrl = "https://www.nationalgeographic.com/foundation/news.rss",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Exploring and protecting our planet."
-            },
-            new()
-            {
-                Name = "Harvard Health",
-                BaseUrl = "https://www.health.harvard.edu",
-                FeedUrl = "https://www.health.harvard.edu/blog/feed",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Trusted health information from Harvard Medical School."
-            },
-            new()
-            {
-                Name = "Lonely Planet",
-                BaseUrl = "https://www.lonelyplanet.com",
-                FeedUrl = "https://www.lonelyplanet.com/news/feed",
-                TrustScore = 0.9m,
-                DefaultLanguageCode = "en",
-                Description = "Travel guides and inspiration."
             }
         };
 

@@ -16,5 +16,9 @@
     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
     <ProjectReference Include="..\PositiveNews.Infrastructure\PositiveNews.Infrastructure.csproj" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <Folder Include="logs\" />
+  </ItemGroup>
 
 </Project>
