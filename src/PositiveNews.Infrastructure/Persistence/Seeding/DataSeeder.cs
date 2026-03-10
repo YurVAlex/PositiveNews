@@ -77,13 +77,13 @@ public static class DataSeeder
         {
             new()
             {
-                Name = "Good News Network",
-                BaseUrl = "https://www.goodnewsnetwork.org",
-                FeedUrl = "https://www.goodnewsnetwork.org/feed/",
+                Name = "NVIDIA Blog",
+                BaseUrl = "https://blogs.nvidia.com/",
+                FeedUrl = "https://blogs.nvidia.com/feed/",
                 TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Since 1997, the premier source of positive news.",
-                LogoUrl = "https://www.goodnewsnetwork.org/wp-content/uploads/2021/01/cropped-GNN-Logo-Circles-2017-1-32x32.png"
+                DefaultLanguageCode = "en-US",
+                Description = "Latest news from NVIDIA.",
+                LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
             },
             new()
             {
@@ -104,6 +104,16 @@ public static class DataSeeder
                 DefaultLanguageCode = "en",
                 Description = "Latest news from NASA.",
                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
+            },
+            new()
+            {
+                Name = "MIT News",
+                BaseUrl = "https://web.mit.edu/",
+                FeedUrl = "https://news.mit.edu/rss/feed",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
+                LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
             }
         };
 
