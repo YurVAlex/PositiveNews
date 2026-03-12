@@ -30,7 +30,7 @@ public class IngestionService : IIngestionService
     /// <summary>
     /// Small delay between persisting individual articles within a single source batch.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
+    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(2); //TODO - These can be made configurable.
 
     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
 
@@ -151,9 +151,9 @@ public class IngestionService : IIngestionService
                     Author = item.Author,
                     Url = item.Link,
                     ImageUrl = item.ImageUrl,
-                    PublishedAt = item.PublishedDate ?? DateTime.UtcNow,
+                    PublishedAt = item.PublishedDate,
                     IngestedAt = DateTime.UtcNow,
-                    LanguageCode = source.DefaultLanguageCode,
+                    LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
                     RegionCode = "Global",
                     IsActive = true
                 };
@@ -165,7 +165,8 @@ public class IngestionService : IIngestionService
                 var articleContent = new ArticleContent
                 {
                     Id = articleMeta.Id,
-                    ContentRaw = item.Description // Store RSS description as raw content for now.
+                    ContentRaw = item.ContentRaw,
+                    SummaryShort = item.Description
                 };
                 context.ArticlesContent.Add(articleContent);
                 await context.SaveChangesAsync(cancellationToken);

@@ -11,7 +11,7 @@ public class RssFeedItemDto
     public string ContentRaw { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Author { get; set; }
-    public DateTime? PublishedDate { get; set; }
+    public DateTime PublishedDate { get; set; }
     public string? ExternalId { get; set; }     // RSS <guid> or <link> as fallback
     public string? ImageUrl { get; set; }
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Persistence;
+using PositiveNews.Infrastructure.Persistence.Connection;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure;
@@ -19,11 +20,10 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration)
     {
         // EF Core with SQL Server
+        var connectionString = ConnectionStringResolver.Resolve(configuration);
+
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection") ??
-                configuration.GetConnectionString("AlternativeConnection"),
-                sqlOptions =>
+            options.UseSqlServer(connectionString, sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);

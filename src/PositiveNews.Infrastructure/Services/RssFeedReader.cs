@@ -103,6 +103,11 @@ public class RssFeedReader : IRssFeedReader
         {
             dto.PublishedDate = pubDate;
         }
+        else
+        {
+            _logger.LogDebug("Failed to read Publication date for article {dto.Title}. Current date installed.", dto.Title);
+            dto.PublishedDate = DateTime.UtcNow;
+        }
 
         var descriptionElement = itemElement.Element("description");
         dto.Description = descriptionElement?.Value;
@@ -201,7 +206,7 @@ public class RssFeedReader : IRssFeedReader
         {
             _logger.LogWarning(ex, "Error extracting image URL from HTML");
         }
-        
+
         return null;
     }
 
