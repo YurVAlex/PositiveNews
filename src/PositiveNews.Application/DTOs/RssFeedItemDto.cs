@@ -6,14 +6,17 @@ namespace PositiveNews.Application.DTOs;
 /// </summary>
 public class RssFeedItemDto
 {
-    public string Title { get; set; } = string.Empty;
-    public string Link { get; set; } = string.Empty;
-    public string ContentRaw { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string? Author { get; set; }
-    public DateTime PublishedDate { get; set; }
-    public string? ExternalId { get; set; }     // RSS <guid> or <link> as fallback
-    public string? ImageUrl { get; set; }
+    public required string Title { get; init; }
+    public required string Link { get; init; }
 
-    public List<String> Topics { get; set; } = ["Default"];
+    public required string ContentRaw { get; init; }
+    public required string Description { get; init; }
+    public string? Author { get; init; }
+
+    public DateTime? PublishedDate { get; init; }
+
+    public string? ExternalId { get; init; }
+    public string? ImageUrl { get; init; }
+
+    public List<string>? Topics { get; init; } 
 }

@@ -49,6 +49,7 @@ public static class DataSeeder
 
         var topics = new List<Topic>
         {
+            new() { Name = "Default",          Slug = "default",          Description = "Not categorized" },
             new() { Name = "Technology",       Slug = "technology",       Description = "Tech innovations and digital trends" },
             new() { Name = "Health",           Slug = "health",           Description = "Wellness, medicine, and health science" },
             new() { Name = "Science",          Slug = "science",          Description = "Scientific discoveries and research" },

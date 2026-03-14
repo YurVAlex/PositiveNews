@@ -30,7 +30,7 @@ public class IngestionService : IIngestionService
     /// <summary>
     /// Small delay between persisting individual articles within a single source batch.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(2); //TODO - These can be made configurable.
+    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(1); //TODO - These can be made configurable.
 
     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
 

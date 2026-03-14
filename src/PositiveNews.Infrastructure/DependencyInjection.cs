@@ -41,6 +41,8 @@ public static class DependencyInjection
 
         // Application services
         services.AddScoped<IRssFeedReader, RssFeedReader>();
+        services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
+        services.AddScoped<IRssItemParser, RssItemParser>();
         services.AddScoped<IIngestionService, IngestionService>();
 
         // Background services
