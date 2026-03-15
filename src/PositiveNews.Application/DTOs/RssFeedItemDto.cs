@@ -9,9 +9,10 @@ public class RssFeedItemDto
     public required string Title { get; init; }
     public required string Link { get; init; }
 
-    public required string ContentRaw { get; init; }
-    public required string Description { get; init; }
+    public required string ContentRaw { get; set; }
+    public required string Description { get; set; }
     public string? Author { get; init; }
+    public string? ContentClean { get; set; }
 
     public DateTime? PublishedDate { get; init; }
 

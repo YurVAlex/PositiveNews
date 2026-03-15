@@ -2,5 +2,5 @@
 
 public interface IRssItemElementValidator
 {
-    bool IsValid(XElement itemElement);
+    bool IsValid(XElement itemElement, XNamespace contentNs);
 }

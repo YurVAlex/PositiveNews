@@ -1,8 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
-namespace PositiveNews.Infrastructure.Persistence.Connection;
-
 public static class ConnectionStringResolver
 {
     public static string Resolve(IConfiguration configuration)
@@ -10,20 +8,29 @@ public static class ConnectionStringResolver
         var defaultConn = configuration.GetConnectionString("DefaultConnection");
         var altConn = configuration.GetConnectionString("AlternativeConnection");
 
-        if (CanConnect(defaultConn))
+        if (CanConnectToServer(defaultConn))
             return defaultConn!;
 
-        return altConn!;
+        if (CanConnectToServer(altConn))
+            return altConn!;
+
+        throw new InvalidOperationException(
+            "Unable to connect to either DefaultConnection or AlternativeConnection.");
     }
 
-    private static bool CanConnect(string? connectionString)
+    private static bool CanConnectToServer(string? connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             return false;
 
         try
         {
-            using var connection = new SqlConnection(connectionString);
+            var builder = new SqlConnectionStringBuilder(connectionString)
+            {
+                InitialCatalog = "master"
+            };
+
+            using var connection = new SqlConnection(builder.ConnectionString);
             connection.Open();
             return true;
         }

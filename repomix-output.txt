@@ -54,8 +54,11 @@ README.md
 repomix.config.json
 src/PositiveNews.Application/DependencyInjection.cs
 src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
+src/PositiveNews.Application/Interfaces/IFeedItemCleaner.cs
 src/PositiveNews.Application/Interfaces/IIngestionService.cs
 src/PositiveNews.Application/Interfaces/IRssFeedReader.cs
+src/PositiveNews.Application/Interfaces/IRssItemElementValidator.cs
+src/PositiveNews.Application/Interfaces/IRssItemParser.cs
 src/PositiveNews.Application/PositiveNews.Application.csproj
 src/PositiveNews.Application/Properties/launchSettings.json
 src/PositiveNews.Domain/Constants/SchemaNames.cs
@@ -96,8 +99,11 @@ src/PositiveNews.Infrastructure/Persistence/Configurations/UserTopicFilterConfig
 src/PositiveNews.Infrastructure/Persistence/Connection/ConnectionStringResolver.cs
 src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
+src/PositiveNews.Infrastructure/Services/FeedItemCleaner.cs
 src/PositiveNews.Infrastructure/Services/IngestionService.cs
 src/PositiveNews.Infrastructure/Services/RssFeedReader.cs
+src/PositiveNews.Infrastructure/Services/RssItemElementValidator.cs
+src/PositiveNews.Infrastructure/Services/RssItemParser.cs
 src/PositiveNews.Web/appsettings.json
 src/PositiveNews.Web/Controllers/HomeController.cs
 src/PositiveNews.Web/Models/ErrorViewModel.cs
@@ -587,17 +593,38 @@ File: src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
  6: /// </summary>
  7: public class RssFeedItemDto
  8: {
- 9:     public string Title { get; set; } = string.Empty;
-10:     public string Link { get; set; } = string.Empty;
-11:     public string ContentRaw { get; set; } = string.Empty;
-12:     public string? Description { get; set; }
-13:     public string? Author { get; set; }
-14:     public DateTime PublishedDate { get; set; }
-15:     public string? ExternalId { get; set; }     // RSS <guid> or <link> as fallback
-16:     public string? ImageUrl { get; set; }
-17: 
-18:     public List<String> Topics { get; set; } = ["Default"];
-19: }
+ 9:     public required string Title { get; init; }
+10:     public required string Link { get; init; }
+11: 
+12:     public required string ContentRaw { get; set; }
+13:     public required string Description { get; set; }
+14:     public string? Author { get; init; }
+15:     public string? ContentClean { get; set; }
+16: 
+17:     public DateTime? PublishedDate { get; init; }
+18: 
+19:     public string? ExternalId { get; init; }
+20:     public string? ImageUrl { get; init; }
+21: 
+22:     public List<string>? Topics { get; init; } 
+23: }
+
+================
+File: src/PositiveNews.Application/Interfaces/IFeedItemCleaner.cs
+================
+ 1: using PositiveNews.Application.DTOs;
+ 2: using System;
+ 3: using System.Collections.Generic;
+ 4: using System.Text;
+ 5: using System.Xml.Linq;
+ 6: 
+ 7: namespace PositiveNews.Application.Interfaces
+ 8: {
+ 9:     public interface IFeedItemCleaner
+10:     {
+11:         RssFeedItemDto Clean(RssFeedItemDto dto);
+12:     }
+13: }
 
 ================
 File: src/PositiveNews.Application/Interfaces/IIngestionService.cs
@@ -630,6 +657,28 @@ File: src/PositiveNews.Application/Interfaces/IRssFeedReader.cs
 12:     /// </summary>
 13:     Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default);
 14: }
+
+================
+File: src/PositiveNews.Application/Interfaces/IRssItemElementValidator.cs
+================
+1: using System.Xml.Linq;
+2: 
+3: public interface IRssItemElementValidator
+4: {
+5:     bool IsValid(XElement itemElement, XNamespace contentNs);
+6: }
+
+================
+File: src/PositiveNews.Application/Interfaces/IRssItemParser.cs
+================
+1: using PositiveNews.Application.DTOs;
+2: using System.Xml.Linq;
+3: 
+4: public interface IRssItemParser
+5: {
+6:     RssFeedItemDto Parse(XElement itemElement, XNamespace contentNs,
+7:                          XNamespace DcNs, XNamespace MediaNs);
+8: }
 
 ================
 File: src/PositiveNews.Application/PositiveNews.Application.csproj
@@ -1094,50 +1143,52 @@ File: src/PositiveNews.Infrastructure/DependencyInjection.cs
  5: using PositiveNews.Application.Interfaces;
  6: using PositiveNews.Infrastructure.BackgroundJobs;
  7: using PositiveNews.Infrastructure.Persistence;
- 8: using PositiveNews.Infrastructure.Persistence.Connection;
- 9: using PositiveNews.Infrastructure.Services;
-10: 
-11: namespace PositiveNews.Infrastructure;
-12: 
-13: /// <summary>
-14: /// Clean Registration Pattern for the Infrastructure layer.
-15: /// Call this single method from WebApi's Program.cs.
-16: /// </summary>
-17: public static class DependencyInjection
-18: {
-19:     public static IServiceCollection AddInfrastructureServices(
-20:         this IServiceCollection services, IConfiguration configuration)
-21:     {
-22:         // EF Core with SQL Server
-23:         var connectionString = ConnectionStringResolver.Resolve(configuration);
-24: 
-25:         services.AddDbContext<AppDbContext>(options =>
-26:             options.UseSqlServer(connectionString, sqlOptions =>
-27:                 {
-28:                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-29:                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
-30:                 }));
-31: 
-32:         // HttpClient for RSS feed fetching.
-33:         // Configured with a polite User-Agent and a reasonable timeout.
-34:         services.AddHttpClient("RssFeedClient", client =>
-35:         {
-36:             client.Timeout = TimeSpan.FromSeconds(30);
-37:             client.DefaultRequestHeaders.UserAgent.ParseAdd(
-38:                 "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
-39:             client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
-40:         });
-41: 
-42:         // Application services
-43:         services.AddScoped<IRssFeedReader, RssFeedReader>();
-44:         services.AddScoped<IIngestionService, IngestionService>();
-45: 
-46:         // Background services
-47:         services.AddHostedService<IngestionBackgroundService>();
-48: 
-49:         return services;
-50:     }
-51: }
+ 8: using PositiveNews.Infrastructure.Services;
+ 9: 
+10: namespace PositiveNews.Infrastructure;
+11: 
+12: /// <summary>
+13: /// Clean Registration Pattern for the Infrastructure layer.
+14: /// Call this single method from WebApi's Program.cs.
+15: /// </summary>
+16: public static class DependencyInjection
+17: {
+18:     public static IServiceCollection AddInfrastructureServices(
+19:         this IServiceCollection services, IConfiguration configuration)
+20:     {
+21:         // EF Core with SQL Server
+22:         var connectionString = ConnectionStringResolver.Resolve(configuration);
+23: 
+24:         services.AddDbContext<AppDbContext>(options =>
+25:             options.UseSqlServer(connectionString, sqlOptions =>
+26:                 {
+27:                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+28:                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
+29:                 }));
+30: 
+31:         // HttpClient for RSS feed fetching.
+32:         // Configured with a polite User-Agent and a reasonable timeout.
+33:         services.AddHttpClient("RssFeedClient", client =>
+34:         {
+35:             client.Timeout = TimeSpan.FromSeconds(30);
+36:             client.DefaultRequestHeaders.UserAgent.ParseAdd(
+37:                 "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
+38:             client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
+39:         });
+40: 
+41:         // Application services
+42:         services.AddScoped<IRssFeedReader, RssFeedReader>();
+43:         services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
+44:         services.AddScoped<IRssItemParser, RssItemParser>();
+45:         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
+46:         services.AddScoped<IIngestionService, IngestionService>();
+47: 
+48:         // Background services
+49:         services.AddHostedService<IngestionBackgroundService>();
+50: 
+51:         return services;
+52:     }
+53: }
 
 ================
 File: src/PositiveNews.Infrastructure/Persistence/AppDbContext.cs
@@ -1688,38 +1739,45 @@ File: src/PositiveNews.Infrastructure/Persistence/Connection/ConnectionStringRes
  1: using Microsoft.Data.SqlClient;
  2: using Microsoft.Extensions.Configuration;
  3: 
- 4: namespace PositiveNews.Infrastructure.Persistence.Connection;
- 5: 
- 6: public static class ConnectionStringResolver
- 7: {
- 8:     public static string Resolve(IConfiguration configuration)
- 9:     {
-10:         var defaultConn = configuration.GetConnectionString("DefaultConnection");
-11:         var altConn = configuration.GetConnectionString("AlternativeConnection");
-12: 
-13:         if (CanConnect(defaultConn))
-14:             return defaultConn!;
-15: 
-16:         return altConn!;
-17:     }
-18: 
-19:     private static bool CanConnect(string? connectionString)
-20:     {
-21:         if (string.IsNullOrWhiteSpace(connectionString))
-22:             return false;
-23: 
-24:         try
-25:         {
-26:             using var connection = new SqlConnection(connectionString);
-27:             connection.Open();
-28:             return true;
-29:         }
-30:         catch
-31:         {
-32:             return false;
-33:         }
-34:     }
-35: }
+ 4: public static class ConnectionStringResolver
+ 5: {
+ 6:     public static string Resolve(IConfiguration configuration)
+ 7:     {
+ 8:         var defaultConn = configuration.GetConnectionString("DefaultConnection");
+ 9:         var altConn = configuration.GetConnectionString("AlternativeConnection");
+10: 
+11:         if (CanConnectToServer(defaultConn))
+12:             return defaultConn!;
+13: 
+14:         if (CanConnectToServer(altConn))
+15:             return altConn!;
+16: 
+17:         throw new InvalidOperationException(
+18:             "Unable to connect to either DefaultConnection or AlternativeConnection.");
+19:     }
+20: 
+21:     private static bool CanConnectToServer(string? connectionString)
+22:     {
+23:         if (string.IsNullOrWhiteSpace(connectionString))
+24:             return false;
+25: 
+26:         try
+27:         {
+28:             var builder = new SqlConnectionStringBuilder(connectionString)
+29:             {
+30:                 InitialCatalog = "master"
+31:             };
+32: 
+33:             using var connection = new SqlConnection(builder.ConnectionString);
+34:             connection.Open();
+35:             return true;
+36:         }
+37:         catch
+38:         {
+39:             return false;
+40:         }
+41:     }
+42: }
 
 ================
 File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
@@ -1775,104 +1833,105 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
  49: 
  50:         var topics = new List<Topic>
  51:         {
- 52:             new() { Name = "Technology",       Slug = "technology",       Description = "Tech innovations and digital trends" },
- 53:             new() { Name = "Health",           Slug = "health",           Description = "Wellness, medicine, and health science" },
- 54:             new() { Name = "Science",          Slug = "science",          Description = "Scientific discoveries and research" },
- 55:             new() { Name = "Environment",      Slug = "environment",      Description = "Climate, ecology, and conservation" },
- 56:             new() { Name = "Space",            Slug = "space",            Description = "Astronomy, space exploration, and NASA" },
- 57:             new() { Name = "Travel",           Slug = "travel",           Description = "Destinations, culture, and adventure" },
- 58:             new() { Name = "Animals",          Slug = "animals",          Description = "Wildlife and animal stories" },
- 59:             new() { Name = "Inspiring",        Slug = "inspiring",        Description = "Uplifting and motivational stories" },
- 60:             new() { Name = "Arts & Culture",   Slug = "arts-culture",     Description = "Art, music, literature, and culture" },
- 61:             new() { Name = "Education",        Slug = "education",        Description = "Learning, teaching, and academic breakthroughs" },
- 62:             new() { Name = "Business",         Slug = "business",         Description = "Economy, startups, and corporate responsibility" },
- 63:             new() { Name = "Sports",           Slug = "sports",           Description = "Athletic achievements and sports news" },
- 64:             new() { Name = "General",          Slug = "general",          Description = "Uncategorized positive news" }
- 65:         };
- 66: 
- 67:         context.Topics.AddRange(topics);
- 68:         await context.SaveChangesAsync();
- 69:         logger.LogInformation("Seeded {Count} topics.", topics.Count);
- 70:     }
- 71: 
- 72:     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger)
- 73:     {
- 74:         if (await context.Sources.AnyAsync()) return;
- 75: 
- 76:         var sources = new List<Source>
- 77:         {
- 78:             new()
- 79:             {
- 80:                 Name = "NVIDIA Blog",
- 81:                 BaseUrl = "https://blogs.nvidia.com/",
- 82:                 FeedUrl = "https://blogs.nvidia.com/feed/",
- 83:                 TrustScore = 1.0m,
- 84:                 DefaultLanguageCode = "en-US",
- 85:                 Description = "Latest news from NVIDIA.",
- 86:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
- 87:             },
- 88:             new()
- 89:             {
- 90:                 Name = "The Optimist Daily",
- 91:                 BaseUrl = "https://www.optimistdaily.com",
- 92:                 FeedUrl = "https://www.optimistdaily.com/feed/",
- 93:                 TrustScore = 1.0m,
- 94:                 DefaultLanguageCode = "en",
- 95:                 Description = "Making solutions the news.",
- 96:                 LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
- 97:             },
- 98:             new()
- 99:             {
-100:                 Name = "NASA Breaking News",
-101:                 BaseUrl = "https://www.nasa.gov",
-102:                 FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
-103:                 TrustScore = 1.0m,
-104:                 DefaultLanguageCode = "en",
-105:                 Description = "Latest news from NASA.",
-106:                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
-107:             },
-108:             new()
-109:             {
-110:                 Name = "MIT News",
-111:                 BaseUrl = "https://web.mit.edu/",
-112:                 FeedUrl = "https://news.mit.edu/rss/feed",
-113:                 TrustScore = 1.0m,
-114:                 DefaultLanguageCode = "en",
-115:                 Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
-116:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
-117:             }
-118:         };
-119: 
-120:         context.Sources.AddRange(sources);
-121:         await context.SaveChangesAsync();
-122:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
-123:     }
-124: 
-125:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
-126:     {
-127:         if (await context.Users.AnyAsync()) return;
-128: 
-129:         // Seed a system/admin user to own future moderation actions.
-130:         // In production, the password hash would come from a proper Identity hasher.
-131:         var adminUser = new User
-132:         {
-133:             Email = "admin@positivenews.local",
-134:             EmailConfirmed = true,
-135:             Name = "System Administrator",
-136:             PasswordHash = null, // Will be set via proper Auth flow later.
-137:             IsActive = true
-138:         };
-139: 
-140:         context.Users.Add(adminUser);
-141:         await context.SaveChangesAsync();
-142: 
-143:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-144:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
-145:         await context.SaveChangesAsync();
-146: 
-147:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
-148:     }
-149: }
+ 52:             new() { Name = "Default",          Slug = "default",          Description = "Not categorized" },
+ 53:             new() { Name = "Technology",       Slug = "technology",       Description = "Tech innovations and digital trends" },
+ 54:             new() { Name = "Health",           Slug = "health",           Description = "Wellness, medicine, and health science" },
+ 55:             new() { Name = "Science",          Slug = "science",          Description = "Scientific discoveries and research" },
+ 56:             new() { Name = "Environment",      Slug = "environment",      Description = "Climate, ecology, and conservation" },
+ 57:             new() { Name = "Space",            Slug = "space",            Description = "Astronomy, space exploration, and NASA" },
+ 58:             new() { Name = "Travel",           Slug = "travel",           Description = "Destinations, culture, and adventure" },
+ 59:             new() { Name = "Animals",          Slug = "animals",          Description = "Wildlife and animal stories" },
+ 60:             new() { Name = "Inspiring",        Slug = "inspiring",        Description = "Uplifting and motivational stories" },
+ 61:             new() { Name = "Arts & Culture",   Slug = "arts-culture",     Description = "Art, music, literature, and culture" },
+ 62:             new() { Name = "Education",        Slug = "education",        Description = "Learning, teaching, and academic breakthroughs" },
+ 63:             new() { Name = "Business",         Slug = "business",         Description = "Economy, startups, and corporate responsibility" },
+ 64:             new() { Name = "Sports",           Slug = "sports",           Description = "Athletic achievements and sports news" },
+ 65:             new() { Name = "General",          Slug = "general",          Description = "Uncategorized positive news" }
+ 66:         };
+ 67: 
+ 68:         context.Topics.AddRange(topics);
+ 69:         await context.SaveChangesAsync();
+ 70:         logger.LogInformation("Seeded {Count} topics.", topics.Count);
+ 71:     }
+ 72: 
+ 73:     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger)
+ 74:     {
+ 75:         if (await context.Sources.AnyAsync()) return;
+ 76: 
+ 77:         var sources = new List<Source>
+ 78:         {
+ 79:             new()
+ 80:             {
+ 81:                 Name = "NVIDIA Blog",
+ 82:                 BaseUrl = "https://blogs.nvidia.com/",
+ 83:                 FeedUrl = "https://blogs.nvidia.com/feed/",
+ 84:                 TrustScore = 1.0m,
+ 85:                 DefaultLanguageCode = "en-US",
+ 86:                 Description = "Latest news from NVIDIA.",
+ 87:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
+ 88:             },
+ 89:             new()
+ 90:             {
+ 91:                 Name = "The Optimist Daily",
+ 92:                 BaseUrl = "https://www.optimistdaily.com",
+ 93:                 FeedUrl = "https://www.optimistdaily.com/feed/",
+ 94:                 TrustScore = 1.0m,
+ 95:                 DefaultLanguageCode = "en",
+ 96:                 Description = "Making solutions the news.",
+ 97:                 LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
+ 98:             },
+ 99:             new()
+100:             {
+101:                 Name = "NASA Breaking News",
+102:                 BaseUrl = "https://www.nasa.gov",
+103:                 FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+104:                 TrustScore = 1.0m,
+105:                 DefaultLanguageCode = "en",
+106:                 Description = "Latest news from NASA.",
+107:                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
+108:             },
+109:             new()
+110:             {
+111:                 Name = "MIT News",
+112:                 BaseUrl = "https://web.mit.edu/",
+113:                 FeedUrl = "https://news.mit.edu/rss/feed",
+114:                 TrustScore = 1.0m,
+115:                 DefaultLanguageCode = "en",
+116:                 Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
+117:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
+118:             }
+119:         };
+120: 
+121:         context.Sources.AddRange(sources);
+122:         await context.SaveChangesAsync();
+123:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
+124:     }
+125: 
+126:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
+127:     {
+128:         if (await context.Users.AnyAsync()) return;
+129: 
+130:         // Seed a system/admin user to own future moderation actions.
+131:         // In production, the password hash would come from a proper Identity hasher.
+132:         var adminUser = new User
+133:         {
+134:             Email = "admin@positivenews.local",
+135:             EmailConfirmed = true,
+136:             Name = "System Administrator",
+137:             PasswordHash = null, // Will be set via proper Auth flow later.
+138:             IsActive = true
+139:         };
+140: 
+141:         context.Users.Add(adminUser);
+142:         await context.SaveChangesAsync();
+143: 
+144:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
+145:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
+146:         await context.SaveChangesAsync();
+147: 
+148:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
+149:     }
+150: }
 
 ================
 File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
@@ -1885,16 +1944,16 @@ File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
  6:   </ItemGroup>
  7: 
  8:   <ItemGroup>
- 9:     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-10:     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />
-11: 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">    
-12:       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-13:       <PrivateAssets>all</PrivateAssets>
-14:     </PackageReference>
-15:     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
-16:     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
-17:     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-18: 	<PackageReference Include="System.ServiceModel.Syndication" Version="10.0.3" />
+ 9:     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+10:     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+11:     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />
+12: 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">    
+13:       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+14:       <PrivateAssets>all</PrivateAssets>
+15:     </PackageReference>
+16:     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
+17:     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
+18:     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
 19:   </ItemGroup>
 20: 
 21:   <PropertyGroup>
@@ -1904,6 +1963,137 @@ File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
 25:   </PropertyGroup>
 26: 
 27: </Project>
+
+================
+File: src/PositiveNews.Infrastructure/Services/FeedItemCleaner.cs
+================
+  1: using HtmlAgilityPack;
+  2: using PositiveNews.Application.DTOs;
+  3: using PositiveNews.Application.Interfaces;
+  4: using System.Net;
+  5: using System.Text;
+  6: using System.Text.RegularExpressions;
+  7: 
+  8: namespace PositiveNews.Infrastructure.Services
+  9: {
+ 10:     internal class FeedItemCleaner : IFeedItemCleaner
+ 11:     {
+ 12:         public RssFeedItemDto Clean(RssFeedItemDto dto)
+ 13:         {
+ 14:             dto.Description = CleanDescription(dto.Description);
+ 15:             dto.ContentClean = CleanContent(dto.ContentRaw);
+ 16: 
+ 17:             return dto;
+ 18:         }
+ 19: 
+ 20:         private static string CleanDescription(string description)
+ 21:         {
+ 22:             if (!description.Contains('<'))
+ 23:                 return WebUtility.HtmlDecode(description).Trim();
+ 24: 
+ 25:             var doc = LoadDocument(description);
+ 26: 
+ 27:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
+ 28: 
+ 29:             if (paragraphs == null || paragraphs.Count == 0)
+ 30:                 return WebUtility.HtmlDecode(doc.DocumentNode.InnerText).Trim();
+ 31: 
+ 32:             var texts = paragraphs
+ 33:                 .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
+ 34:                 .Where(t => !string.IsNullOrWhiteSpace(t));
+ 35: 
+ 36:             return string.Join(" ", texts);
+ 37:         }
+ 38: 
+ 39:         private static string CleanContent(string rawContent)
+ 40:         {
+ 41:             var doc = LoadDocument(rawContent);
+ 42: 
+ 43:             var builder = new StringBuilder();
+ 44: 
+ 45:             AppendParagraphs(doc, builder);
+ 46:             AppendImages(doc, builder);
+ 47: 
+ 48:             var cleaned = RemoveTrailingPostLinks(builder.ToString());
+ 49: 
+ 50:             return cleaned.Trim();
+ 51:         }
+ 52: 
+ 53:         private static HtmlDocument LoadDocument(string html)
+ 54:         {
+ 55:             var doc = new HtmlDocument();
+ 56:             doc.LoadHtml(html);
+ 57:             return doc;
+ 58:         }
+ 59: 
+ 60:         private static void AppendParagraphs(HtmlDocument doc, StringBuilder builder)
+ 61:         {
+ 62:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
+ 63: 
+ 64:             if (paragraphs == null)
+ 65:                 return;
+ 66: 
+ 67:             foreach (var p in paragraphs)
+ 68:             {
+ 69:                 var text = HtmlEntity.DeEntitize(p.InnerText).Trim();
+ 70: 
+ 71:                 if (string.IsNullOrWhiteSpace(text))
+ 72:                     continue;
+ 73: 
+ 74:                 if (ShouldRemoveParagraph(text))
+ 75:                     continue;
+ 76: 
+ 77:                 RemoveLinks(p);
+ 78: 
+ 79:                 builder.AppendLine(p.OuterHtml);
+ 80:             }
+ 81:         }
+ 82: 
+ 83:         private static void AppendImages(HtmlDocument doc, StringBuilder builder)
+ 84:         {
+ 85:             var images = doc.DocumentNode.SelectNodes("//img");
+ 86: 
+ 87:             if (images == null)
+ 88:                 return;
+ 89: 
+ 90:             foreach (var img in images)
+ 91:                 builder.AppendLine(img.OuterHtml);
+ 92:         }
+ 93: 
+ 94:         private static bool ShouldRemoveParagraph(string text)
+ 95:         {
+ 96:             var lower = text.ToLowerInvariant();
+ 97: 
+ 98:             return lower.Contains("did this solution stand out")
+ 99:                 || lower.Contains("becoming an emissary")
+100:                 || lower.StartsWith("the post ")
+101:                 || lower.Contains("appeared first on");
+102:         }
+103: 
+104:         private static void RemoveLinks(HtmlNode node)
+105:         {
+106:             var links = node.SelectNodes(".//a");
+107: 
+108:             if (links == null)
+109:                 return;
+110: 
+111:             foreach (var link in links)
+112:             {
+113:                 var textNode = HtmlTextNode.CreateNode(link.InnerText);
+114:                 link.ParentNode.ReplaceChild(textNode, link);
+115:             }
+116:         }
+117: 
+118:         private static string RemoveTrailingPostLinks(string content)
+119:         {
+120:             return Regex.Replace(
+121:                 content,
+122:                 @"<\/p>\s*The post\s*<a.*?<\/a>.*",
+123:                 "",
+124:                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
+125:         }
+126:     }
+127: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
@@ -1940,7 +2130,7 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
  30:     /// <summary>
  31:     /// Small delay between persisting individual articles within a single source batch.
  32:     /// </summary>
- 33:     private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(2); //TODO - These can be made configurable.
+ 33:     private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(1); //TODO - These can be made configurable.
  34: 
  35:     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
  36: 
@@ -2057,11 +2247,11 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
 147:                 {
 148:                     SourceId = source.Id,
 149:                     ExternalId = item.ExternalId,
-150:                     Title = item.Title.Length > 500 ? item.Title[..500] : item.Title,
+150:                     Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
 151:                     Author = item.Author,
 152:                     Url = item.Link,
 153:                     ImageUrl = item.ImageUrl,
-154:                     PublishedAt = item.PublishedDate,
+154:                     PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
 155:                     IngestedAt = DateTime.UtcNow,
 156:                     LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
 157:                     RegionCode = "Global",
@@ -2076,306 +2266,363 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
 166:                 {
 167:                     Id = articleMeta.Id,
 168:                     ContentRaw = item.ContentRaw,
-169:                     SummaryShort = item.Description
-170:                 };
-171:                 context.ArticlesContent.Add(articleContent);
-172:                 await context.SaveChangesAsync(cancellationToken);
-173: 
-174:                 newArticleCount++;
-175:                 _logger.LogInformation("Ingested new article: [{Id}] {Title}", articleMeta.Id, articleMeta.Title);
-176: 
-177:                 // Small polite delay between articles.
-178:                 await Task.Delay(DelayBetweenArticles, cancellationToken);
-179:             }
-180: 
-181:             run.Status = IngestionStatus.Success;
-182:             run.ItemsFetched = newArticleCount;
-183:             run.FinishedAt = DateTime.UtcNow;
-184:             await context.SaveChangesAsync(cancellationToken);
-185: 
-186:             _logger.LogInformation(
-187:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
-188:                 source.Name, newArticleCount, feedItems.Count);
-189:         }
-190:         catch (OperationCanceledException)
-191:         {
-192:             _logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
-193:             run.Status = IngestionStatus.Partial;
-194:             run.ErrorMessage = "Operation was cancelled.";
-195:             run.ItemsFetched = newArticleCount;
-196:             run.FinishedAt = DateTime.UtcNow;
-197:             await context.SaveChangesAsync(CancellationToken.None); // Save even on cancellation.
-198:         }
-199:         catch (Exception ex)
-200:         {
-201:             _logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
-202:             run.Status = IngestionStatus.Failed;
-203:             run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
-204:             run.ItemsFetched = newArticleCount;
-205:             run.FinishedAt = DateTime.UtcNow;
-206:             await context.SaveChangesAsync(CancellationToken.None);
-207:         }
-208:     }
-209: }
+169:                     SummaryShort = item.Description,
+170:                     ContentClean = item.ContentClean
+171:                 };
+172:                 context.ArticlesContent.Add(articleContent);
+173:                 await context.SaveChangesAsync(cancellationToken);
+174: 
+175:                 newArticleCount++;
+176:                 _logger.LogInformation("Ingested new article: [{Id}] {Title}", articleMeta.Id, articleMeta.Title);
+177: 
+178:                 // Small polite delay between articles.
+179:                 await Task.Delay(DelayBetweenArticles, cancellationToken);
+180:             }
+181: 
+182:             run.Status = IngestionStatus.Success;
+183:             run.ItemsFetched = newArticleCount;
+184:             run.FinishedAt = DateTime.UtcNow;
+185:             await context.SaveChangesAsync(cancellationToken);
+186: 
+187:             _logger.LogInformation(
+188:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
+189:                 source.Name, newArticleCount, feedItems.Count);
+190:         }
+191:         catch (OperationCanceledException)
+192:         {
+193:             _logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
+194:             run.Status = IngestionStatus.Partial;
+195:             run.ErrorMessage = "Operation was cancelled.";
+196:             run.ItemsFetched = newArticleCount;
+197:             run.FinishedAt = DateTime.UtcNow;
+198:             await context.SaveChangesAsync(CancellationToken.None); // Save even on cancellation.
+199:         }
+200:         catch (Exception ex)
+201:         {
+202:             _logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
+203:             run.Status = IngestionStatus.Failed;
+204:             run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
+205:             run.ItemsFetched = newArticleCount;
+206:             run.FinishedAt = DateTime.UtcNow;
+207:             await context.SaveChangesAsync(CancellationToken.None);
+208:         }
+209:     }
+210: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/RssFeedReader.cs
 ================
-  1: using Microsoft.Extensions.DependencyInjection;
+ 1: using Microsoft.Extensions.DependencyInjection;
+ 2: using Microsoft.Extensions.Logging;
+ 3: using PositiveNews.Application.DTOs;
+ 4: using PositiveNews.Application.Interfaces;
+ 5: using System.ServiceModel.Syndication;
+ 6: using System.Xml;
+ 7: using System.Xml.Linq;
+ 8: 
+ 9: namespace PositiveNews.Infrastructure.Services;
+10: 
+11: /// <summary>
+12: /// Fetches and parses an RSS/Atom feed using System.ServiceModel.Syndication.
+13: /// This class makes HTTP calls to external sources.
+14: /// </summary>
+15: public class RssFeedReader : IRssFeedReader
+16: {
+17:     private readonly IHttpClientFactory _httpClientFactory; // registered in Infrastructure.DependencyInjection (services.AddHttpClient())
+18:     private readonly ILogger<RssFeedReader> _logger;
+19:     private readonly IRssItemElementValidator _validator; 
+20:     private readonly IRssItemParser _parser;
+21:     private readonly IFeedItemCleaner _cleaner;
+22: 
+23:     // XML namespaces
+24:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
+25:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+26:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
+27: 
+28:     public RssFeedReader(IHttpClientFactory httpClientFactory, ILogger<RssFeedReader> logger,
+29:                          IRssItemElementValidator validator, IRssItemParser parser,
+30:                          IFeedItemCleaner cleaner)
+31:     {
+32:         _httpClientFactory = httpClientFactory;
+33:         _logger = logger;
+34:         _validator = validator;
+35:         _parser = parser;
+36:         _cleaner = cleaner;
+37:     }
+38: 
+39:     public async Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default)
+40:     {
+41:         var items = new List<RssFeedItemDto>();
+42: 
+43:         try
+44:         {
+45:             _logger.LogInformation("Fetching RSS feed from {FeedUrl}", feedUrl);
+46: 
+47:             var httpClient = _httpClientFactory.CreateClient("RssFeedClient");
+48:             using var response = await httpClient.GetAsync(feedUrl, cancellationToken);
+49:             response.EnsureSuccessStatusCode();
+50: 
+51:             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+52: 
+53:             var doc = XDocument.Load(stream);
+54:             var itemElements = doc.Descendants("item").ToList();
+55: 
+56:             if (itemElements is null)
+57:             {
+58:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
+59:                 return items;
+60:             }
+61:             _logger.LogInformation("Found {Count} items in RSS feed", itemElements.Count);
+62: 
+63:             foreach (var itemElement in itemElements)
+64:             {
+65:                 try
+66:                 {
+67:                     if (!_validator.IsValid(itemElement, ContentNs))
+68:                         continue;
+69: 
+70:                     var dto = _parser.Parse(itemElement, MediaNs, ContentNs, DcNs);
+71: 
+72:                     _cleaner.Clean(dto);
+73: 
+74:                     items.Add(dto);
+75:                 }
+76:                 catch (Exception ex)
+77:                 {
+78:                     _logger.LogWarning(ex, "Error parsing RSS item");
+79:                 }
+80:             }
+81:             _logger.LogInformation("Successfully parsed {Count} items from {FeedUrl}", items.Count, feedUrl);
+82:         }
+83:         catch (Exception ex)
+84:         {
+85:             _logger.LogError(ex, "Failed to read feed from {FeedUrl}.", feedUrl);
+86:         }
+87:         return items;
+88:     }
+89:    
+90: }
+
+================
+File: src/PositiveNews.Infrastructure/Services/RssItemElementValidator.cs
+================
+ 1: using System.Xml.Linq;
+ 2: 
+ 3: public class RssItemElementValidator : IRssItemElementValidator
+ 4: {
+ 5:     public bool IsValid(XElement itemElement, XNamespace contentNs) //TODO: Additional validation
+ 6:     {
+ 7:        var fields = new[] { "title", "link", "description", contentNs + "encoded" };
+ 8: 
+ 9:         if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
+10:             return false;
+11: 
+12:         return true;
+13:     }
+14: }
+
+================
+File: src/PositiveNews.Infrastructure/Services/RssItemParser.cs
+================
+  1: using HtmlAgilityPack;
   2: using Microsoft.Extensions.Logging;
   3: using PositiveNews.Application.DTOs;
-  4: using PositiveNews.Application.Interfaces;
-  5: using System.ServiceModel.Syndication;
-  6: using System.Xml;
-  7: using System.Xml.Linq;
-  8: 
-  9: namespace PositiveNews.Infrastructure.Services;
- 10: 
- 11: /// <summary>
- 12: /// Fetches and parses an RSS/Atom feed using System.ServiceModel.Syndication.
- 13: /// This class makes HTTP calls to external sources.
- 14: /// </summary>
- 15: public class RssFeedReader : IRssFeedReader
- 16: {
- 17:     private readonly IHttpClientFactory _httpClientFactory; // registered in Infrastructure.DependencyInjection (services.AddHttpClient())
- 18:     private readonly ILogger<RssFeedReader> _logger;
- 19: 
- 20:     // XML namespaces
- 21:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
- 22:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
- 23:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
- 24: 
- 25:     public RssFeedReader(IHttpClientFactory httpClientFactory, ILogger<RssFeedReader> logger)
- 26:     {
- 27:         _httpClientFactory = httpClientFactory;
- 28:         _logger = logger;
- 29:     }
- 30: 
- 31:     public async Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default)
- 32:     {
- 33:         var items = new List<RssFeedItemDto>();
- 34: 
- 35:         try
- 36:         {
- 37:             _logger.LogInformation("Fetching RSS feed from {FeedUrl}", feedUrl);
- 38: 
- 39:             var httpClient = _httpClientFactory.CreateClient("RssFeedClient");
- 40:             using var response = await httpClient.GetAsync(feedUrl, cancellationToken);
- 41:             response.EnsureSuccessStatusCode();
- 42: 
- 43:             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
- 44: 
- 45:             var doc = XDocument.Load(stream);
- 46:             var itemElements = doc.Descendants("item").ToList();
- 47: 
- 48:             if (itemElements is null)
- 49:             {
- 50:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
- 51:                 return items;
- 52:             }
- 53:             _logger.LogInformation("Found {Count} items in RSS feed", itemElements.Count);
- 54: 
- 55:             foreach (var itemElement in itemElements)
- 56:             {
- 57:                 try
- 58:                 {
- 59:                     var dto = ParseRssItem(itemElement);
- 60: 
- 61:                     // Only add if we have essential fields
- 62:                     if (!string.IsNullOrWhiteSpace(dto.Title) && !string.IsNullOrWhiteSpace(dto.Link))
- 63:                     {
- 64:                         items.Add(dto);
- 65:                     }
- 66:                 }
- 67:                 catch (Exception ex)
- 68:                 {
- 69:                     _logger.LogWarning(ex, "Error parsing individual RSS item, skipping");
- 70:                     continue;
- 71:                 }
+  4: using PositiveNews.Infrastructure.Services;
+  5: using System.Net;
+  6: using System.Xml.Linq;
+  7: 
+  8: public class RssItemParser : IRssItemParser
+  9: {
+ 10:     private readonly ILogger<RssFeedReader> _logger;
+ 11: 
+ 12:         public RssItemParser(ILogger<RssFeedReader> logger)
+ 13:     {
+ 14:         _logger = logger;
+ 15:     }
+ 16:     public RssFeedItemDto Parse(XElement itemElement, XNamespace mediaNs, 
+ 17:                                 XNamespace contentNs, XNamespace dcNs)
+ 18:     {
+ 19:         // TODO Fix DTO
+ 20:         // "!" is because validator guarantees it exists.
+ 21: 
+ 22:         return new RssFeedItemDto
+ 23:         {
+ 24:             Title = itemElement.Element("title")!.Value,  //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+ 25:             Link = itemElement.Element("link")!.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+ 26:             Description = itemElement.Element("description")!.Value,
+ 27:             ContentRaw = itemElement.Element(contentNs + "encoded")!.Value,
+ 28:             Author = itemElement.Element(dcNs + "creator")?.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+ 29:             PublishedDate = ParseDate(itemElement),
+ 30:             ImageUrl = ExtractImageUrl(itemElement, mediaNs, contentNs),
+ 31:             Topics = ExtractCategories(itemElement),
+ 32:             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+ 33:         };
+ 34:     }
+ 35: 
+ 36:     /// <summary>
+ 37:     /// Extracts image URL:
+ 38:     /// </summary>
+ 39:     private string? ExtractImageUrl(XElement itemElement, XNamespace mediaNs, XNamespace contentNs)
+ 40:     {
+ 41:         // TRY 1: media:content
+ 42:         var mediaContent = itemElement.Element(mediaNs + "content");
+ 43:         if (mediaContent != null)
+ 44:         {
+ 45:             var url = mediaContent.Attribute("url")?.Value;
+ 46:             if (!string.IsNullOrWhiteSpace(url))
+ 47:             {
+ 48:                 _logger.LogDebug("Found image URL in media:content: {Url}", url);
+ 49:                 return url;
+ 50:             }
+ 51:         }
+ 52:         // TRY 2: media:thumbnail
+ 53:         var mediaThumbnail = itemElement.Element(mediaNs + "thumbnail");
+ 54:         if (mediaThumbnail != null)
+ 55:         {
+ 56:             var url = mediaThumbnail.Attribute("url")?.Value;
+ 57:             if (!string.IsNullOrWhiteSpace(url))
+ 58:             {
+ 59:                 _logger.LogDebug("Found image URL in media:thumbnail: {Url}", url);
+ 60:                 return url;
+ 61:             }
+ 62:         }
+ 63:         // TRY 3: Extract from content:encoded (fallback)
+ 64:         var contentElement = itemElement.Element(contentNs + "encoded");
+ 65:         if (contentElement != null)
+ 66:         {
+ 67:             var imageUrl = ExtractImageUrlFromHtml(contentElement.Value);
+ 68:             if (!string.IsNullOrWhiteSpace(imageUrl))
+ 69:             {
+ 70:                 _logger.LogDebug("Found image URL in content:encoded: {Url}", imageUrl);
+ 71:                 return imageUrl;
  72:             }
- 73:             _logger.LogInformation("Successfully parsed {Count} items from {FeedUrl}", items.Count, feedUrl);
- 74:         }
- 75:         catch (Exception ex)
- 76:         {
- 77:             _logger.LogError(ex, "Failed to read feed from {FeedUrl}.", feedUrl);
- 78:         }
- 79:         return items;
- 80:     }
- 81: 
- 82:     /// <summary>
- 83:     /// Parses a single RSS item element into RssFeedItemDto
- 84:     /// </summary>
- 85:     private RssFeedItemDto ParseRssItem(XElement itemElement)
- 86:     {
- 87:         var dto = new RssFeedItemDto();
- 88: 
- 89:         var guidElement = itemElement.Element("guid");
- 90:         dto.ExternalId = guidElement?.Value;
- 91: 
- 92:         var titleElement = itemElement.Element("title");
- 93:         dto.Title = titleElement?.Value ?? "(No Title)";
- 94: 
- 95:         var linkElement = itemElement.Element("link");
- 96:         dto.Link = linkElement?.Value ?? string.Empty;
- 97: 
- 98:         var creatorElement = itemElement.Element(DcNs + "creator");
- 99:         dto.Author = creatorElement?.Value;
-100: 
-101:         var pubDateElement = itemElement.Element("pubDate");
-102:         if (pubDateElement != null && DateTime.TryParse(pubDateElement.Value, out var pubDate))
-103:         {
-104:             dto.PublishedDate = pubDate;
-105:         }
-106:         else
-107:         {
-108:             _logger.LogDebug("Failed to read Publication date for article {dto.Title}. Current date installed.", dto.Title);
-109:             dto.PublishedDate = DateTime.UtcNow;
-110:         }
-111: 
-112:         var descriptionElement = itemElement.Element("description");
-113:         dto.Description = descriptionElement?.Value;
-114: 
-115:         dto.ImageUrl = ExtractImageUrl(itemElement);
-116: 
-117:         var contentElement = itemElement.Element(ContentNs + "encoded");
-118:         dto.ContentRaw = contentElement?.Value ?? string.Empty;
-119: 
-120:         dto.Topics = ExtractCategories(itemElement);
+ 73:         }
+ 74:         return null;
+ 75:     }
+ 76: 
+ 77:     /// <summary>
+ 78:     /// Extracts first image URL from HTML content
+ 79:     /// Looks for: img src, picture, or first jpg/png URL
+ 80:     /// </summary>
+ 81:     private string? ExtractImageUrlFromHtml(string htmlContent)
+ 82:     {
+ 83:         if (string.IsNullOrWhiteSpace(htmlContent))
+ 84:             return null;
+ 85: 
+ 86:         try
+ 87:         {
+ 88:             // TRY 1: Find <img> tag with src attribute
+ 89:             var imgMatch = System.Text.RegularExpressions.Regex.Match(
+ 90:                 htmlContent,
+ 91:                 @"<img[^>]+src=[""']?([^""'\s>]+)[""']?",
+ 92:                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+ 93: 
+ 94:             if (imgMatch.Success)
+ 95:             {
+ 96:                 var src = imgMatch.Groups[1].Value;
+ 97:                 if (IsValidImageUrl(src))
+ 98:                 {
+ 99:                     return src;
+100:                 }
+101:             }
+102: 
+103:             // TRY 2: Find first .jpg or .png URL
+104:             var urlMatch = System.Text.RegularExpressions.Regex.Match(
+105:                 htmlContent,
+106:                 @"https?://[^\s""'<>]+\.(jpg|jpeg|png|gif|webp)",
+107:                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+108: 
+109:             if (urlMatch.Success)
+110:             {
+111:                 return urlMatch.Value;
+112:             }
+113:         }
+114:         catch (Exception ex)
+115:         {
+116:             _logger.LogWarning(ex, "Error extracting image URL from HTML");
+117:         }
+118: 
+119:         return null;
+120:     }
 121: 
-122:         _logger.LogDebug("Parsed item: {Title} by {Author}", dto.Title, dto.Author);
-123: 
-124:         return dto;
-125:     }
-126: 
-127:     /// <summary>
-128:     /// Extracts image URL:
-129:     /// </summary>
-130:     private string? ExtractImageUrl(XElement itemElement)
-131:     {
-132:         // TRY 1: media:content
-133:         var mediaContent = itemElement.Element(MediaNs + "content");
-134:         if (mediaContent != null)
-135:         {
-136:             var url = mediaContent.Attribute("url")?.Value;
-137:             if (!string.IsNullOrWhiteSpace(url))
-138:             {
-139:                 _logger.LogDebug("Found image URL in media:content: {Url}", url);
-140:                 return url;
-141:             }
-142:         }
-143:         // TRY 2: media:thumbnail
-144:         var mediaThumbnail = itemElement.Element(MediaNs + "thumbnail");
-145:         if (mediaThumbnail != null)
-146:         {
-147:             var url = mediaThumbnail.Attribute("url")?.Value;
-148:             if (!string.IsNullOrWhiteSpace(url))
-149:             {
-150:                 _logger.LogDebug("Found image URL in media:thumbnail: {Url}", url);
-151:                 return url;
-152:             }
-153:         }
-154:         // TRY 3: Extract from content:encoded (fallback)
-155:         var contentElement = itemElement.Element(ContentNs + "encoded");
-156:         if (contentElement != null)
-157:         {
-158:             var imageUrl = ExtractImageUrlFromHtml(contentElement.Value);
-159:             if (!string.IsNullOrWhiteSpace(imageUrl))
-160:             {
-161:                 _logger.LogDebug("Found image URL in content:encoded: {Url}", imageUrl);
-162:                 return imageUrl;
-163:             }
-164:         }
-165:         return null;
-166:     }
-167: 
-168:     /// <summary>
-169:     /// Extracts first image URL from HTML content
-170:     /// Looks for: img src, picture, or first jpg/png URL
-171:     /// </summary>
-172:     private string? ExtractImageUrlFromHtml(string htmlContent)
-173:     {
-174:         if (string.IsNullOrWhiteSpace(htmlContent))
-175:             return null;
-176: 
-177:         try
-178:         {
-179:             // TRY 1: Find <img> tag with src attribute
-180:             var imgMatch = System.Text.RegularExpressions.Regex.Match(
-181:                 htmlContent,
-182:                 @"<img[^>]+src=[""']?([^""'\s>]+)[""']?",
-183:                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-184: 
-185:             if (imgMatch.Success)
-186:             {
-187:                 var src = imgMatch.Groups[1].Value;
-188:                 if (IsValidImageUrl(src))
-189:                 {
-190:                     return src;
-191:                 }
-192:             }
-193: 
-194:             // TRY 2: Find first .jpg or .png URL
-195:             var urlMatch = System.Text.RegularExpressions.Regex.Match(
-196:                 htmlContent,
-197:                 @"https?://[^\s""'<>]+\.(jpg|jpeg|png|gif|webp)",
-198:                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-199: 
-200:             if (urlMatch.Success)
-201:             {
-202:                 return urlMatch.Value;
-203:             }
-204:         }
-205:         catch (Exception ex)
-206:         {
-207:             _logger.LogWarning(ex, "Error extracting image URL from HTML");
-208:         }
-209: 
-210:         return null;
-211:     }
-212: 
-213:     /// <summary>
-214:     /// Validates that URL is a proper image URL
-215:     /// </summary>
-216:     private bool IsValidImageUrl(string? url)
-217:     {
-218:         if (string.IsNullOrWhiteSpace(url))
-219:             return false;
-220: 
-221:         // Must start with http/https
-222:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-223:             return false;
-224: 
-225:         // Must have image extension
-226:         var lowerUrl = url.ToLower();
-227:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-228:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
-229:     }
-230: 
-231:     /// <summary>
-232:     /// Extracts all category tags as topics
-233:     /// Returns list of category values, or ["Default"] if none found
-234:     /// </summary>
-235:     private List<string> ExtractCategories(XElement itemElement)
-236:     {
-237:         var categories = itemElement
-238:             .Elements("category")
-239:             .Select(c => c.Value)
-240:             .Where(v => !string.IsNullOrWhiteSpace(v))
-241:             .Distinct()
-242:             .ToList();
-243: 
-244:         // If no categories found, return default
-245:         if (categories == null || categories.Count == 0)
-246:         {
-247:             categories = ["Default"];
-248:             _logger.LogDebug("No categories found, using default");
-249:         }
-250: 
-251:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
-252: 
-253:         return categories;
-254:     }
-255: }
+122:     /// <summary>
+123:     /// Validates that URL is a proper image URL
+124:     /// </summary>
+125:     private bool IsValidImageUrl(string? url)
+126:     {
+127:         if (string.IsNullOrWhiteSpace(url))
+128:             return false;
+129: 
+130:         // Must start with http/https
+131:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+132:             return false;
+133: 
+134:         // Must have image extension
+135:         var lowerUrl = url.ToLower();
+136:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+137:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
+138:     }
+139: 
+140:     /// <summary>
+141:     /// Extracts all category tags as topics
+142:     /// Returns list of category values, or ["Default"] if none found
+143:     /// </summary>
+144:     private List<string> ExtractCategories(XElement itemElement)
+145:     {
+146:         var categories = itemElement
+147:             .Elements("category")
+148:             .Select(c => c.Value)
+149:             .Where(v => !string.IsNullOrWhiteSpace(v))
+150:             .Distinct()
+151:             .ToList();
+152: 
+153:         // If no categories found, return default
+154:         if (categories == null || categories.Count == 0)
+155:         {
+156:             categories = ["Default"];
+157:             _logger.LogDebug("No categories found, using default");
+158:         }
+159: 
+160:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
+161: 
+162:         return categories;
+163:     }
+164: 
+165:     private static DateTime? ParseDate(XElement item)
+166:     {
+167:         var dateStr = item.Element("pubDate")?.Value?.Trim();
+168: 
+169:         if (string.IsNullOrEmpty(dateStr)) return null;
+170: 
+171:         // Common RSS date formats
+172:         string[] formats = new[]
+173:         {
+174:             "ddd, dd MMM yyyy HH:mm:ss zzz",
+175:             "ddd, dd MMM yyyy HH:mm:ss K",
+176:             "ddd, dd MMM yyyy HH:mm:ss",
+177:             "yyyy-MM-ddTHH:mm:sszzz",
+178:             "yyyy-MM-ddTHH:mm:ssK",
+179:             "yyyy-MM-ddTHH:mm:ss"
+180:         };
+181: 
+182:         if (DateTime.TryParseExact(dateStr, formats,
+183:             System.Globalization.CultureInfo.InvariantCulture,
+184:             System.Globalization.DateTimeStyles.None, out var result))
+185:         {
+186:             return result;
+187:         }
+188: 
+189:         // Try standard parse as fallback
+190:         if (DateTime.TryParse(dateStr, out result))
+191:         {
+192:             return result;
+193:         }
+194: 
+195:         return null;
+196:     }
+197: 
+198:    
+199: }
 
 ================
 File: src/PositiveNews.Web/appsettings.json

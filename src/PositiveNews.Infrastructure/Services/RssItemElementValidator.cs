@@ -2,19 +2,12 @@
 
 public class RssItemElementValidator : IRssItemElementValidator
 {
-    public bool IsValid(XElement itemElement) //TODO: Additional validation add
+    public bool IsValid(XElement itemElement, XNamespace contentNs) //TODO: Additional validation
     {
-        if (string.IsNullOrWhiteSpace(itemElement.Element("title")?.Value))
-        {
-            return false;
-        }
+       var fields = new[] { "title", "link", "description", contentNs + "encoded" };
 
-        if (string.IsNullOrWhiteSpace(itemElement.Element("link")?.Value))
-        {
+        if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
             return false;
-        }
-
-        
 
         return true;
     }

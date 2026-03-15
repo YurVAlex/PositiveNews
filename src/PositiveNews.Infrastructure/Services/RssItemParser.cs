@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Infrastructure.Services;
-using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Xml.Linq;
 
@@ -9,18 +9,13 @@ public class RssItemParser : IRssItemParser
 {
     private readonly ILogger<RssFeedReader> _logger;
 
-    // XML namespaces
-    private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
-    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
-    private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
-
-    public RssItemParser(ILogger<RssFeedReader> logger)
+        public RssItemParser(ILogger<RssFeedReader> logger)
     {
         _logger = logger;
     }
-    public RssFeedItemDto Parse(XElement itemElement)
+    public RssFeedItemDto Parse(XElement itemElement, XNamespace mediaNs, 
+                                XNamespace contentNs, XNamespace dcNs)
     {
-
         // TODO Fix DTO
         // "!" is because validator guarantees it exists.
 
@@ -28,11 +23,11 @@ public class RssItemParser : IRssItemParser
         {
             Title = itemElement.Element("title")!.Value,  //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
             Link = itemElement.Element("link")!.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
-            Description = itemElement.Element("description")!.Value,  //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
-            ContentRaw = itemElement.Element(ContentNs + "encoded")?.Value ?? "", //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
-            Author = itemElement.Element(DcNs + "creator")?.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+            Description = itemElement.Element("description")!.Value,
+            ContentRaw = itemElement.Element(contentNs + "encoded")!.Value,
+            Author = itemElement.Element(dcNs + "creator")?.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
             PublishedDate = ParseDate(itemElement),
-            ImageUrl = ExtractImageUrl(itemElement),
+            ImageUrl = ExtractImageUrl(itemElement, mediaNs, contentNs),
             Topics = ExtractCategories(itemElement),
             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
         };
@@ -41,10 +36,10 @@ public class RssItemParser : IRssItemParser
     /// <summary>
     /// Extracts image URL:
     /// </summary>
-    private string? ExtractImageUrl(XElement itemElement)
+    private string? ExtractImageUrl(XElement itemElement, XNamespace mediaNs, XNamespace contentNs)
     {
         // TRY 1: media:content
-        var mediaContent = itemElement.Element(MediaNs + "content");
+        var mediaContent = itemElement.Element(mediaNs + "content");
         if (mediaContent != null)
         {
             var url = mediaContent.Attribute("url")?.Value;
@@ -55,7 +50,7 @@ public class RssItemParser : IRssItemParser
             }
         }
         // TRY 2: media:thumbnail
-        var mediaThumbnail = itemElement.Element(MediaNs + "thumbnail");
+        var mediaThumbnail = itemElement.Element(mediaNs + "thumbnail");
         if (mediaThumbnail != null)
         {
             var url = mediaThumbnail.Attribute("url")?.Value;
@@ -66,7 +61,7 @@ public class RssItemParser : IRssItemParser
             }
         }
         // TRY 3: Extract from content:encoded (fallback)
-        var contentElement = itemElement.Element(ContentNs + "encoded");
+        var contentElement = itemElement.Element(contentNs + "encoded");
         if (contentElement != null)
         {
             var imageUrl = ExtractImageUrlFromHtml(contentElement.Value);
@@ -199,4 +194,6 @@ public class RssItemParser : IRssItemParser
 
         return null;
     }
+
+   
 }

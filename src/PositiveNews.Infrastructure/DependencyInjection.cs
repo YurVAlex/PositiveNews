@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Persistence;
-using PositiveNews.Infrastructure.Persistence.Connection;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure;
@@ -43,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IRssFeedReader, RssFeedReader>();
         services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
         services.AddScoped<IRssItemParser, RssItemParser>();
+        services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
         services.AddScoped<IIngestionService, IngestionService>();
 
         // Background services

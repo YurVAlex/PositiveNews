@@ -147,11 +147,11 @@ public class IngestionService : IIngestionService
                 {
                     SourceId = source.Id,
                     ExternalId = item.ExternalId,
-                    Title = item.Title.Length > 500 ? item.Title[..500] : item.Title,
+                    Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
                     Author = item.Author,
                     Url = item.Link,
                     ImageUrl = item.ImageUrl,
-                    PublishedAt = item.PublishedDate,
+                    PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
                     IngestedAt = DateTime.UtcNow,
                     LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
                     RegionCode = "Global",
@@ -166,7 +166,8 @@ public class IngestionService : IIngestionService
                 {
                     Id = articleMeta.Id,
                     ContentRaw = item.ContentRaw,
-                    SummaryShort = item.Description
+                    SummaryShort = item.Description,
+                    ContentClean = item.ContentClean
                 };
                 context.ArticlesContent.Add(articleContent);
                 await context.SaveChangesAsync(cancellationToken);
