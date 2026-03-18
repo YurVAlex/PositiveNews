@@ -19,7 +19,8 @@ public class IngestionService : IIngestionService
     private readonly IServiceScopeFactory _scopeFactory;
     // Each source gets its own DbContext scope, which prevents stale tracking and memory bloat.
     // This follows Microsoft's recommended pattern for consuming scoped services from hosted services.
-    private readonly IRssFeedReader _feedReader;
+    private readonly IFeedReader _feedReader;
+    private readonly IFeedProcessor _feedProcessor;
     private readonly ILogger<IngestionService> _logger;
 
     /// <summary>
@@ -36,11 +37,12 @@ public class IngestionService : IIngestionService
 
     public IngestionService(
         IServiceScopeFactory scopeFactory,
-        IRssFeedReader feedReader,
+        IFeedReader feedReader, IFeedProcessor feedProcessor,
         ILogger<IngestionService> logger)
     {
         _scopeFactory = scopeFactory;
         _feedReader = feedReader;
+        _feedProcessor = feedProcessor;
         _logger = logger;
     }
 
@@ -97,15 +99,15 @@ public class IngestionService : IIngestionService
         await context.SaveChangesAsync(cancellationToken);
 
         int newArticleCount = 0;
+        var url = source.FeedUrl!;
 
         try
         {
-            var feedItems = await _feedReader.ReadFeedAsync(source.FeedUrl!, cancellationToken);
-            //Separate ReadFeedAsync because of Single Responsibility Principle and Dependency Inversion.
-            //IRssFeedReader handles the HTTP + XML parsing concern only.
-            //IIngestionService orchestrates the business logic (deduplication, persistence, logging).
+            var doc = await _feedReader.ReadFeedAsync(url, cancellationToken);
 
-            if (feedItems.Count == 0)
+            var dtoItems = _feedProcessor.ProcessFeed(url, doc);
+
+            if (dtoItems.Count == 0)
             {
                 _logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
                 run.Status = IngestionStatus.Partial;
@@ -115,7 +117,7 @@ public class IngestionService : IIngestionService
                 return;
             }
 
-            foreach (var item in feedItems)
+            foreach (var item in dtoItems)
             {
                 if (cancellationToken.IsCancellationRequested) break;
 
@@ -186,7 +188,7 @@ public class IngestionService : IIngestionService
 
             _logger.LogInformation(
                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
-                source.Name, newArticleCount, feedItems.Count);
+                source.Name, newArticleCount, dtoItems.Count);
         }
         catch (OperationCanceledException)
         {

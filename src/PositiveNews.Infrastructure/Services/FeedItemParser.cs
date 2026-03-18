@@ -5,11 +5,11 @@ using PositiveNews.Infrastructure.Services;
 using System.Net;
 using System.Xml.Linq;
 
-public class RssItemParser : IRssItemParser
+public class FeedItemParser : IFeedItemParser
 {
-    private readonly ILogger<RssFeedReader> _logger;
+    private readonly ILogger<FeedReader> _logger;
 
-        public RssItemParser(ILogger<RssFeedReader> logger)
+        public FeedItemParser(ILogger<FeedReader> logger)
     {
         _logger = logger;
     }

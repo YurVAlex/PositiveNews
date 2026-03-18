@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-public class RssItemElementValidator : IRssItemElementValidator
+public class FeedItemValidator : IFeedItemValidator
 {
     public bool IsValid(XElement itemElement, XNamespace contentNs) //TODO: Additional validation
     {

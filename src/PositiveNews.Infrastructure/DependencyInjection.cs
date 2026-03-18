@@ -39,9 +39,9 @@ public static class DependencyInjection
         });
 
         // Application services
-        services.AddScoped<IRssFeedReader, RssFeedReader>();
-        services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
-        services.AddScoped<IRssItemParser, RssItemParser>();
+        services.AddScoped<IFeedReader, FeedReader>();
+        services.AddScoped<IFeedItemValidator, FeedItemValidator>();
+        services.AddScoped<IFeedItemParser, FeedItemParser>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
         services.AddScoped<IIngestionService, IngestionService>();
 
