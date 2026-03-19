@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/src/PositiveNews.Infrastructure/Services/IngestionService.cs
+/src/PositiveNews.Infrastructure/DependencyInjection.cs
+/.gitignore
+/.gitignore
