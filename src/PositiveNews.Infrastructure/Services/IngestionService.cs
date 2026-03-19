@@ -26,12 +26,12 @@ public class IngestionService : IIngestionService
     /// <summary>
     /// Polite delay between processing individual sources to avoid hammering external servers.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
+    private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(2); //TODO - These can be made configurable.
 
     /// <summary>
     /// Small delay between persisting individual articles within a single source batch.
     /// </summary>
-    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(1); //TODO - These can be made configurable.
+    private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromMilliseconds(100); //TODO - These can be made configurable.
 
     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
 
@@ -149,13 +149,13 @@ public class IngestionService : IIngestionService
                 {
                     SourceId = source.Id,
                     ExternalId = item.ExternalId,
-                    Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
+                    Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Cleaner
                     Author = item.Author,
                     Url = item.Link,
                     ImageUrl = item.ImageUrl,
-                    PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
+                    PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Cleaner
                     IngestedAt = DateTime.UtcNow,
-                    LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
+                    LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet in Cleaner
                     RegionCode = "Global",
                     IsActive = true
                 };

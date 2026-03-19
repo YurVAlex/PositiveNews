@@ -106,7 +106,10 @@ src/PositiveNews.Infrastructure/Services/RssItemElementValidator.cs
 src/PositiveNews.Infrastructure/Services/RssItemParser.cs
 src/PositiveNews.Web/appsettings.json
 src/PositiveNews.Web/Controllers/HomeController.cs
+src/PositiveNews.Web/Models/ArticleDetailViewModel.cs
+src/PositiveNews.Web/Models/ArticlePreviewViewModel.cs
 src/PositiveNews.Web/Models/ErrorViewModel.cs
+src/PositiveNews.Web/Models/FeedIndexViewModel.cs
 src/PositiveNews.Web/PositiveNews.Web.csproj
 src/PositiveNews.Web/Program.cs
 src/PositiveNews.Web/Properties/launchSettings.json
@@ -119,400 +122,6 @@ src/PositiveNews.WebApi/Properties/launchSettings.json
 ================================================================
 Files
 ================================================================
-
-================
-File: MSSQLSDBInitial.sql
-================
-  1: /* ==========================================================================
-  2:    POSITIVE NEWS DATABASE - INITIAL SETUP
-  3:    ==========================================================================
-  4:    Description: 
-  5:    Creates the schema for the PositiveNews aggregator MVP.
-  6:    Includes Vertical Partitioning for Articles, Unified Audit Logging,
-  7:    and preparation for future Social Auth.
-  8:    ========================================================================== */
-  9: 
- 10: /* --------------------------------------------------------------------------
- 11:    1. SCHEMAS
- 12:    -------------------------------------------------------------------------- */
- 13: -- Organizing tables by domain context.
- 14: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Admin') EXEC('CREATE SCHEMA [Admin]')
- 15: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Catalog') EXEC('CREATE SCHEMA [Catalog]')
- 16: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Community') EXEC('CREATE SCHEMA [Community]')
- 17: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Identity') EXEC('CREATE SCHEMA [Identity]')
- 18: GO
- 19: 
- 20: /* --------------------------------------------------------------------------
- 21:    2. INDEPENDENT TABLES (Dictionaries & Core Entities)
- 22:    -------------------------------------------------------------------------- */
- 23: 
- 24: -- [Identity].[Roles]
- 25: -- Simple lookup for permissions.
- 26: CREATE TABLE [Identity].[Roles](
- 27:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
- 28:     [Name] [nvarchar](50) NOT NULL UNIQUE -- Enum-like (e.g., 'Admin', 'User', 'Moderator')
- 29: );
- 30: GO
- 31: 
- 32: -- [Catalog].[Topics]
- 33: -- The categories articles belong to (e.g., 'Technology', 'Health').
- 34: CREATE TABLE [Catalog].[Topics](
- 35:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
- 36:     [Name] [nvarchar](200) NOT NULL,
- 37:     [Slug] [nvarchar](200) NOT NULL UNIQUE, -- For pretty URLs (e.g., /topic/clean-energy)
- 38:     [Description] [nvarchar](500) NULL
- 39: );
- 40: GO
- 41: 
- 42: -- [Identity].[Users]
- 43: -- The core user identity table.
- 44: CREATE TABLE [Identity].[Users](
- 45:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
- 46:     [Email] [nvarchar](300) NOT NULL UNIQUE,
- 47:     [EmailConfirmed] [bit] NOT NULL DEFAULT 0, -- Critical for preventing bot spam in comments.
- 48:     [Name] [nvarchar](200) NOT NULL,
- 49:     
- 50:     -- SECURITY NOTE: Nullable to support future Social Auth (Google/Apple).
- 51:     
- 52:     [PasswordHash] [nvarchar](max) NULL, 
- 53:     [LastLoginAt] [datetime2](7) NULL,
- 54:     [FailedLoginCount] [int] NOT NULL DEFAULT 0, -- Security: Used to lock account after too many tries.
- 55:     [AvatarPictureUrl] [nvarchar](1000) NULL,
- 56:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
- 57:     [IsActive] [bit] NOT NULL DEFAULT 1,
- 58:     [ModeratedBy] [bigint] NULL -- Self-referencing FK (defined later) to track who banned/approved this user.
- 59: );
- 60: GO
- 61: 
- 62: /* --------------------------------------------------------------------------
- 63:    3. CATALOG & CONTENT TABLES
- 64:    -------------------------------------------------------------------------- */
- 65: 
- 66: -- [Catalog].[Sources]
- 67: -- Represents RSS feeds or APIs (e.g., Reuters, BBC).
- 68: CREATE TABLE [Catalog].[Sources](
- 69:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
- 70:     [Name] [nvarchar](200) NOT NULL,
- 71:     [Description] [nvarchar](1000) NULL,
- 72:     [BaseUrl] [nvarchar](500) NOT NULL,
- 73:     [FeedUrl] [nvarchar](500) NULL,
- 74:     [LogoUrl] [nvarchar](500) NULL,
- 75:     [ApiEndpoint] [nvarchar](500) NULL,
- 76:     
- 77:     -- SECURITY: There is no intention to store API keys in clear text. 
- 78:     -- Application must encrypt this before saving and decrypt in memory when used.
- 79: 
- 80:     [ApiEncryptedKey] [nvarchar](max) NULL, 
- 81:     
- 82:     [TrustScore] [decimal](5, 2) NOT NULL DEFAULT 1.0, -- Weighting factor for the algorithm.
- 83:     [DefaultLanguageCode] [nvarchar](10) NOT NULL DEFAULT 'en', -- Template for incoming articles.
- 84:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
- 85:     [IsActive] [bit] NOT NULL DEFAULT 1,
- 86:     [ModeratedBy] [bigint] NULL,
- 87:     
- 88:     CONSTRAINT [FK_Sources_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
- 89: );
- 90: GO
- 91: 
- 92: -- [Catalog].[ArticlesMetadata]
- 93: -- The "Light" table. Contains only searchable fields.
- 94: -- Vertical Partitioning Strategy: Keeping this small makes feed queries fast.
- 95: CREATE TABLE [Catalog].[ArticlesMetadata](
- 96:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
- 97:     [SourceId] [int] NOT NULL,
- 98:     [ExternalId] [nvarchar](300) NULL, -- The ID provided by the Source (RSS GUID).
- 99:     [Title] [nvarchar](500) NOT NULL,
-100:     [Author] [nvarchar](300) NULL,
-101:     [Url] [nvarchar](1000) NOT NULL,
-102:     [ImageUrl] [nvarchar](1000) NULL,
-103:     
-104:     -- TIMESTAMPS: PublishedAt is NOT NULL because sorting by "Unknown Date" breaks the feed UI.
-105:     [PublishedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(), 
-106:     [IngestedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
-107:     
-108:     -- ANALYSIS: Nullable because analysis happens asynchronously after ingestion.
-109:     [AnalyzedAt] [datetime2](7) NULL, 
-110:     [PositivityScore] [decimal](5, 4) NULL, -- 0.0000 to 1.0000
-111:     
-112:     [ViewCount] [bigint] NOT NULL DEFAULT 0,
-113:     
-114:     -- LOCALIZATION: Defaults 'und' (Undefined) and 'Global' allow the Ingestor to save 
-115:     -- the article immediately, even if language detection absent.
-116:     [LanguageCode] [nvarchar](10) NOT NULL DEFAULT 'und', 
-117:     [RegionCode] [nvarchar](10) NOT NULL DEFAULT 'Global',
-118:     
-119:     [IsActive] [bit] NOT NULL DEFAULT 1,
-120:     [ModeratedBy] [bigint] NULL,
-121: 
-122:     CONSTRAINT [FK_ArticlesMeta_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE,
-123:     CONSTRAINT [FK_ArticlesMeta_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
-124: );
-125: GO
-126: 
-127: -- [Catalog].[ArticlesContent]
-128: -- The "Heavy" table. Contains blobs of text. 
-129: -- Split from Metadata to reduce IO usage when listing articles.
-130: CREATE TABLE [Catalog].[ArticlesContent](
-131:     [Id] [bigint] NOT NULL PRIMARY KEY, -- 1-to-1 Relationship with Metadata
-132:     
-133:     -- NULLABLE JUSTIFICATION:
-134:     -- 1. Ingestion saves Metadata first (Content is NULL).
-135:     -- 2. Background worker scrapes the URL (ContentRaw populated).
-136:     -- 3. AI cleans the text (ContentClean populated).
-137:     -- If these were NOT NULL, the initial ingestion would fail.
-138:     [ContentRaw] [nvarchar](max) NULL,
-139:     [ContentClean] [nvarchar](max) NULL,
-140:     [SummaryShort] [nvarchar](2000) NULL,
-141: 
-142:     CONSTRAINT [FK_ArticlesContent_Meta] FOREIGN KEY([Id]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE
-143: );
-144: GO
-145: 
-146: -- [Catalog].[IngestionRuns]
-147: -- Logs the execution of the background scraper.
-148: CREATE TABLE [Catalog].[IngestionRuns](
-149:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
-150:     [SourceId] [int] NOT NULL,
-151:     [StartedAt] [datetime2](7) NOT NULL,
-152:     [FinishedAt] [datetime2](7) NULL,
-153:     [Status] [nvarchar](50) NOT NULL, -- Enum stored as String: 'Running', 'Success', 'Failed'
-154:     [ItemsFetched] [int] NOT NULL DEFAULT 0,
-155:     [ErrorMessage] [nvarchar](max) NULL,
-156: 
-157:     CONSTRAINT [FK_IngestionRuns_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE
-158: );
-159: GO
-160: 
-161: /* --------------------------------------------------------------------------
-162:    4. COMMUNITY & INTERACTION TABLES
-163:    -------------------------------------------------------------------------- */
-164: 
-165: -- [Community].[Comments]
-166: CREATE TABLE [Community].[Comments](
-167:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
-168:     [ArticleId] [bigint] NOT NULL,
-169:     [UserId] [bigint] NOT NULL,
-170:     [ParentId] [bigint] NULL, -- For threaded replies.
-171:     [Content] [nvarchar](2000) NOT NULL, -- Security: Prevent "Text Bloat" attacks.
-172:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
-173:     [EditedAt] [datetime2](7) NULL,
-174:     [IsActive] [bit] NOT NULL DEFAULT 1,
-175:     [ModeratedBy] [bigint] NULL,
-176: 
-177:     CONSTRAINT [FK_Comments_Article] FOREIGN KEY([ArticleId]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE,
-178:     CONSTRAINT [FK_Comments_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]), 
-179:     CONSTRAINT [FK_Comments_Parent] FOREIGN KEY([ParentId]) REFERENCES [Community].[Comments]([Id]), 
-180:     CONSTRAINT [FK_Comments_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
-181: );
-182: GO
-183: 
-184: /* --------------------------------------------------------------------------
-185:    5. JUNCTION TABLES (Relationships)
-186:    -------------------------------------------------------------------------- */
-187: 
-188: -- [Identity].[UserRoles] (Many-to-Many)
-189: CREATE TABLE [Identity].[UserRoles](
-190:     [UserId] [bigint] NOT NULL,
-191:     [RoleId] [int] NOT NULL,
-192:     PRIMARY KEY CLUSTERED ([UserId] ASC, [RoleId] ASC),
-193: 
-194:     CONSTRAINT [FK_UserRoles_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
-195:     CONSTRAINT [FK_UserRoles_Role] FOREIGN KEY([RoleId]) REFERENCES [Identity].[Roles]([Id]) ON DELETE CASCADE
-196: );
-197: GO
-198: 
-199: -- [Catalog].[ArticleTopics] (Many-to-Many)
-200: CREATE TABLE [Catalog].[ArticleTopics](
-201:     [ArticleId] [bigint] NOT NULL,
-202:     [TopicId] [int] NOT NULL,
-203:     PRIMARY KEY CLUSTERED ([ArticleId] ASC, [TopicId] ASC),
-204:     
-205:     CONSTRAINT [FK_ArticleTopics_Article] FOREIGN KEY([ArticleId]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE,
-206:     CONSTRAINT [FK_ArticleTopics_Topic] FOREIGN KEY([TopicId]) REFERENCES [Catalog].[Topics]([Id]) ON DELETE CASCADE
-207: );
-208: GO
-209: 
-210: -- [Identity].[UserSourceFilters] (Many-to-Many)
-211: -- Users can "Mute" or "Follow" specific sources.
-212: CREATE TABLE [Identity].[UserSourceFilters](
-213:     [UserId] [bigint] NOT NULL,
-214:     [SourceId] [int] NOT NULL,
-215:     PRIMARY KEY CLUSTERED ([UserId] ASC, [SourceId] ASC),
-216: 
-217:     CONSTRAINT [FK_UserSourceFilters_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
-218:     CONSTRAINT [FK_UserSourceFilters_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE
-219: );
-220: GO
-221: 
-222: -- [Identity].[UserTopicFilters] (Many-to-Many)
-223: CREATE TABLE [Identity].[UserTopicFilters](
-224:     [UserId] [bigint] NOT NULL,
-225:     [TopicId] [int] NOT NULL,
-226:     PRIMARY KEY CLUSTERED ([UserId] ASC, [TopicId] ASC),
-227: 
-228:     CONSTRAINT [FK_UserTopicFilters_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
-229:     CONSTRAINT [FK_UserTopicFilters_Topic] FOREIGN KEY([TopicId]) REFERENCES [Catalog].[Topics]([Id]) ON DELETE CASCADE
-230: );
-231: GO
-232: 
-233: /* --------------------------------------------------------------------------
-234:    6. USER PREFERENCES
-235:    -------------------------------------------------------------------------- */
-236: 
-237: -- [Identity].[UserFeedPreferences]
-238: -- Stores the personalization settings for the user's feed.
-239: CREATE TABLE [Identity].[UserFeedPreferences](
-240:     [UserId] [bigint] NOT NULL PRIMARY KEY,
-241:     [MinPositivity] [decimal](3, 2) NOT NULL DEFAULT 0.5, -- The core feature: Filter out negative news.
-242:     [SortBy] [nvarchar](50) NOT NULL DEFAULT 'Date', -- Enum: 'Date', 'Popularity', 'Positivity'
-243:     [LanguageCode] [nvarchar](10) NULL, -- The language filter may be missing or none.
-244:     [RegionCode] [nvarchar](10) NULL, -- May be missing or none.
-245: 
-246:     CONSTRAINT [FK_UserPrefs_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE
-247: );
-248: GO
-249: 
-250: /* --------------------------------------------------------------------------
-251:    7. ADMIN & AUDITING
-252:    -------------------------------------------------------------------------- */
-253: 
-254: -- [Admin].[AuditLogs]
-255: -- Unified table for all moderation actions (Banning users, Deleting comments, etc.)
-256: CREATE TABLE [Admin].[AuditLogs](
-257:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
-258:     [EntityType] [nvarchar](50) NOT NULL, -- Enum: 'Article', 'Comment', 'User'
-259:     [EntityId] [bigint] NOT NULL,         -- Stores the ID of the object being modified.
-260:     [ChangedField] [nvarchar](100) NULL,  -- e.g., 'IsActive', 'Title', 'SummaryShort'
-261:     [OldValue] [nvarchar](max) NULL,
-262:     [NewValue] [nvarchar](max) NULL,
-263:     [Reason] [nvarchar](500) NULL,        -- Why was this done? (e.g., 'Hate Speech')
-264:     [Note] [nvarchar](1000) NULL,         -- Moderator internal notes.
-265:     [ModeratorId] [bigint] NOT NULL,
-266:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
-267: 
-268:     CONSTRAINT [FK_AuditLogs_Moderator] FOREIGN KEY([ModeratorId]) REFERENCES [Identity].[Users]([Id])
-269: );
-270: GO
-271: 
-272: /* --------------------------------------------------------------------------
-273:    8. FINAL CONSTRAINTS
-274:    -------------------------------------------------------------------------- */
-275: ALTER TABLE [Identity].[Users] 
-276: ADD CONSTRAINT [FK_Users_ModeratedBy] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id]);
-277: GO
-278: 
-279: /* --------------------------------------------------------------------------
-280:    9. PERFORMANCE INDEXES
-281:    -------------------------------------------------------------------------- */
-282: 
-283: -- FEED PERFORMANCE: "Show me the latest positive news"
-284: -- Includes 'PositivityScore' to filter negative news instantly without table lookups.
-285: CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_Feed_Date] 
-286: ON [Catalog].[ArticlesMetadata] ([LanguageCode], [RegionCode], [PublishedAt] DESC)
-287: INCLUDE ([Title], [ImageUrl], [SourceId], [PositivityScore], [ViewCount])
-288: WHERE [IsActive] = 1;
-289: GO
-290: 
-291: -- Optimization for "Source Profile" pages (e.g., /source/reuters).
-292: CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_SourceId]
-293: ON [Catalog].[ArticlesMetadata] ([SourceId])
-294: INCLUDE ([PublishedAt], [IsActive]); -- Include IsActive to filter deleted items quickly.
-295: GO
-296: 
-297: -- TOPIC LOOKUP: "Show me all articles about Technology"
-298: -- Essential because the PK is (ArticleId, TopicId). This creates the reverse lookup.
-299: CREATE NONCLUSTERED INDEX [IX_ArticleTopics_Topic_Lookup] 
-300: ON [Catalog].[ArticleTopics] ([TopicId])
-301: INCLUDE ([ArticleId]);
-302: GO
-303: 
-304: -- DEDUPLICATION: "Does this article already exist?"
-305: -- Used by the Ingestion Engine to prevent inserting duplicates.
-306: CREATE UNIQUE NONCLUSTERED INDEX [IX_ArticlesMeta_Source_ExternalId] 
-307: ON [Catalog].[ArticlesMetadata] ([SourceId], [ExternalId])
-308: WHERE [ExternalId] IS NOT NULL;
-309: GO
-310: 
-311: -- HISTORY: "Show me audit logs for this specific article"
-312: CREATE NONCLUSTERED INDEX [IX_AuditLogs_Entity_History] 
-313: ON [Admin].[AuditLogs] ([EntityType], [EntityId], [CreatedAt] DESC);
-314: GO
-315: 
-316: -- COMMENTS: "Load comments for this article"
-317: CREATE NONCLUSTERED INDEX [IX_Comments_Article_Thread] 
-318: ON [Community].[Comments] ([ArticleId], [CreatedAt] ASC)
-319: INCLUDE ([UserId], [Content])
-320: WHERE [IsActive] = 1;
-321: GO
-322: 
-323: -- 10. ENFORCE DATA INTEGRITY (Check Constraints)
-324: -- Prevents "Impossible" numbers from breaking the algorithm.
-325: 
-326: ALTER TABLE [Catalog].[ArticlesMetadata]
-327: ADD CONSTRAINT [CK_Articles_Positivity] CHECK ([PositivityScore] BETWEEN 0.0000 AND 1.0000);
-328: GO
-329: 
-330: ALTER TABLE [Catalog].[Sources]
-331: ADD CONSTRAINT [CK_Sources_Trust] CHECK ([TrustScore] >= 0.00);
-332: GO
-333: 
-334: ALTER TABLE [Identity].[UserFeedPreferences]
-335: ADD CONSTRAINT [CK_UserPrefs_MinPositivity] CHECK ([MinPositivity] BETWEEN 0.00 AND 1.00);
-336: GO
-337: 
-338: -- 11. ENFORCE ENUM INTEGRITY (Without Lookup Tables)
-339: -- Ensures only valid strings are saved.
-340: 
-341: ALTER TABLE [Catalog].[IngestionRuns]
-342: ADD CONSTRAINT [CK_Ingestion_Status] CHECK ([Status] IN ('Running', 'Success', 'Failed', 'Partial'));
-343: GO
-344: 
-345: ALTER TABLE [Admin].[AuditLogs]
-346: ADD CONSTRAINT [CK_Audit_Entity] CHECK ([EntityType] IN ('Article', 'Comment', 'User', 'Source'));
-347: -- To be supplemented...
-348: GO
-349: 
-350: --12. Create a View for main news feed to keep LINQ queries simple.
-351: 
-352: CREATE VIEW [Catalog].[vArticleFeed] AS
-353: SELECT 
-354:     m.Id, m.Title, m.ImageUrl, m.PublishedAt, m.PositivityScore,
-355:     s.Name AS SourceName, s.LogoUrl AS SourceLogo,
-356:     (SELECT STRING_AGG(t.Name, ', ') 
-357:      FROM [Catalog].[ArticleTopics] at 
-358:      JOIN [Catalog].[Topics] t ON at.TopicId = t.Id 
-359:      WHERE at.ArticleId = m.Id) AS TopicList
-360: FROM [Catalog].[ArticlesMetadata] m
-361: JOIN [Catalog].[Sources] s ON m.SourceId = s.Id
-362: WHERE m.IsActive = 1;
-
-================
-File: README.md
-================
- 1: Project Title: "PositiveNews".
- 2: 
- 3: Level: Educational.
- 4: Status: Development.
- 5: 
- 6: Description: 
- 7: A web platform combats "doom-scrolling" by aggregating news from various sources, 
- 8: store them, and ranking them based on calculated score. Provides UI for viewing news sorted 
- 9: by positivity
-10: 
-11: The "PositiveNews" features List:
-12: 1. Ingestion Engine: Receiving news from various sources.
-13: 2. Content Distiller: Get the core news text and short 1min-read summary.
-14: 3. Secure Storage: Storing articles, summaries, and metadata in a structured database.
-15: 4. Sentiment Assessor: Scoring articles for "positivity" (0.0 to 1.0).
-16: 5. Configurable Feed: Public visibility of with a global "positivity" threshold.
-17: 6. User Personalization: Authorized users can set their own positivity metrics.
-18: 7. Adaptive Reader: Toggle between "Summary" and "Full Article" views.
-19: 8. Community Interaction: Leaving and viewing comments on articles.
-20: 9. Admin Command Center: Operations for article, sources list editing and comment moderation.
-21: 10. Source Filtering: Narrowing the feed to specific trusted publishers (e.g., "Only Reuters").
-22: 11. Topic Filtering: Categorizing news by domain (e.g., "Technology," "Health").
-23: 12. Topics Sorting: By publication date, or "positivity" score.
-24: 13. Automatic logging: Logging of operations with writing to stored text files.
 
 ================
 File: repomix.config.json
@@ -583,33 +192,6 @@ File: src/PositiveNews.Application/DependencyInjection.cs
 16: }
 
 ================
-File: src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
-================
- 1: namespace PositiveNews.Application.DTOs;
- 2: 
- 3: /// <summary>
- 4: /// Represents a single item parsed from an RSS feed.
- 5: /// This DTO is source-agnostic and carries only the data the ingestion pipeline needs.
- 6: /// </summary>
- 7: public class RssFeedItemDto
- 8: {
- 9:     public required string Title { get; init; }
-10:     public required string Link { get; init; }
-11: 
-12:     public required string ContentRaw { get; set; }
-13:     public required string Description { get; set; }
-14:     public string? Author { get; init; }
-15:     public string? ContentClean { get; set; }
-16: 
-17:     public DateTime? PublishedDate { get; init; }
-18: 
-19:     public string? ExternalId { get; init; }
-20:     public string? ImageUrl { get; init; }
-21: 
-22:     public List<string>? Topics { get; init; } 
-23: }
-
-================
 File: src/PositiveNews.Application/Interfaces/IFeedItemCleaner.cs
 ================
  1: using PositiveNews.Application.DTOs;
@@ -657,28 +239,6 @@ File: src/PositiveNews.Application/Interfaces/IRssFeedReader.cs
 12:     /// </summary>
 13:     Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default);
 14: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IRssItemElementValidator.cs
-================
-1: using System.Xml.Linq;
-2: 
-3: public interface IRssItemElementValidator
-4: {
-5:     bool IsValid(XElement itemElement, XNamespace contentNs);
-6: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IRssItemParser.cs
-================
-1: using PositiveNews.Application.DTOs;
-2: using System.Xml.Linq;
-3: 
-4: public interface IRssItemParser
-5: {
-6:     RssFeedItemDto Parse(XElement itemElement, XNamespace contentNs,
-7:                          XNamespace DcNs, XNamespace MediaNs);
-8: }
 
 ================
 File: src/PositiveNews.Application/PositiveNews.Application.csproj
@@ -1052,143 +612,6 @@ File: src/PositiveNews.Domain/PositiveNews.Domain.csproj
 7:   </PropertyGroup>
 8: 
 9: </Project>
-
-================
-File: src/PositiveNews.Infrastructure/BackgroundJobs/IngestionBackgroundService.cs
-================
- 1: using Microsoft.Extensions.DependencyInjection;
- 2: using Microsoft.Extensions.Hosting;
- 3: using Microsoft.Extensions.Logging;
- 4: using Microsoft.Extensions.Configuration;
- 5: using PositiveNews.Application.Interfaces;
- 6: 
- 7: namespace PositiveNews.Infrastructure.BackgroundJobs;
- 8: 
- 9: /// <summary>
-10: /// A long-running hosted service that periodically triggers the ingestion cycle.
-11: /// Interval is configurable via "Ingestion:IntervalMinutes" in appsettings.json.
-12: /// </summary>
-13: public class IngestionBackgroundService : BackgroundService // ← Implements IHostedService
-14: {
-15:     private readonly IServiceScopeFactory _scopeFactory;
-16:     private readonly ILogger<IngestionBackgroundService> _logger;
-17:     private readonly TimeSpan _interval;
-18: 
-19:     /// <summary>
-20:     /// Initial delay before the first run so the application has time to fully start.
-21:     /// </summary>
-22:     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(15);
-23: 
-24:     public IngestionBackgroundService(   // Host Creates instances of IngestionBackgroundService when starts
-25:         IServiceScopeFactory scopeFactory, // This service added to ASP .NET IoC by default. Needed for creation scope in singleton
-26:         ILogger<IngestionBackgroundService> logger,
-27:         IConfiguration configuration)
-28:     {
-29:         _scopeFactory = scopeFactory;
-30:         _logger = logger;
-31: 
-32:         // Read interval from appsettings.json
-33:         var minutes = configuration.GetValue<int>("Ingestion:IntervalMinutes", 60);
-34:         _interval = TimeSpan.FromMinutes(minutes);
-35:     }
-36: 
-37:     // THIS METHOD IS CALLED AUTOMATICALLY BY ASP.NET CORE WHEN HOST STARTS
-38:     // ASP.NET Core host calls ExecuteAsync(CancellationToken) for each service after app.RunAsync() in programm.cs
-39:     // because of BackgroundService implement IHostedService
-40:     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-41:     {
-42:         _logger.LogInformation(
-43:             "Ingestion Background Service started. Interval: {Interval}. Initial delay: {Delay}.",
-44:             _interval, InitialDelay);
-45: 
-46:         // Wait for the application to fully initialize before the first run.
-47:         await Task.Delay(InitialDelay, stoppingToken);
-48: 
-49:         while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
-50:         {
-51:             try
-52:             {
-53:                 using var scope = _scopeFactory.CreateScope(); // Create a fresh scope for this cycle
-54:                 var ingestionService = scope.ServiceProvider.GetRequiredService<IIngestionService>();
-55: 
-56:                 await ingestionService.RunIngestionCycleAsync(stoppingToken);       // ---=== EXECUTE INGESTION ===---
-57:             }
-58:             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-59:             {
-60:                 _logger.LogInformation("Ingestion Background Service is stopping.");
-61:                 break; // ← Exit loop on shutdown
-62:             }
-63:             catch (Exception ex)
-64:             {
-65:                 _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
-66:             }
-67: 
-68:             // Wait for the configured interval before the next run.
-69:             if (!stoppingToken.IsCancellationRequested)
-70:             {
-71:                 _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
-72:                 await Task.Delay(_interval, stoppingToken);
-73:             }
-74:         }
-75:     }
-76: }
-
-================
-File: src/PositiveNews.Infrastructure/DependencyInjection.cs
-================
- 1: using Humanizer.Configuration;
- 2: using Microsoft.EntityFrameworkCore;
- 3: using Microsoft.Extensions.Configuration;
- 4: using Microsoft.Extensions.DependencyInjection;
- 5: using PositiveNews.Application.Interfaces;
- 6: using PositiveNews.Infrastructure.BackgroundJobs;
- 7: using PositiveNews.Infrastructure.Persistence;
- 8: using PositiveNews.Infrastructure.Services;
- 9: 
-10: namespace PositiveNews.Infrastructure;
-11: 
-12: /// <summary>
-13: /// Clean Registration Pattern for the Infrastructure layer.
-14: /// Call this single method from WebApi's Program.cs.
-15: /// </summary>
-16: public static class DependencyInjection
-17: {
-18:     public static IServiceCollection AddInfrastructureServices(
-19:         this IServiceCollection services, IConfiguration configuration)
-20:     {
-21:         // EF Core with SQL Server
-22:         var connectionString = ConnectionStringResolver.Resolve(configuration);
-23: 
-24:         services.AddDbContext<AppDbContext>(options =>
-25:             options.UseSqlServer(connectionString, sqlOptions =>
-26:                 {
-27:                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-28:                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
-29:                 }));
-30: 
-31:         // HttpClient for RSS feed fetching.
-32:         // Configured with a polite User-Agent and a reasonable timeout.
-33:         services.AddHttpClient("RssFeedClient", client =>
-34:         {
-35:             client.Timeout = TimeSpan.FromSeconds(30);
-36:             client.DefaultRequestHeaders.UserAgent.ParseAdd(
-37:                 "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
-38:             client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
-39:         });
-40: 
-41:         // Application services
-42:         services.AddScoped<IRssFeedReader, RssFeedReader>();
-43:         services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
-44:         services.AddScoped<IRssItemParser, RssItemParser>();
-45:         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
-46:         services.AddScoped<IIngestionService, IngestionService>();
-47: 
-48:         // Background services
-49:         services.AddHostedService<IngestionBackgroundService>();
-50: 
-51:         return services;
-52:     }
-53: }
 
 ================
 File: src/PositiveNews.Infrastructure/Persistence/AppDbContext.cs
@@ -1734,237 +1157,6 @@ File: src/PositiveNews.Infrastructure/Persistence/Configurations/UserTopicFilter
 26: }
 
 ================
-File: src/PositiveNews.Infrastructure/Persistence/Connection/ConnectionStringResolver.cs
-================
- 1: using Microsoft.Data.SqlClient;
- 2: using Microsoft.Extensions.Configuration;
- 3: 
- 4: public static class ConnectionStringResolver
- 5: {
- 6:     public static string Resolve(IConfiguration configuration)
- 7:     {
- 8:         var defaultConn = configuration.GetConnectionString("DefaultConnection");
- 9:         var altConn = configuration.GetConnectionString("AlternativeConnection");
-10: 
-11:         if (CanConnectToServer(defaultConn))
-12:             return defaultConn!;
-13: 
-14:         if (CanConnectToServer(altConn))
-15:             return altConn!;
-16: 
-17:         throw new InvalidOperationException(
-18:             "Unable to connect to either DefaultConnection or AlternativeConnection.");
-19:     }
-20: 
-21:     private static bool CanConnectToServer(string? connectionString)
-22:     {
-23:         if (string.IsNullOrWhiteSpace(connectionString))
-24:             return false;
-25: 
-26:         try
-27:         {
-28:             var builder = new SqlConnectionStringBuilder(connectionString)
-29:             {
-30:                 InitialCatalog = "master"
-31:             };
-32: 
-33:             using var connection = new SqlConnection(builder.ConnectionString);
-34:             connection.Open();
-35:             return true;
-36:         }
-37:         catch
-38:         {
-39:             return false;
-40:         }
-41:     }
-42: }
-
-================
-File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
-================
-  1: using Microsoft.EntityFrameworkCore;
-  2: using Microsoft.Extensions.DependencyInjection;
-  3: using Microsoft.Extensions.Logging;
-  4: using PositiveNews.Domain.Entities;
-  5: 
-  6: namespace PositiveNews.Infrastructure.Persistence.Seeding;
-  7: 
-  8: /// <summary>
-  9: /// Applies migrations (creates DB if missing) and seeds reference data.
- 10: /// Designed to be called once at application startup.
- 11: /// </summary>
- 12: public static class DataSeeder
- 13: {
- 14:     public static async Task SeedAsync(IServiceProvider serviceProvider)
- 15:     {
- 16:         using var scope = serviceProvider.CreateScope();
- 17:         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
- 18:         var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
- 19: 
- 20:         logger.LogInformation("Applying database migrations (will create DB if it does not exist)...");
- 21:         await context.Database.MigrateAsync();
- 22:         logger.LogInformation("Database migrations applied successfully.");
- 23: 
- 24:         await SeedRolesAsync(context, logger);
- 25:         await SeedTopicsAsync(context, logger);
- 26:         await SeedSourcesAsync(context, logger);
- 27:         await SeedAdminUserAsync(context, logger);
- 28:     }
- 29: 
- 30:     private static async Task SeedRolesAsync(AppDbContext context, ILogger logger)
- 31:     {
- 32:         if (await context.Roles.AnyAsync()) return;
- 33: 
- 34:         var roles = new List<Role>
- 35:         {
- 36:             new() { Name = "Admin" },
- 37:             new() { Name = "Moderator" },
- 38:             new() { Name = "User" }
- 39:         };
- 40: 
- 41:         context.Roles.AddRange(roles);
- 42:         await context.SaveChangesAsync();
- 43:         logger.LogInformation("Seeded {Count} roles.", roles.Count);
- 44:     }
- 45: 
- 46:     private static async Task SeedTopicsAsync(AppDbContext context, ILogger logger)
- 47:     {
- 48:         if (await context.Topics.AnyAsync()) return;
- 49: 
- 50:         var topics = new List<Topic>
- 51:         {
- 52:             new() { Name = "Default",          Slug = "default",          Description = "Not categorized" },
- 53:             new() { Name = "Technology",       Slug = "technology",       Description = "Tech innovations and digital trends" },
- 54:             new() { Name = "Health",           Slug = "health",           Description = "Wellness, medicine, and health science" },
- 55:             new() { Name = "Science",          Slug = "science",          Description = "Scientific discoveries and research" },
- 56:             new() { Name = "Environment",      Slug = "environment",      Description = "Climate, ecology, and conservation" },
- 57:             new() { Name = "Space",            Slug = "space",            Description = "Astronomy, space exploration, and NASA" },
- 58:             new() { Name = "Travel",           Slug = "travel",           Description = "Destinations, culture, and adventure" },
- 59:             new() { Name = "Animals",          Slug = "animals",          Description = "Wildlife and animal stories" },
- 60:             new() { Name = "Inspiring",        Slug = "inspiring",        Description = "Uplifting and motivational stories" },
- 61:             new() { Name = "Arts & Culture",   Slug = "arts-culture",     Description = "Art, music, literature, and culture" },
- 62:             new() { Name = "Education",        Slug = "education",        Description = "Learning, teaching, and academic breakthroughs" },
- 63:             new() { Name = "Business",         Slug = "business",         Description = "Economy, startups, and corporate responsibility" },
- 64:             new() { Name = "Sports",           Slug = "sports",           Description = "Athletic achievements and sports news" },
- 65:             new() { Name = "General",          Slug = "general",          Description = "Uncategorized positive news" }
- 66:         };
- 67: 
- 68:         context.Topics.AddRange(topics);
- 69:         await context.SaveChangesAsync();
- 70:         logger.LogInformation("Seeded {Count} topics.", topics.Count);
- 71:     }
- 72: 
- 73:     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger)
- 74:     {
- 75:         if (await context.Sources.AnyAsync()) return;
- 76: 
- 77:         var sources = new List<Source>
- 78:         {
- 79:             new()
- 80:             {
- 81:                 Name = "NVIDIA Blog",
- 82:                 BaseUrl = "https://blogs.nvidia.com/",
- 83:                 FeedUrl = "https://blogs.nvidia.com/feed/",
- 84:                 TrustScore = 1.0m,
- 85:                 DefaultLanguageCode = "en-US",
- 86:                 Description = "Latest news from NVIDIA.",
- 87:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
- 88:             },
- 89:             new()
- 90:             {
- 91:                 Name = "The Optimist Daily",
- 92:                 BaseUrl = "https://www.optimistdaily.com",
- 93:                 FeedUrl = "https://www.optimistdaily.com/feed/",
- 94:                 TrustScore = 1.0m,
- 95:                 DefaultLanguageCode = "en",
- 96:                 Description = "Making solutions the news.",
- 97:                 LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
- 98:             },
- 99:             new()
-100:             {
-101:                 Name = "NASA Breaking News",
-102:                 BaseUrl = "https://www.nasa.gov",
-103:                 FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
-104:                 TrustScore = 1.0m,
-105:                 DefaultLanguageCode = "en",
-106:                 Description = "Latest news from NASA.",
-107:                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
-108:             },
-109:             new()
-110:             {
-111:                 Name = "MIT News",
-112:                 BaseUrl = "https://web.mit.edu/",
-113:                 FeedUrl = "https://news.mit.edu/rss/feed",
-114:                 TrustScore = 1.0m,
-115:                 DefaultLanguageCode = "en",
-116:                 Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
-117:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
-118:             }
-119:         };
-120: 
-121:         context.Sources.AddRange(sources);
-122:         await context.SaveChangesAsync();
-123:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
-124:     }
-125: 
-126:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
-127:     {
-128:         if (await context.Users.AnyAsync()) return;
-129: 
-130:         // Seed a system/admin user to own future moderation actions.
-131:         // In production, the password hash would come from a proper Identity hasher.
-132:         var adminUser = new User
-133:         {
-134:             Email = "admin@positivenews.local",
-135:             EmailConfirmed = true,
-136:             Name = "System Administrator",
-137:             PasswordHash = null, // Will be set via proper Auth flow later.
-138:             IsActive = true
-139:         };
-140: 
-141:         context.Users.Add(adminUser);
-142:         await context.SaveChangesAsync();
-143: 
-144:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-145:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
-146:         await context.SaveChangesAsync();
-147: 
-148:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
-149:     }
-150: }
-
-================
-File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
-================
- 1: <Project Sdk="Microsoft.NET.Sdk">
- 2: 
- 3:   <ItemGroup>
- 4:     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
- 5:     <ProjectReference Include="..\PositiveNews.Domain\PositiveNews.Domain.csproj" />
- 6:   </ItemGroup>
- 7: 
- 8:   <ItemGroup>
- 9:     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
-10:     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-11:     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />
-12: 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">    
-13:       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-14:       <PrivateAssets>all</PrivateAssets>
-15:     </PackageReference>
-16:     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
-17:     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
-18:     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-19:   </ItemGroup>
-20: 
-21:   <PropertyGroup>
-22:     <TargetFramework>net10.0</TargetFramework>
-23:     <ImplicitUsings>enable</ImplicitUsings>
-24:     <Nullable>enable</Nullable>
-25:   </PropertyGroup>
-26: 
-27: </Project>
-
-================
 File: src/PositiveNews.Infrastructure/Services/FeedItemCleaner.cs
 ================
   1: using HtmlAgilityPack;
@@ -2096,312 +1288,372 @@ File: src/PositiveNews.Infrastructure/Services/FeedItemCleaner.cs
 127: }
 
 ================
-File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
+File: src/PositiveNews.Web/Models/ArticleDetailViewModel.cs
 ================
-  1: using Microsoft.EntityFrameworkCore;
-  2: using Microsoft.Extensions.DependencyInjection;
-  3: using Microsoft.Extensions.Logging;
-  4: using PositiveNews.Application.Interfaces;
-  5: using PositiveNews.Domain.Entities;
-  6: using PositiveNews.Domain.Enums;
-  7: using PositiveNews.Infrastructure.Persistence;
-  8: using static System.Runtime.InteropServices.JavaScript.JSType;
-  9: 
- 10: namespace PositiveNews.Infrastructure.Services;
- 11: 
- 12: /// <summary>
- 13: /// Iterates over all active sources, fetches their RSS feeds, 
- 14: /// deduplicates against existing articles, and persists new ones.
- 15: /// </summary>
- 16: public class IngestionService : IIngestionService
- 17: {
- 18: 
- 19:     private readonly IServiceScopeFactory _scopeFactory;
- 20:     // Each source gets its own DbContext scope, which prevents stale tracking and memory bloat.
- 21:     // This follows Microsoft's recommended pattern for consuming scoped services from hosted services.
- 22:     private readonly IRssFeedReader _feedReader;
- 23:     private readonly ILogger<IngestionService> _logger;
- 24: 
- 25:     /// <summary>
- 26:     /// Polite delay between processing individual sources to avoid hammering external servers.
- 27:     /// </summary>
- 28:     private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
- 29: 
- 30:     /// <summary>
- 31:     /// Small delay between persisting individual articles within a single source batch.
- 32:     /// </summary>
- 33:     private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(1); //TODO - These can be made configurable.
- 34: 
- 35:     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
- 36: 
- 37:     public IngestionService(
- 38:         IServiceScopeFactory scopeFactory,
- 39:         IRssFeedReader feedReader,
- 40:         ILogger<IngestionService> logger)
- 41:     {
- 42:         _scopeFactory = scopeFactory;
- 43:         _feedReader = feedReader;
- 44:         _logger = logger;
- 45:     }
- 46: 
- 47:     public async Task RunIngestionCycleAsync(CancellationToken cancellationToken = default)
- 48:     {
- 49:         _logger.LogInformation("=== Ingestion cycle started. ===");
- 50: 
- 51:         // Fetch the list of active sources.
- 52:         List<Source> activeSources;
- 53:         using (var scope = _scopeFactory.CreateScope())
- 54:         {
- 55:             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
- 56:             activeSources = await context.Sources
- 57:                 .Where(s => s.IsActive && s.FeedUrl != null)
- 58:                 .AsNoTracking()
- 59:                 .ToListAsync(cancellationToken);
- 60:         }
- 61: 
- 62:         _logger.LogInformation("Found {Count} active sources with feed URLs.", activeSources.Count);
- 63: 
- 64:         foreach (var source in activeSources)
- 65:         {
- 66:             if (cancellationToken.IsCancellationRequested) break;
- 67: 
- 68:             await ProcessSourceAsync(source, cancellationToken);
- 69: 
- 70:             // Polite delay between sources.
- 71:             if (!cancellationToken.IsCancellationRequested)
- 72:             {
- 73:                 _logger.LogDebug("Waiting {Delay} before next source...", DelayBetweenSources);
- 74:                 await Task.Delay(DelayBetweenSources, cancellationToken);
- 75:             }
- 76:         }
- 77: 
- 78:         _logger.LogInformation("=== Ingestion cycle completed. ===");
- 79:     }
- 80: 
- 81:     private async Task ProcessSourceAsync(Source source, CancellationToken cancellationToken)
- 82:     {
- 83:         _logger.LogInformation("Processing source: {SourceName} ({FeedUrl})", source.Name, source.FeedUrl);
- 84: 
- 85:         // Create a fresh scope (and therefore a fresh DbContext) for each source.
- 86:         using var scope = _scopeFactory.CreateScope();
- 87:         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
- 88: 
- 89:         // Create an IngestionRun record.
- 90:         var run = new IngestionRun
- 91:         {
- 92:             SourceId = source.Id,
- 93:             StartedAt = DateTime.UtcNow,
- 94:             Status = IngestionStatus.Running
- 95:         };
- 96:         context.IngestionRuns.Add(run);
- 97:         await context.SaveChangesAsync(cancellationToken);
- 98: 
- 99:         int newArticleCount = 0;
-100: 
-101:         try
-102:         {
-103:             var feedItems = await _feedReader.ReadFeedAsync(source.FeedUrl!, cancellationToken);
-104:             //Separate ReadFeedAsync because of Single Responsibility Principle and Dependency Inversion.
-105:             //IRssFeedReader handles the HTTP + XML parsing concern only.
-106:             //IIngestionService orchestrates the business logic (deduplication, persistence, logging).
-107: 
-108:             if (feedItems.Count == 0)
-109:             {
-110:                 _logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
-111:                 run.Status = IngestionStatus.Partial;
-112:                 run.ErrorMessage = "Feed returned zero items. The feed URL may be unavailable or empty.";
-113:                 run.FinishedAt = DateTime.UtcNow;
-114:                 await context.SaveChangesAsync(cancellationToken);
-115:                 return;
-116:             }
-117: 
-118:             foreach (var item in feedItems)
-119:             {
-120:                 if (cancellationToken.IsCancellationRequested) break;
-121: 
-122:                 // Deduplication: Check if this article already exists for this source.
-123:                 bool alreadyExists = false;
-124: 
-125:                 if (!string.IsNullOrWhiteSpace(item.ExternalId))
-126:                 {
-127:                     alreadyExists = await context.ArticlesMetadata
-128:                         .AnyAsync(a => a.SourceId == source.Id && a.ExternalId == item.ExternalId,
-129:                                   cancellationToken);
-130:                 }
-131: 
-132:                 if (!alreadyExists && !string.IsNullOrWhiteSpace(item.Link))
-133:                 {
-134:                     alreadyExists = await context.ArticlesMetadata
-135:                         .AnyAsync(a => a.SourceId == source.Id && a.Url == item.Link,
-136:                                   cancellationToken);
-137:                 }
-138: 
-139:                 if (alreadyExists)
-140:                 {
-141:                     _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
-142:                     continue;
-143:                 }
-144: 
-145:                 // Create the ArticleMetadata entry.
-146:                 var articleMeta = new ArticleMetadata
-147:                 {
-148:                     SourceId = source.Id,
-149:                     ExternalId = item.ExternalId,
-150:                     Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
-151:                     Author = item.Author,
-152:                     Url = item.Link,
-153:                     ImageUrl = item.ImageUrl,
-154:                     PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
-155:                     IngestedAt = DateTime.UtcNow,
-156:                     LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
-157:                     RegionCode = "Global",
-158:                     IsActive = true
-159:                 };
-160: 
-161:                 context.ArticlesMetadata.Add(articleMeta);
-162:                 await context.SaveChangesAsync(cancellationToken);
-163: 
-164:                 // Create the companion ArticleContent row (initially empty, to be filled by a future scraper).
-165:                 var articleContent = new ArticleContent
-166:                 {
-167:                     Id = articleMeta.Id,
-168:                     ContentRaw = item.ContentRaw,
-169:                     SummaryShort = item.Description,
-170:                     ContentClean = item.ContentClean
-171:                 };
-172:                 context.ArticlesContent.Add(articleContent);
-173:                 await context.SaveChangesAsync(cancellationToken);
-174: 
-175:                 newArticleCount++;
-176:                 _logger.LogInformation("Ingested new article: [{Id}] {Title}", articleMeta.Id, articleMeta.Title);
-177: 
-178:                 // Small polite delay between articles.
-179:                 await Task.Delay(DelayBetweenArticles, cancellationToken);
-180:             }
-181: 
-182:             run.Status = IngestionStatus.Success;
-183:             run.ItemsFetched = newArticleCount;
-184:             run.FinishedAt = DateTime.UtcNow;
-185:             await context.SaveChangesAsync(cancellationToken);
-186: 
-187:             _logger.LogInformation(
-188:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
-189:                 source.Name, newArticleCount, feedItems.Count);
-190:         }
-191:         catch (OperationCanceledException)
-192:         {
-193:             _logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
-194:             run.Status = IngestionStatus.Partial;
-195:             run.ErrorMessage = "Operation was cancelled.";
-196:             run.ItemsFetched = newArticleCount;
-197:             run.FinishedAt = DateTime.UtcNow;
-198:             await context.SaveChangesAsync(CancellationToken.None); // Save even on cancellation.
-199:         }
-200:         catch (Exception ex)
-201:         {
-202:             _logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
-203:             run.Status = IngestionStatus.Failed;
-204:             run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
-205:             run.ItemsFetched = newArticleCount;
-206:             run.FinishedAt = DateTime.UtcNow;
-207:             await context.SaveChangesAsync(CancellationToken.None);
-208:         }
-209:     }
-210: }
+ 1: namespace PositiveNews.Web.Models
+ 2: {
+ 3:     public class ArticleDetailViewModel
+ 4:     {
+ 5:         public string Title { get; set; } = string.Empty;
+ 6:         public string SourceName { get; set; } = string.Empty;
+ 7:         public string? Author { get; set; }
+ 8:         public DateTime PublishedAt { get; set; }
+ 9:         public string? ContentClean { get; set; }
+10:     }
+11: }
 
 ================
-File: src/PositiveNews.Infrastructure/Services/RssFeedReader.cs
+File: src/PositiveNews.Web/Models/ArticlePreviewViewModel.cs
 ================
- 1: using Microsoft.Extensions.DependencyInjection;
- 2: using Microsoft.Extensions.Logging;
- 3: using PositiveNews.Application.DTOs;
- 4: using PositiveNews.Application.Interfaces;
- 5: using System.ServiceModel.Syndication;
- 6: using System.Xml;
- 7: using System.Xml.Linq;
- 8: 
- 9: namespace PositiveNews.Infrastructure.Services;
-10: 
-11: /// <summary>
-12: /// Fetches and parses an RSS/Atom feed using System.ServiceModel.Syndication.
-13: /// This class makes HTTP calls to external sources.
-14: /// </summary>
-15: public class RssFeedReader : IRssFeedReader
-16: {
-17:     private readonly IHttpClientFactory _httpClientFactory; // registered in Infrastructure.DependencyInjection (services.AddHttpClient())
-18:     private readonly ILogger<RssFeedReader> _logger;
-19:     private readonly IRssItemElementValidator _validator; 
-20:     private readonly IRssItemParser _parser;
-21:     private readonly IFeedItemCleaner _cleaner;
-22: 
-23:     // XML namespaces
-24:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
-25:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
-26:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
+ 1: namespace PositiveNews.Web.Models
+ 2: {
+ 3:     public class ArticlePreviewViewModel
+ 4:     {
+ 5:         public long Id { get; set; }
+ 6:         public string SourceName { get; set; } = string.Empty;
+ 7:         public string? SourceLogoUrl { get; set; }
+ 8:         public string Title { get; set; } = string.Empty;
+ 9:         public string? Author { get; set; }
+10:         public DateTime PublishedAt { get; set; }
+11:         public string? ImageUrl { get; set; }
+12:         public string? SummaryShort { get; set; }
+13:     }
+14: }
+
+================
+File: src/PositiveNews.Web/Models/ErrorViewModel.cs
+================
+1: namespace PositiveNews.Web.Models
+2: {
+3:     public class ErrorViewModel
+4:     {
+5:         public string? RequestId { get; set; }
+6: 
+7:         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+8:     }
+9: }
+
+================
+File: src/PositiveNews.Web/Models/FeedIndexViewModel.cs
+================
+1: namespace PositiveNews.Web.Models
+2: {
+3:     public class FeedIndexViewModel
+4:     {
+5:         public List<ArticlePreviewViewModel> Articles { get; set; } = new();
+6:         public int CurrentPage { get; set; }
+7:         public int TotalPages { get; set; }
+8:     }
+9: }
+
+================
+File: src/PositiveNews.Web/Program.cs
+================
+ 1: using Serilog;
+ 2: using PositiveNews.Application;
+ 3: using PositiveNews.Infrastructure;
+ 4: using PositiveNews.Infrastructure.Persistence.Seeding;
+ 5: 
+ 6: namespace PositiveNews.Web;
+ 7: 
+ 8: public class Program
+ 9: {
+10:     public static async Task Main(string[] args)
+11:     {
+12:         // 1. Bootstrap Serilog for startup logging
+13:         Log.Logger = new LoggerConfiguration()
+14:             .WriteTo.Console()
+15:             .WriteTo.File(
+16:                 path: "logs/positivenews-.log",
+17:                 rollingInterval: RollingInterval.Day,
+18:                 retainedFileCountLimit: 30,
+19:                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+20:             .CreateBootstrapLogger();
+21: 
+22:         try
+23:         {
+24:             Log.Information("Starting PositiveNews Web MVC...");
+25: 
+26:             var builder = WebApplication.CreateBuilder(args);
 27: 
-28:     public RssFeedReader(IHttpClientFactory httpClientFactory, ILogger<RssFeedReader> logger,
-29:                          IRssItemElementValidator validator, IRssItemParser parser,
-30:                          IFeedItemCleaner cleaner)
-31:     {
-32:         _httpClientFactory = httpClientFactory;
-33:         _logger = logger;
-34:         _validator = validator;
-35:         _parser = parser;
-36:         _cleaner = cleaner;
-37:     }
-38: 
-39:     public async Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default)
-40:     {
-41:         var items = new List<RssFeedItemDto>();
-42: 
-43:         try
-44:         {
-45:             _logger.LogInformation("Fetching RSS feed from {FeedUrl}", feedUrl);
+28:             // 2. Configure Serilog for the Host
+29:             builder.Host.UseSerilog((context, loggerConfig) =>
+30:             {
+31:                 loggerConfig
+32:                     .ReadFrom.Configuration(context.Configuration)
+33:                     .Enrich.FromLogContext()
+34:                     .WriteTo.Console()
+35:                     .WriteTo.File(
+36:                         path: "logs/positivenews-.log",
+37:                         rollingInterval: RollingInterval.Day,
+38:                         retainedFileCountLimit: 30,
+39:                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+40:             });
+41: 
+42:             // 3. Register Clean Architecture Layers & MVC
+43:             builder.Services.AddApplicationServices();
+44:             builder.Services.AddInfrastructureServices(builder.Configuration);
+45:             builder.Services.AddControllersWithViews();
 46: 
-47:             var httpClient = _httpClientFactory.CreateClient("RssFeedClient");
-48:             using var response = await httpClient.GetAsync(feedUrl, cancellationToken);
-49:             response.EnsureSuccessStatusCode();
-50: 
-51:             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-52: 
-53:             var doc = XDocument.Load(stream);
-54:             var itemElements = doc.Descendants("item").ToList();
-55: 
-56:             if (itemElements is null)
-57:             {
-58:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
-59:                 return items;
-60:             }
-61:             _logger.LogInformation("Found {Count} items in RSS feed", itemElements.Count);
-62: 
-63:             foreach (var itemElement in itemElements)
-64:             {
-65:                 try
-66:                 {
-67:                     if (!_validator.IsValid(itemElement, ContentNs))
-68:                         continue;
-69: 
-70:                     var dto = _parser.Parse(itemElement, MediaNs, ContentNs, DcNs);
-71: 
-72:                     _cleaner.Clean(dto);
-73: 
-74:                     items.Add(dto);
-75:                 }
-76:                 catch (Exception ex)
-77:                 {
-78:                     _logger.LogWarning(ex, "Error parsing RSS item");
-79:                 }
-80:             }
-81:             _logger.LogInformation("Successfully parsed {Count} items from {FeedUrl}", items.Count, feedUrl);
-82:         }
-83:         catch (Exception ex)
-84:         {
-85:             _logger.LogError(ex, "Failed to read feed from {FeedUrl}.", feedUrl);
-86:         }
-87:         return items;
-88:     }
-89:    
-90: }
+47:             var app = builder.Build();
+48: 
+49:             // 4. Seed Database (Applies migrations and populates sources/topics)
+50:             await DataSeeder.SeedAsync(app.Services);
+51: 
+52:             // 5. Configure the HTTP request pipeline
+53:             if (!app.Environment.IsDevelopment())
+54:             {
+55:                 app.UseExceptionHandler("/Home/Error");
+56:                 app.UseHsts();
+57:             }
+58: 
+59:             app.UseSerilogRequestLogging();
+60:             app.UseHttpsRedirection();
+61:             app.UseStaticFiles(); // Required for MVC wwwroot assets
+62:             app.UseRouting();
+63:             app.UseAuthorization();
+64: 
+65:             app.MapControllerRoute(
+66:                 name: "default",
+67:                 pattern: "{controller=Home}/{action=Index}/{id?}");
+68: 
+69:             // 6. Run the application
+70:             await app.RunAsync();
+71:         }
+72:         catch (Exception ex)
+73:         {
+74:             Log.Fatal(ex, "Application terminated unexpectedly.");
+75:         }
+76:         finally
+77:         {
+78:             await Log.CloseAndFlushAsync();
+79:         }
+80:     }
+81: }
+
+================
+File: src/PositiveNews.Web/Properties/launchSettings.json
+================
+ 1: {
+ 2:   "$schema": "https://json.schemastore.org/launchsettings.json",
+ 3:   "profiles": {
+ 4:     "http": {
+ 5:       "commandName": "Project",
+ 6:       "dotnetRunMessages": true,
+ 7:       "launchBrowser": true,
+ 8:       "applicationUrl": "http://localhost:5239",
+ 9:       "environmentVariables": {
+10:         "ASPNETCORE_ENVIRONMENT": "Development"
+11:       }
+12:     },
+13:     "https": {
+14:       "commandName": "Project",
+15:       "dotnetRunMessages": true,
+16:       "launchBrowser": true,
+17:       "applicationUrl": "https://localhost:7196;http://localhost:5239",
+18:       "environmentVariables": {
+19:         "ASPNETCORE_ENVIRONMENT": "Development"
+20:       }
+21:     }
+22:   }
+23: }
+
+================
+File: src/PositiveNews.Web/wwwroot/lib/jquery-validation/LICENSE.md
+================
+ 1: The MIT License (MIT)
+ 2: =====================
+ 3: 
+ 4: Copyright Jörn Zaefferer
+ 5: 
+ 6: Permission is hereby granted, free of charge, to any person obtaining a copy
+ 7: of this software and associated documentation files (the "Software"), to deal
+ 8: in the Software without restriction, including without limitation the rights
+ 9: to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+10: copies of the Software, and to permit persons to whom the Software is
+11: furnished to do so, subject to the following conditions:
+12: 
+13: The above copyright notice and this permission notice shall be included in
+14: all copies or substantial portions of the Software.
+15: 
+16: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+17: IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+18: FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+19: AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+20: LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+21: OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+22: THE SOFTWARE.
+
+================
+File: src/PositiveNews.WebApi/PositiveNews.WebApi.csproj
+================
+ 1: <Project Sdk="Microsoft.NET.Sdk.Web">
+ 2: 
+ 3:   <PropertyGroup>
+ 4:     <TargetFramework>net10.0</TargetFramework>
+ 5:     <Nullable>enable</Nullable>
+ 6:     <ImplicitUsings>enable</ImplicitUsings>
+ 7:   </PropertyGroup>
+ 8: 
+ 9:   <ItemGroup>
+10:     <PackageReference Include="Microsoft.OpenApi" Version="3.3.1" />
+11:     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+12:     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+13:     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+14:     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
+15:   </ItemGroup>
+16: 
+17:   <ItemGroup>
+18:     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
+19:     <ProjectReference Include="..\PositiveNews.Infrastructure\PositiveNews.Infrastructure.csproj" />
+20:   </ItemGroup>
+21: 
+22: </Project>
+
+================
+File: src/PositiveNews.WebApi/Properties/launchSettings.json
+================
+ 1: {
+ 2:   "profiles": {
+ 3:     "https": {
+ 4:       "commandName": "Project",
+ 5:       "dotnetRunMessages": true,
+ 6:       "launchBrowser": true,
+ 7:       "launchUrl": "swagger",
+ 8:       "applicationUrl": "https://localhost:7210;http://localhost:5210",
+ 9:       "environmentVariables": {
+10:         "ASPNETCORE_ENVIRONMENT": "Development"
+11:       }
+12:     }
+13:   }
+14: }
+
+================
+File: README.md
+================
+ 1: Project Title: "PositiveNews".
+ 2: 
+ 3: Level: Educational.
+ 4: Status: Development.
+ 5: 
+ 6: Description: 
+ 7: A web platform combats "doom-scrolling" by aggregating news from various sources, 
+ 8: store them, and ranking them based on calculated score. Provides UI for viewing news sorted 
+ 9: by positivity
+10: 
+11: The "PositiveNews" features List:
+12: 1. Ingestion Engine: Receiving news from various sources.
+13: 2. Content Distiller: Get the core news text and short 1min-read summary.
+14: 3. Secure Storage: Storing articles, summaries, and metadata in a structured database.
+15: 4. Sentiment Assessor: Scoring articles for "positivity" (0.0 to 1.0).
+16: 5. Configurable Feed: Public visibility of with a global "positivity" threshold.
+17: 6. User Personalization: Authorized users can set their own positivity metrics.
+18: 7. Adaptive Reader: Toggle between "Summary" and "Full Article" views.
+19: 8. Community Interaction: Leaving and viewing comments on articles.
+20: 9. Admin Command Center: Operations for article, sources list editing and comment moderation.
+21: 10. Source Filtering: Narrowing the feed to specific trusted publishers (e.g., "Only Reuters").
+22: 11. Topic Filtering: Categorizing news by domain (e.g., "Technology," "Health").
+23: 12. Topics Sorting: By publication date, or "positivity" score.
+24: 13. Automatic logging: Logging of operations with writing to stored text files.
+
+================
+File: src/PositiveNews.Application/Interfaces/IRssItemElementValidator.cs
+================
+1: using System.Xml.Linq;
+2: 
+3: public interface IRssItemElementValidator
+4: {
+5:     bool IsValid(XElement itemElement, XNamespace contentNs);
+6: }
+
+================
+File: src/PositiveNews.Application/Interfaces/IRssItemParser.cs
+================
+1: using PositiveNews.Application.DTOs;
+2: using System.Xml.Linq;
+3: 
+4: public interface IRssItemParser
+5: {
+6:     RssFeedItemDto Parse(XElement itemElement, XNamespace contentNs,
+7:                          XNamespace DcNs, XNamespace MediaNs);
+8: }
+
+================
+File: src/PositiveNews.Infrastructure/Persistence/Connection/ConnectionStringResolver.cs
+================
+ 1: using Microsoft.Data.SqlClient;
+ 2: using Microsoft.Extensions.Configuration;
+ 3: 
+ 4: public static class ConnectionStringResolver
+ 5: {
+ 6:     public static string Resolve(IConfiguration configuration)
+ 7:     {
+ 8:         var defaultConn = configuration.GetConnectionString("DefaultConnection");
+ 9:         var altConn = configuration.GetConnectionString("AlternativeConnection");
+10: 
+11:         if (CanConnectToServer(defaultConn))
+12:             return defaultConn!;
+13: 
+14:         if (CanConnectToServer(altConn))
+15:             return altConn!;
+16: 
+17:         throw new InvalidOperationException(
+18:             "Unable to connect to either DefaultConnection or AlternativeConnection.");
+19:     }
+20: 
+21:     private static bool CanConnectToServer(string? connectionString)
+22:     {
+23:         if (string.IsNullOrWhiteSpace(connectionString))
+24:             return false;
+25: 
+26:         try
+27:         {
+28:             var builder = new SqlConnectionStringBuilder(connectionString)
+29:             {
+30:                 InitialCatalog = "master"
+31:             };
+32: 
+33:             using var connection = new SqlConnection(builder.ConnectionString);
+34:             connection.Open();
+35:             return true;
+36:         }
+37:         catch
+38:         {
+39:             return false;
+40:         }
+41:     }
+42: }
+
+================
+File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
+================
+ 1: <Project Sdk="Microsoft.NET.Sdk">
+ 2: 
+ 3:   <ItemGroup>
+ 4:     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
+ 5:     <ProjectReference Include="..\PositiveNews.Domain\PositiveNews.Domain.csproj" />
+ 6:   </ItemGroup>
+ 7: 
+ 8:   <ItemGroup>
+ 9:     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+10:     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+11:     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" />
+12: 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">    
+13:       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+14:       <PrivateAssets>all</PrivateAssets>
+15:     </PackageReference>
+16:     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
+17:     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
+18:     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+19:   </ItemGroup>
+20: 
+21:   <PropertyGroup>
+22:     <TargetFramework>net10.0</TargetFramework>
+23:     <ImplicitUsings>enable</ImplicitUsings>
+24:     <Nullable>enable</Nullable>
+25:   </PropertyGroup>
+26: 
+27: </Project>
 
 ================
 File: src/PositiveNews.Infrastructure/Services/RssItemElementValidator.cs
@@ -2625,70 +1877,100 @@ File: src/PositiveNews.Infrastructure/Services/RssItemParser.cs
 199: }
 
 ================
-File: src/PositiveNews.Web/appsettings.json
-================
- 1: {
- 2:   "ConnectionStrings": {
- 3:     "DefaultConnection": "Server=DESKTOP-0867BVN;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;",
- 4:     "AlternativeConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;"
- 5:   },
- 6:   "Ingestion": {
- 7:     "IntervalMinutes": 60
- 8:   },
- 9:   "Serilog": {
-10:     "MinimumLevel": {
-11:       "Default": "Information",
-12:       "Override": {
-13:         "Microsoft": "Warning",
-14:         "Microsoft.EntityFrameworkCore": "Warning",
-15:         "System": "Warning"
-16:       }
-17:     }
-18:   },
-19:   "AllowedHosts": "*"
-20: }
-
-================
 File: src/PositiveNews.Web/Controllers/HomeController.cs
 ================
  1: using Microsoft.AspNetCore.Mvc;
- 2: using PositiveNews.Web.Models;
- 3: using System.Diagnostics;
- 4: 
- 5: namespace PositiveNews.Web.Controllers
- 6: {
- 7:     public class HomeController : Controller
- 8:     {
- 9:         public IActionResult Index()
-10:         {
-11:             return View();
-12:         }
+ 2: using Microsoft.EntityFrameworkCore;
+ 3: using PositiveNews.Infrastructure.Persistence;
+ 4: using PositiveNews.Web.Models;
+ 5: using System.Diagnostics;
+ 6: 
+ 7: namespace PositiveNews.Web.Controllers
+ 8: {
+ 9:     public class HomeController : Controller
+10:     {
+11:         private readonly AppDbContext _context;
+12:         private const int PageSize = 10;
 13: 
-14:         public IActionResult Privacy()
+14:         public HomeController(AppDbContext context)
 15:         {
-16:             return View();
+16:             _context = context;
 17:         }
 18: 
-19:         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-20:         public IActionResult Error()
+19:         // GET: /Home/Index?page=1
+20:         public async Task<IActionResult> Index(int page = 1)
 21:         {
-22:             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-23:         }
-24:     }
-25: }
-
-================
-File: src/PositiveNews.Web/Models/ErrorViewModel.cs
-================
-1: namespace PositiveNews.Web.Models
-2: {
-3:     public class ErrorViewModel
-4:     {
-5:         public string? RequestId { get; set; }
-6: 
-7:         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-8:     }
-9: }
+22:             // 1. Base query for active articles
+23:             var query = _context.ArticlesMetadata
+24:                 .Include(a => a.Source)
+25:                 .Include(a => a.Content)
+26:                 .Where(a => a.IsActive)
+27:                 .OrderByDescending(a => a.PublishedAt)
+28:                 .AsNoTracking();
+29: 
+30:             // 2. Pagination logic
+31:             var totalArticles = await query.CountAsync();
+32:             var totalPages = (int)Math.Ceiling(totalArticles / (double)PageSize);
+33: 
+34:             var articles = await query
+35:                 .Skip((page - 1) * PageSize)
+36:                 .Take(PageSize)
+37:                 .Select(a => new ArticlePreviewViewModel
+38:                 {
+39:                     Id = a.Id,
+40:                     SourceName = a.Source.Name,
+41:                     SourceLogoUrl = a.Source.LogoUrl,
+42:                     Title = a.Title,
+43:                     Author = a.Author,
+44:                     PublishedAt = a.PublishedAt,
+45:                     ImageUrl = a.ImageUrl,
+46:                     SummaryShort = a.Content != null ? a.Content.SummaryShort : "No summary available."
+47:                 })
+48:                 .ToListAsync();
+49: 
+50:             var viewModel = new FeedIndexViewModel
+51:             {
+52:                 Articles = articles,
+53:                 CurrentPage = page,
+54:                 TotalPages = totalPages
+55:             };
+56: 
+57:             return View(viewModel);
+58:         }
+59: 
+60:         // GET: /Home/ReadArticle/5
+61:         public async Task<IActionResult> ReadArticle(long id)
+62:         {
+63:             var article = await _context.ArticlesMetadata
+64:                 .Include(a => a.Source)
+65:                 .Include(a => a.Content)
+66:                 .AsNoTracking()
+67:                 .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+68: 
+69:             if (article == null)
+70:             {
+71:                 return NotFound();
+72:             }
+73: 
+74:             var viewModel = new ArticleDetailViewModel
+75:             {
+76:                 Title = article.Title,
+77:                 SourceName = article.Source.Name,
+78:                 Author = article.Author,
+79:                 PublishedAt = article.PublishedAt,
+80:                 ContentClean = article.Content?.ContentClean
+81:             };
+82: 
+83:             return View(viewModel);
+84:         }
+85: 
+86:         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+87:         public IActionResult Error()
+88:         {
+89:             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+90:         }
+91:     }
+92: }
 
 ================
 File: src/PositiveNews.Web/PositiveNews.Web.csproj
@@ -2719,144 +2001,6 @@ File: src/PositiveNews.Web/PositiveNews.Web.csproj
 24: </Project>
 
 ================
-File: src/PositiveNews.Web/Program.cs
-================
- 1: using Serilog;
- 2: using PositiveNews.Application;
- 3: using PositiveNews.Infrastructure;
- 4: using PositiveNews.Infrastructure.Persistence.Seeding;
- 5: 
- 6: namespace PositiveNews.Web;
- 7: 
- 8: public class Program
- 9: {
-10:     public static async Task Main(string[] args)
-11:     {
-12:         // 1. Bootstrap Serilog for startup logging
-13:         Log.Logger = new LoggerConfiguration()
-14:             .WriteTo.Console()
-15:             .WriteTo.File(
-16:                 path: "logs/positivenews-.log",
-17:                 rollingInterval: RollingInterval.Day,
-18:                 retainedFileCountLimit: 30,
-19:                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-20:             .CreateBootstrapLogger();
-21: 
-22:         try
-23:         {
-24:             Log.Information("Starting PositiveNews Web MVC...");
-25: 
-26:             var builder = WebApplication.CreateBuilder(args);
-27: 
-28:             // 2. Configure Serilog for the Host
-29:             builder.Host.UseSerilog((context, loggerConfig) =>
-30:             {
-31:                 loggerConfig
-32:                     .ReadFrom.Configuration(context.Configuration)
-33:                     .Enrich.FromLogContext()
-34:                     .WriteTo.Console()
-35:                     .WriteTo.File(
-36:                         path: "logs/positivenews-.log",
-37:                         rollingInterval: RollingInterval.Day,
-38:                         retainedFileCountLimit: 30,
-39:                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
-40:             });
-41: 
-42:             // 3. Register Clean Architecture Layers & MVC
-43:             builder.Services.AddApplicationServices();
-44:             builder.Services.AddInfrastructureServices(builder.Configuration);
-45:             builder.Services.AddControllersWithViews();
-46: 
-47:             var app = builder.Build();
-48: 
-49:             // 4. Seed Database (Applies migrations and populates sources/topics)
-50:             await DataSeeder.SeedAsync(app.Services);
-51: 
-52:             // 5. Configure the HTTP request pipeline
-53:             if (!app.Environment.IsDevelopment())
-54:             {
-55:                 app.UseExceptionHandler("/Home/Error");
-56:                 app.UseHsts();
-57:             }
-58: 
-59:             app.UseSerilogRequestLogging();
-60:             app.UseHttpsRedirection();
-61:             app.UseStaticFiles(); // Required for MVC wwwroot assets
-62:             app.UseRouting();
-63:             app.UseAuthorization();
-64: 
-65:             app.MapControllerRoute(
-66:                 name: "default",
-67:                 pattern: "{controller=Home}/{action=Index}/{id?}");
-68: 
-69:             // 6. Run the application
-70:             await app.RunAsync();
-71:         }
-72:         catch (Exception ex)
-73:         {
-74:             Log.Fatal(ex, "Application terminated unexpectedly.");
-75:         }
-76:         finally
-77:         {
-78:             await Log.CloseAndFlushAsync();
-79:         }
-80:     }
-81: }
-
-================
-File: src/PositiveNews.Web/Properties/launchSettings.json
-================
- 1: {
- 2:   "$schema": "https://json.schemastore.org/launchsettings.json",
- 3:   "profiles": {
- 4:     "http": {
- 5:       "commandName": "Project",
- 6:       "dotnetRunMessages": true,
- 7:       "launchBrowser": true,
- 8:       "applicationUrl": "http://localhost:5239",
- 9:       "environmentVariables": {
-10:         "ASPNETCORE_ENVIRONMENT": "Development"
-11:       }
-12:     },
-13:     "https": {
-14:       "commandName": "Project",
-15:       "dotnetRunMessages": true,
-16:       "launchBrowser": true,
-17:       "applicationUrl": "https://localhost:7196;http://localhost:5239",
-18:       "environmentVariables": {
-19:         "ASPNETCORE_ENVIRONMENT": "Development"
-20:       }
-21:     }
-22:   }
-23: }
-
-================
-File: src/PositiveNews.Web/wwwroot/lib/jquery-validation/LICENSE.md
-================
- 1: The MIT License (MIT)
- 2: =====================
- 3: 
- 4: Copyright Jörn Zaefferer
- 5: 
- 6: Permission is hereby granted, free of charge, to any person obtaining a copy
- 7: of this software and associated documentation files (the "Software"), to deal
- 8: in the Software without restriction, including without limitation the rights
- 9: to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-10: copies of the Software, and to permit persons to whom the Software is
-11: furnished to do so, subject to the following conditions:
-12: 
-13: The above copyright notice and this permission notice shall be included in
-14: all copies or substantial portions of the Software.
-15: 
-16: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-17: IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-18: FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-19: AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-20: LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-21: OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-22: THE SOFTWARE.
-
-================
 File: src/PositiveNews.WebApi/appsettings.json
 ================
  1: {
@@ -2880,30 +2024,450 @@ File: src/PositiveNews.WebApi/appsettings.json
 19: }
 
 ================
-File: src/PositiveNews.WebApi/PositiveNews.WebApi.csproj
+File: MSSQLSDBInitial.sql
 ================
- 1: <Project Sdk="Microsoft.NET.Sdk.Web">
- 2: 
- 3:   <PropertyGroup>
- 4:     <TargetFramework>net10.0</TargetFramework>
- 5:     <Nullable>enable</Nullable>
- 6:     <ImplicitUsings>enable</ImplicitUsings>
- 7:   </PropertyGroup>
+  1: /* ==========================================================================
+  2:    POSITIVE NEWS DATABASE - INITIAL SETUP
+  3:    ==========================================================================
+  4:    Description: 
+  5:    Creates the schema for the PositiveNews aggregator MVP.
+  6:    Includes Vertical Partitioning for Articles, Unified Audit Logging,
+  7:    and preparation for future Social Auth.
+  8:    ========================================================================== */
+  9: 
+ 10: /* --------------------------------------------------------------------------
+ 11:    1. SCHEMAS
+ 12:    -------------------------------------------------------------------------- */
+ 13: -- Organizing tables by domain context.
+ 14: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Admin') EXEC('CREATE SCHEMA [Admin]')
+ 15: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Catalog') EXEC('CREATE SCHEMA [Catalog]')
+ 16: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Community') EXEC('CREATE SCHEMA [Community]')
+ 17: IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'Identity') EXEC('CREATE SCHEMA [Identity]')
+ 18: GO
+ 19: 
+ 20: /* --------------------------------------------------------------------------
+ 21:    2. INDEPENDENT TABLES (Dictionaries & Core Entities)
+ 22:    -------------------------------------------------------------------------- */
+ 23: 
+ 24: -- [Identity].[Roles]
+ 25: -- Simple lookup for permissions.
+ 26: CREATE TABLE [Identity].[Roles](
+ 27:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+ 28:     [Name] [nvarchar](50) NOT NULL UNIQUE -- Enum-like (e.g., 'Admin', 'User', 'Moderator')
+ 29: );
+ 30: GO
+ 31: 
+ 32: -- [Catalog].[Topics]
+ 33: -- The categories articles belong to (e.g., 'Technology', 'Health').
+ 34: CREATE TABLE [Catalog].[Topics](
+ 35:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+ 36:     [Name] [nvarchar](200) NOT NULL,
+ 37:     [Slug] [nvarchar](200) NOT NULL UNIQUE, -- For pretty URLs (e.g., /topic/clean-energy)
+ 38:     [Description] [nvarchar](500) NULL
+ 39: );
+ 40: GO
+ 41: 
+ 42: -- [Identity].[Users]
+ 43: -- The core user identity table.
+ 44: CREATE TABLE [Identity].[Users](
+ 45:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+ 46:     [Email] [nvarchar](300) NOT NULL UNIQUE,
+ 47:     [EmailConfirmed] [bit] NOT NULL DEFAULT 0, -- Critical for preventing bot spam in comments.
+ 48:     [Name] [nvarchar](200) NOT NULL,
+ 49:     
+ 50:     -- SECURITY NOTE: Nullable to support future Social Auth (Google/Apple).
+ 51:     
+ 52:     [PasswordHash] [nvarchar](max) NULL, 
+ 53:     [LastLoginAt] [datetime2](7) NULL,
+ 54:     [FailedLoginCount] [int] NOT NULL DEFAULT 0, -- Security: Used to lock account after too many tries.
+ 55:     [AvatarPictureUrl] [nvarchar](1000) NULL,
+ 56:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
+ 57:     [IsActive] [bit] NOT NULL DEFAULT 1,
+ 58:     [ModeratedBy] [bigint] NULL -- Self-referencing FK (defined later) to track who banned/approved this user.
+ 59: );
+ 60: GO
+ 61: 
+ 62: /* --------------------------------------------------------------------------
+ 63:    3. CATALOG & CONTENT TABLES
+ 64:    -------------------------------------------------------------------------- */
+ 65: 
+ 66: -- [Catalog].[Sources]
+ 67: -- Represents RSS feeds or APIs (e.g., Reuters, BBC).
+ 68: CREATE TABLE [Catalog].[Sources](
+ 69:     [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+ 70:     [Name] [nvarchar](200) NOT NULL,
+ 71:     [Description] [nvarchar](1000) NULL,
+ 72:     [BaseUrl] [nvarchar](500) NOT NULL,
+ 73:     [FeedUrl] [nvarchar](500) NULL,
+ 74:     [LogoUrl] [nvarchar](500) NULL,
+ 75:     [ApiEndpoint] [nvarchar](500) NULL,
+ 76:     
+ 77:     -- SECURITY: There is no intention to store API keys in clear text. 
+ 78:     -- Application must encrypt this before saving and decrypt in memory when used.
+ 79: 
+ 80:     [ApiEncryptedKey] [nvarchar](max) NULL, 
+ 81:     
+ 82:     [TrustScore] [decimal](5, 2) NOT NULL DEFAULT 1.0, -- Weighting factor for the algorithm.
+ 83:     [DefaultLanguageCode] [nvarchar](10) NOT NULL DEFAULT 'en', -- Template for incoming articles.
+ 84:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
+ 85:     [IsActive] [bit] NOT NULL DEFAULT 1,
+ 86:     [ModeratedBy] [bigint] NULL,
+ 87:     
+ 88:     CONSTRAINT [FK_Sources_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
+ 89: );
+ 90: GO
+ 91: 
+ 92: -- [Catalog].[ArticlesMetadata]
+ 93: -- The "Light" table. Contains only searchable fields.
+ 94: -- Vertical Partitioning Strategy: Keeping this small makes feed queries fast.
+ 95: CREATE TABLE [Catalog].[ArticlesMetadata](
+ 96:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+ 97:     [SourceId] [int] NOT NULL,
+ 98:     [ExternalId] [nvarchar](300) NULL, -- The ID provided by the Source (RSS GUID).
+ 99:     [Title] [nvarchar](500) NOT NULL,
+100:     [Author] [nvarchar](300) NULL,
+101:     [Url] [nvarchar](1000) NOT NULL,
+102:     [ImageUrl] [nvarchar](1000) NULL,
+103:     
+104:     -- TIMESTAMPS: PublishedAt is NOT NULL because sorting by "Unknown Date" breaks the feed UI.
+105:     [PublishedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(), 
+106:     [IngestedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
+107:     
+108:     -- ANALYSIS: Nullable because analysis happens asynchronously after ingestion.
+109:     [AnalyzedAt] [datetime2](7) NULL, 
+110:     [PositivityScore] [decimal](5, 4) NULL, -- 0.0000 to 1.0000
+111:     
+112:     [ViewCount] [bigint] NOT NULL DEFAULT 0,
+113:     
+114:     -- LOCALIZATION: Defaults 'und' (Undefined) and 'Global' allow the Ingestor to save 
+115:     -- the article immediately, even if language detection absent.
+116:     [LanguageCode] [nvarchar](10) NOT NULL DEFAULT 'und', 
+117:     [RegionCode] [nvarchar](10) NOT NULL DEFAULT 'Global',
+118:     
+119:     [IsActive] [bit] NOT NULL DEFAULT 1,
+120:     [ModeratedBy] [bigint] NULL,
+121: 
+122:     CONSTRAINT [FK_ArticlesMeta_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE,
+123:     CONSTRAINT [FK_ArticlesMeta_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
+124: );
+125: GO
+126: 
+127: -- [Catalog].[ArticlesContent]
+128: -- The "Heavy" table. Contains blobs of text. 
+129: -- Split from Metadata to reduce IO usage when listing articles.
+130: CREATE TABLE [Catalog].[ArticlesContent](
+131:     [Id] [bigint] NOT NULL PRIMARY KEY, -- 1-to-1 Relationship with Metadata
+132:     
+133:     -- NULLABLE JUSTIFICATION:
+134:     -- 1. Ingestion saves Metadata first (Content is NULL).
+135:     -- 2. Background worker scrapes the URL (ContentRaw populated).
+136:     -- 3. AI cleans the text (ContentClean populated).
+137:     -- If these were NOT NULL, the initial ingestion would fail.
+138:     [ContentRaw] [nvarchar](max) NULL,
+139:     [ContentClean] [nvarchar](max) NULL,
+140:     [SummaryShort] [nvarchar](2000) NULL,
+141: 
+142:     CONSTRAINT [FK_ArticlesContent_Meta] FOREIGN KEY([Id]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE
+143: );
+144: GO
+145: 
+146: -- [Catalog].[IngestionRuns]
+147: -- Logs the execution of the background scraper.
+148: CREATE TABLE [Catalog].[IngestionRuns](
+149:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+150:     [SourceId] [int] NOT NULL,
+151:     [StartedAt] [datetime2](7) NOT NULL,
+152:     [FinishedAt] [datetime2](7) NULL,
+153:     [Status] [nvarchar](50) NOT NULL, -- Enum stored as String: 'Running', 'Success', 'Failed'
+154:     [ItemsFetched] [int] NOT NULL DEFAULT 0,
+155:     [ErrorMessage] [nvarchar](max) NULL,
+156: 
+157:     CONSTRAINT [FK_IngestionRuns_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE
+158: );
+159: GO
+160: 
+161: /* --------------------------------------------------------------------------
+162:    4. COMMUNITY & INTERACTION TABLES
+163:    -------------------------------------------------------------------------- */
+164: 
+165: -- [Community].[Comments]
+166: CREATE TABLE [Community].[Comments](
+167:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+168:     [ArticleId] [bigint] NOT NULL,
+169:     [UserId] [bigint] NOT NULL,
+170:     [ParentId] [bigint] NULL, -- For threaded replies.
+171:     [Content] [nvarchar](2000) NOT NULL, -- Security: Prevent "Text Bloat" attacks.
+172:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
+173:     [EditedAt] [datetime2](7) NULL,
+174:     [IsActive] [bit] NOT NULL DEFAULT 1,
+175:     [ModeratedBy] [bigint] NULL,
+176: 
+177:     CONSTRAINT [FK_Comments_Article] FOREIGN KEY([ArticleId]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE,
+178:     CONSTRAINT [FK_Comments_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]), 
+179:     CONSTRAINT [FK_Comments_Parent] FOREIGN KEY([ParentId]) REFERENCES [Community].[Comments]([Id]), 
+180:     CONSTRAINT [FK_Comments_Moderator] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id])
+181: );
+182: GO
+183: 
+184: /* --------------------------------------------------------------------------
+185:    5. JUNCTION TABLES (Relationships)
+186:    -------------------------------------------------------------------------- */
+187: 
+188: -- [Identity].[UserRoles] (Many-to-Many)
+189: CREATE TABLE [Identity].[UserRoles](
+190:     [UserId] [bigint] NOT NULL,
+191:     [RoleId] [int] NOT NULL,
+192:     PRIMARY KEY CLUSTERED ([UserId] ASC, [RoleId] ASC),
+193: 
+194:     CONSTRAINT [FK_UserRoles_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
+195:     CONSTRAINT [FK_UserRoles_Role] FOREIGN KEY([RoleId]) REFERENCES [Identity].[Roles]([Id]) ON DELETE CASCADE
+196: );
+197: GO
+198: 
+199: -- [Catalog].[ArticleTopics] (Many-to-Many)
+200: CREATE TABLE [Catalog].[ArticleTopics](
+201:     [ArticleId] [bigint] NOT NULL,
+202:     [TopicId] [int] NOT NULL,
+203:     PRIMARY KEY CLUSTERED ([ArticleId] ASC, [TopicId] ASC),
+204:     
+205:     CONSTRAINT [FK_ArticleTopics_Article] FOREIGN KEY([ArticleId]) REFERENCES [Catalog].[ArticlesMetadata]([Id]) ON DELETE CASCADE,
+206:     CONSTRAINT [FK_ArticleTopics_Topic] FOREIGN KEY([TopicId]) REFERENCES [Catalog].[Topics]([Id]) ON DELETE CASCADE
+207: );
+208: GO
+209: 
+210: -- [Identity].[UserSourceFilters] (Many-to-Many)
+211: -- Users can "Mute" or "Follow" specific sources.
+212: CREATE TABLE [Identity].[UserSourceFilters](
+213:     [UserId] [bigint] NOT NULL,
+214:     [SourceId] [int] NOT NULL,
+215:     PRIMARY KEY CLUSTERED ([UserId] ASC, [SourceId] ASC),
+216: 
+217:     CONSTRAINT [FK_UserSourceFilters_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
+218:     CONSTRAINT [FK_UserSourceFilters_Source] FOREIGN KEY([SourceId]) REFERENCES [Catalog].[Sources]([Id]) ON DELETE CASCADE
+219: );
+220: GO
+221: 
+222: -- [Identity].[UserTopicFilters] (Many-to-Many)
+223: CREATE TABLE [Identity].[UserTopicFilters](
+224:     [UserId] [bigint] NOT NULL,
+225:     [TopicId] [int] NOT NULL,
+226:     PRIMARY KEY CLUSTERED ([UserId] ASC, [TopicId] ASC),
+227: 
+228:     CONSTRAINT [FK_UserTopicFilters_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE,
+229:     CONSTRAINT [FK_UserTopicFilters_Topic] FOREIGN KEY([TopicId]) REFERENCES [Catalog].[Topics]([Id]) ON DELETE CASCADE
+230: );
+231: GO
+232: 
+233: /* --------------------------------------------------------------------------
+234:    6. USER PREFERENCES
+235:    -------------------------------------------------------------------------- */
+236: 
+237: -- [Identity].[UserFeedPreferences]
+238: -- Stores the personalization settings for the user's feed.
+239: CREATE TABLE [Identity].[UserFeedPreferences](
+240:     [UserId] [bigint] NOT NULL PRIMARY KEY,
+241:     [MinPositivity] [decimal](3, 2) NOT NULL DEFAULT 0.5, -- The core feature: Filter out negative news.
+242:     [SortBy] [nvarchar](50) NOT NULL DEFAULT 'Date', -- Enum: 'Date', 'Popularity', 'Positivity'
+243:     [LanguageCode] [nvarchar](10) NULL, -- The language filter may be missing or none.
+244:     [RegionCode] [nvarchar](10) NULL, -- May be missing or none.
+245: 
+246:     CONSTRAINT [FK_UserPrefs_User] FOREIGN KEY([UserId]) REFERENCES [Identity].[Users]([Id]) ON DELETE CASCADE
+247: );
+248: GO
+249: 
+250: /* --------------------------------------------------------------------------
+251:    7. ADMIN & AUDITING
+252:    -------------------------------------------------------------------------- */
+253: 
+254: -- [Admin].[AuditLogs]
+255: -- Unified table for all moderation actions (Banning users, Deleting comments, etc.)
+256: CREATE TABLE [Admin].[AuditLogs](
+257:     [Id] [bigint] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+258:     [EntityType] [nvarchar](50) NOT NULL, -- Enum: 'Article', 'Comment', 'User'
+259:     [EntityId] [bigint] NOT NULL,         -- Stores the ID of the object being modified.
+260:     [ChangedField] [nvarchar](100) NULL,  -- e.g., 'IsActive', 'Title', 'SummaryShort'
+261:     [OldValue] [nvarchar](max) NULL,
+262:     [NewValue] [nvarchar](max) NULL,
+263:     [Reason] [nvarchar](500) NULL,        -- Why was this done? (e.g., 'Hate Speech')
+264:     [Note] [nvarchar](1000) NULL,         -- Moderator internal notes.
+265:     [ModeratorId] [bigint] NOT NULL,
+266:     [CreatedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(),
+267: 
+268:     CONSTRAINT [FK_AuditLogs_Moderator] FOREIGN KEY([ModeratorId]) REFERENCES [Identity].[Users]([Id])
+269: );
+270: GO
+271: 
+272: /* --------------------------------------------------------------------------
+273:    8. FINAL CONSTRAINTS
+274:    -------------------------------------------------------------------------- */
+275: ALTER TABLE [Identity].[Users] 
+276: ADD CONSTRAINT [FK_Users_ModeratedBy] FOREIGN KEY([ModeratedBy]) REFERENCES [Identity].[Users]([Id]);
+277: GO
+278: 
+279: /* --------------------------------------------------------------------------
+280:    9. PERFORMANCE INDEXES
+281:    -------------------------------------------------------------------------- */
+282: 
+283: -- FEED PERFORMANCE: "Show me the latest positive news"
+284: -- Includes 'PositivityScore' to filter negative news instantly without table lookups.
+285: CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_Feed_Date] 
+286: ON [Catalog].[ArticlesMetadata] ([LanguageCode], [RegionCode], [PublishedAt] DESC)
+287: INCLUDE ([Title], [ImageUrl], [SourceId], [PositivityScore], [ViewCount])
+288: WHERE [IsActive] = 1;
+289: GO
+290: 
+291: -- Optimization for "Source Profile" pages (e.g., /source/reuters).
+292: CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_SourceId]
+293: ON [Catalog].[ArticlesMetadata] ([SourceId])
+294: INCLUDE ([PublishedAt], [IsActive]); -- Include IsActive to filter deleted items quickly.
+295: GO
+296: 
+297: -- TOPIC LOOKUP: "Show me all articles about Technology"
+298: -- Essential because the PK is (ArticleId, TopicId). This creates the reverse lookup.
+299: CREATE NONCLUSTERED INDEX [IX_ArticleTopics_Topic_Lookup] 
+300: ON [Catalog].[ArticleTopics] ([TopicId])
+301: INCLUDE ([ArticleId]);
+302: GO
+303: 
+304: -- DEDUPLICATION: "Does this article already exist?"
+305: -- Used by the Ingestion Engine to prevent inserting duplicates.
+306: CREATE UNIQUE NONCLUSTERED INDEX [IX_ArticlesMeta_Source_ExternalId] 
+307: ON [Catalog].[ArticlesMetadata] ([SourceId], [ExternalId])
+308: WHERE [ExternalId] IS NOT NULL;
+309: GO
+310: 
+311: -- HISTORY: "Show me audit logs for this specific article"
+312: CREATE NONCLUSTERED INDEX [IX_AuditLogs_Entity_History] 
+313: ON [Admin].[AuditLogs] ([EntityType], [EntityId], [CreatedAt] DESC);
+314: GO
+315: 
+316: -- COMMENTS: "Load comments for this article"
+317: CREATE NONCLUSTERED INDEX [IX_Comments_Article_Thread] 
+318: ON [Community].[Comments] ([ArticleId], [CreatedAt] ASC)
+319: INCLUDE ([UserId], [Content])
+320: WHERE [IsActive] = 1;
+321: GO
+322: 
+323: -- 10. ENFORCE DATA INTEGRITY (Check Constraints)
+324: -- Prevents "Impossible" numbers from breaking the algorithm.
+325: 
+326: ALTER TABLE [Catalog].[ArticlesMetadata]
+327: ADD CONSTRAINT [CK_Articles_Positivity] CHECK ([PositivityScore] BETWEEN 0.0000 AND 1.0000);
+328: GO
+329: 
+330: ALTER TABLE [Catalog].[Sources]
+331: ADD CONSTRAINT [CK_Sources_Trust] CHECK ([TrustScore] >= 0.00);
+332: GO
+333: 
+334: ALTER TABLE [Identity].[UserFeedPreferences]
+335: ADD CONSTRAINT [CK_UserPrefs_MinPositivity] CHECK ([MinPositivity] BETWEEN 0.00 AND 1.00);
+336: GO
+337: 
+338: -- 11. ENFORCE ENUM INTEGRITY (Without Lookup Tables)
+339: -- Ensures only valid strings are saved.
+340: 
+341: ALTER TABLE [Catalog].[IngestionRuns]
+342: ADD CONSTRAINT [CK_Ingestion_Status] CHECK ([Status] IN ('Running', 'Success', 'Failed', 'Partial'));
+343: GO
+344: 
+345: ALTER TABLE [Admin].[AuditLogs]
+346: ADD CONSTRAINT [CK_Audit_Entity] CHECK ([EntityType] IN ('Article', 'Comment', 'User', 'Source'));
+347: -- To be supplemented...
+348: GO
+349: 
+350: --12. Create a View for main news feed to keep LINQ queries simple.
+351: 
+352: CREATE VIEW [Catalog].[vArticleFeed] AS
+353: SELECT 
+354:     m.Id, m.Title, m.ImageUrl, m.PublishedAt, m.PositivityScore,
+355:     s.Name AS SourceName, s.LogoUrl AS SourceLogo,
+356:     (SELECT STRING_AGG(t.Name, ', ') 
+357:      FROM [Catalog].[ArticleTopics] at 
+358:      JOIN [Catalog].[Topics] t ON at.TopicId = t.Id 
+359:      WHERE at.ArticleId = m.Id) AS TopicList
+360: FROM [Catalog].[ArticlesMetadata] m
+361: JOIN [Catalog].[Sources] s ON m.SourceId = s.Id
+362: WHERE m.IsActive = 1;
+
+================
+File: src/PositiveNews.Infrastructure/BackgroundJobs/IngestionBackgroundService.cs
+================
+ 1: using Microsoft.Extensions.DependencyInjection;
+ 2: using Microsoft.Extensions.Hosting;
+ 3: using Microsoft.Extensions.Logging;
+ 4: using Microsoft.Extensions.Configuration;
+ 5: using PositiveNews.Application.Interfaces;
+ 6: 
+ 7: namespace PositiveNews.Infrastructure.BackgroundJobs;
  8: 
- 9:   <ItemGroup>
-10:     <PackageReference Include="Microsoft.OpenApi" Version="3.3.1" />
-11:     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-12:     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-13:     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-14:     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
-15:   </ItemGroup>
-16: 
-17:   <ItemGroup>
-18:     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
-19:     <ProjectReference Include="..\PositiveNews.Infrastructure\PositiveNews.Infrastructure.csproj" />
-20:   </ItemGroup>
-21: 
-22: </Project>
+ 9: /// <summary>
+10: /// A long-running hosted service that periodically triggers the ingestion cycle.
+11: /// Interval is configurable via "Ingestion:IntervalMinutes" in appsettings.json.
+12: /// </summary>
+13: public class IngestionBackgroundService : BackgroundService // ← Implements IHostedService
+14: {
+15:     private readonly IServiceScopeFactory _scopeFactory;
+16:     private readonly ILogger<IngestionBackgroundService> _logger;
+17:     private readonly TimeSpan _interval;
+18: 
+19:     /// <summary>
+20:     /// Initial delay before the first run so the application has time to fully start.
+21:     /// </summary>
+22:     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(15);
+23: 
+24:     public IngestionBackgroundService(   // Host Creates instances of IngestionBackgroundService when starts
+25:         IServiceScopeFactory scopeFactory, // This service added to ASP .NET IoC by default. Needed for creation scope in singleton
+26:         ILogger<IngestionBackgroundService> logger,
+27:         IConfiguration configuration)
+28:     {
+29:         _scopeFactory = scopeFactory;
+30:         _logger = logger;
+31: 
+32:         // Read interval from appsettings.json
+33:         var minutes = configuration.GetValue<int>("Ingestion:IntervalMinutes", 60);
+34:         _interval = TimeSpan.FromMinutes(minutes);
+35:     }
+36: 
+37:     // THIS METHOD IS CALLED AUTOMATICALLY BY ASP.NET CORE WHEN HOST STARTS
+38:     // ASP.NET Core host calls ExecuteAsync(CancellationToken) for each service after app.RunAsync() in programm.cs
+39:     // because of BackgroundService implement IHostedService
+40:     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+41:     {
+42:         _logger.LogInformation(
+43:             "Ingestion Background Service started. Interval: {Interval}. Initial delay: {Delay}.",
+44:             _interval, InitialDelay);
+45: 
+46:         // Wait for the application to fully initialize before the first run.
+47:         await Task.Delay(InitialDelay, stoppingToken);
+48: 
+49:         while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
+50:         {
+51:             try
+52:             {
+53:                 using var scope = _scopeFactory.CreateScope(); // Create a fresh scope for this cycle
+54:                 var ingestionService = scope.ServiceProvider.GetRequiredService<IIngestionService>();
+55: 
+56:                 await ingestionService.RunIngestionCycleAsync(stoppingToken);       // ---=== EXECUTE INGESTION ===---
+57:             }
+58:             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+59:             {
+60:                 _logger.LogInformation("Ingestion Background Service is stopping.");
+61:                 break; // ← Exit loop on shutdown
+62:             }
+63:             catch (Exception ex)
+64:             {
+65:                 _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
+66:             }
+67: 
+68:             // Wait for the configured interval before the next run.
+69:             if (!stoppingToken.IsCancellationRequested)
+70:             {
+71:                 _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
+72:                 await Task.Delay(_interval, stoppingToken);
+73:             }
+74:         }
+75:     }
+76: }
 
 ================
 File: src/PositiveNews.WebApi/Program.cs
@@ -3007,22 +2571,571 @@ File: src/PositiveNews.WebApi/Program.cs
 97: }
 
 ================
-File: src/PositiveNews.WebApi/Properties/launchSettings.json
+File: src/PositiveNews.Web/appsettings.json
 ================
  1: {
- 2:   "profiles": {
- 3:     "https": {
- 4:       "commandName": "Project",
- 5:       "dotnetRunMessages": true,
- 6:       "launchBrowser": true,
- 7:       "launchUrl": "swagger",
- 8:       "applicationUrl": "https://localhost:7210;http://localhost:5210",
- 9:       "environmentVariables": {
-10:         "ASPNETCORE_ENVIRONMENT": "Development"
-11:       }
-12:     }
-13:   }
-14: }
+ 2:   "ConnectionStrings": {
+ 3:     "DefaultConnection": "Server=DESKTOP-0867BVN;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;",
+ 4:     "AlternativeConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;"
+ 5:   },
+ 6:   "Ingestion": {
+ 7:     "IntervalMinutes": 60
+ 8:   },
+ 9:   "Serilog": {
+10:     "MinimumLevel": {
+11:       "Default": "Information",
+12:       "Override": {
+13:         "Microsoft": "Warning",
+14:         "Microsoft.EntityFrameworkCore": "Warning",
+15:         "System": "Warning"
+16:       }
+17:     }
+18:   },
+19:   "AllowedHosts": "*"
+20: }
+
+================
+File: src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
+================
+ 1: namespace PositiveNews.Application.DTOs;
+ 2: 
+ 3: /// <summary>
+ 4: /// Represents a single item parsed from an RSS feed.
+ 5: /// This DTO is source-agnostic and carries only the data the ingestion pipeline needs.
+ 6: /// </summary>
+ 7: public class RssFeedItemDto
+ 8: {
+ 9:     public required string Title { get; init; }
+10:     public required string Link { get; init; }
+11: 
+12:     public required string ContentRaw { get; set; }
+13:     public required string Description { get; set; }
+14:     public string? Author { get; init; }
+15:     public string? ContentClean { get; set; }
+16: 
+17:     public DateTime? PublishedDate { get; init; }
+18: 
+19:     public string? ExternalId { get; init; }
+20:     public string? ImageUrl { get; init; }
+21: 
+22:     public List<string>? Topics { get; init; } 
+23: }
+
+================
+File: src/PositiveNews.Infrastructure/DependencyInjection.cs
+================
+ 1: using Humanizer.Configuration;
+ 2: using Microsoft.EntityFrameworkCore;
+ 3: using Microsoft.Extensions.Configuration;
+ 4: using Microsoft.Extensions.DependencyInjection;
+ 5: using PositiveNews.Application.Interfaces;
+ 6: using PositiveNews.Infrastructure.BackgroundJobs;
+ 7: using PositiveNews.Infrastructure.Persistence;
+ 8: using PositiveNews.Infrastructure.Services;
+ 9: 
+10: namespace PositiveNews.Infrastructure;
+11: 
+12: /// <summary>
+13: /// Clean Registration Pattern for the Infrastructure layer.
+14: /// Call this single method from WebApi's Program.cs.
+15: /// </summary>
+16: public static class DependencyInjection
+17: {
+18:     public static IServiceCollection AddInfrastructureServices(
+19:         this IServiceCollection services, IConfiguration configuration)
+20:     {
+21:         // EF Core with SQL Server
+22:         var connectionString = ConnectionStringResolver.Resolve(configuration);
+23: 
+24:         services.AddDbContext<AppDbContext>(options =>
+25:             options.UseSqlServer(connectionString, sqlOptions =>
+26:                 {
+27:                     sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+28:                     sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
+29:                 }));
+30: 
+31:         // HttpClient for RSS feed fetching.
+32:         // Configured with a polite User-Agent and a reasonable timeout.
+33:         services.AddHttpClient("RssFeedClient", client =>
+34:         {
+35:             client.Timeout = TimeSpan.FromSeconds(30);
+36:             client.DefaultRequestHeaders.UserAgent.ParseAdd(
+37:                 "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
+38:             client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
+39:         });
+40: 
+41:         // Application services
+42:         services.AddScoped<IRssFeedReader, RssFeedReader>();
+43:         services.AddScoped<IRssItemElementValidator, RssItemElementValidator>();
+44:         services.AddScoped<IRssItemParser, RssItemParser>();
+45:         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
+46:         services.AddScoped<IIngestionService, IngestionService>();
+47: 
+48:         // Background services
+49:         services.AddHostedService<IngestionBackgroundService>();
+50: 
+51:         return services;
+52:     }
+53: }
+
+================
+File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
+================
+  1: using Microsoft.EntityFrameworkCore;
+  2: using Microsoft.Extensions.DependencyInjection;
+  3: using Microsoft.Extensions.Logging;
+  4: using PositiveNews.Domain.Entities;
+  5: 
+  6: namespace PositiveNews.Infrastructure.Persistence.Seeding;
+  7: 
+  8: /// <summary>
+  9: /// Applies migrations (creates DB if missing) and seeds reference data.
+ 10: /// Designed to be called once at application startup.
+ 11: /// </summary>
+ 12: public static class DataSeeder
+ 13: {
+ 14:     public static async Task SeedAsync(IServiceProvider serviceProvider)
+ 15:     {
+ 16:         using var scope = serviceProvider.CreateScope();
+ 17:         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+ 18:         var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppDbContext>>();
+ 19: 
+ 20:         logger.LogInformation("Applying database migrations (will create DB if it does not exist)...");
+ 21:         await context.Database.MigrateAsync();
+ 22:         logger.LogInformation("Database migrations applied successfully.");
+ 23: 
+ 24:         await SeedRolesAsync(context, logger);
+ 25:         await SeedTopicsAsync(context, logger);
+ 26:         await SeedSourcesAsync(context, logger);
+ 27:         await SeedAdminUserAsync(context, logger);
+ 28:     }
+ 29: 
+ 30:     private static async Task SeedRolesAsync(AppDbContext context, ILogger logger)
+ 31:     {
+ 32:         if (await context.Roles.AnyAsync()) return;
+ 33: 
+ 34:         var roles = new List<Role>
+ 35:         {
+ 36:             new() { Name = "Admin" },
+ 37:             new() { Name = "Moderator" },
+ 38:             new() { Name = "User" }
+ 39:         };
+ 40: 
+ 41:         context.Roles.AddRange(roles);
+ 42:         await context.SaveChangesAsync();
+ 43:         logger.LogInformation("Seeded {Count} roles.", roles.Count);
+ 44:     }
+ 45: 
+ 46:     private static async Task SeedTopicsAsync(AppDbContext context, ILogger logger)
+ 47:     {
+ 48:         if (await context.Topics.AnyAsync()) return;
+ 49: 
+ 50:         var topics = new List<Topic>
+ 51:         {
+ 52:             new() { Name = "Default",          Slug = "default",          Description = "Not categorized" },
+ 53:             new() { Name = "Technology",       Slug = "technology",       Description = "Tech innovations and digital trends" },
+ 54:             new() { Name = "Health",           Slug = "health",           Description = "Wellness, medicine, and health science" },
+ 55:             new() { Name = "Science",          Slug = "science",          Description = "Scientific discoveries and research" },
+ 56:             new() { Name = "Environment",      Slug = "environment",      Description = "Climate, ecology, and conservation" },
+ 57:             new() { Name = "Space",            Slug = "space",            Description = "Astronomy, space exploration, and NASA" },
+ 58:             new() { Name = "Travel",           Slug = "travel",           Description = "Destinations, culture, and adventure" },
+ 59:             new() { Name = "Animals",          Slug = "animals",          Description = "Wildlife and animal stories" },
+ 60:             new() { Name = "Inspiring",        Slug = "inspiring",        Description = "Uplifting and motivational stories" },
+ 61:             new() { Name = "Arts & Culture",   Slug = "arts-culture",     Description = "Art, music, literature, and culture" },
+ 62:             new() { Name = "Education",        Slug = "education",        Description = "Learning, teaching, and academic breakthroughs" },
+ 63:             new() { Name = "Business",         Slug = "business",         Description = "Economy, startups, and corporate responsibility" },
+ 64:             new() { Name = "Sports",           Slug = "sports",           Description = "Athletic achievements and sports news" },
+ 65:             new() { Name = "General",          Slug = "general",          Description = "Uncategorized positive news" }
+ 66:         };
+ 67: 
+ 68:         context.Topics.AddRange(topics);
+ 69:         await context.SaveChangesAsync();
+ 70:         logger.LogInformation("Seeded {Count} topics.", topics.Count);
+ 71:     }
+ 72: 
+ 73:     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger)
+ 74:     {
+ 75:         if (await context.Sources.AnyAsync()) return;
+ 76: 
+ 77:         var sources = new List<Source>
+ 78:         {
+ 79:             new()
+ 80:             {
+ 81:                 Name = "NVIDIA Blog",
+ 82:                 BaseUrl = "https://blogs.nvidia.com/",
+ 83:                 FeedUrl = "https://blogs.nvidia.com/feed/",
+ 84:                 TrustScore = 1.0m,
+ 85:                 DefaultLanguageCode = "en-US",
+ 86:                 Description = "Latest news from NVIDIA.",
+ 87:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
+ 88:             },
+ 89:             new()
+ 90:             {
+ 91:                 Name = "The Optimist Daily",
+ 92:                 BaseUrl = "https://www.optimistdaily.com",
+ 93:                 FeedUrl = "https://www.optimistdaily.com/feed/",
+ 94:                 TrustScore = 1.0m,
+ 95:                 DefaultLanguageCode = "en",
+ 96:                 Description = "Making solutions the news.",
+ 97:                 LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
+ 98:             },
+ 99:             new()
+100:             {
+101:                 Name = "NASA Breaking News",
+102:                 BaseUrl = "https://www.nasa.gov",
+103:                 FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+104:                 TrustScore = 1.0m,
+105:                 DefaultLanguageCode = "en",
+106:                 Description = "Latest news from NASA.",
+107:                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
+108:             },
+109:             new()
+110:             {
+111:                 Name = "MIT News",
+112:                 BaseUrl = "https://web.mit.edu/",
+113:                 FeedUrl = "https://news.mit.edu/rss/feed",
+114:                 TrustScore = 1.0m,
+115:                 DefaultLanguageCode = "en",
+116:                 Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
+117:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
+118:             }
+119:         };
+120: 
+121:         context.Sources.AddRange(sources);
+122:         await context.SaveChangesAsync();
+123:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
+124:     }
+125: 
+126:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
+127:     {
+128:         if (await context.Users.AnyAsync()) return;
+129: 
+130:         // Seed a system/admin user to own future moderation actions.
+131:         // In production, the password hash would come from a proper Identity hasher.
+132:         var adminUser = new User
+133:         {
+134:             Email = "admin@positivenews.local",
+135:             EmailConfirmed = true,
+136:             Name = "System Administrator",
+137:             PasswordHash = null, // Will be set via proper Auth flow later.
+138:             IsActive = true
+139:         };
+140: 
+141:         context.Users.Add(adminUser);
+142:         await context.SaveChangesAsync();
+143: 
+144:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
+145:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
+146:         await context.SaveChangesAsync();
+147: 
+148:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
+149:     }
+150: }
+
+================
+File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
+================
+  1: using Microsoft.EntityFrameworkCore;
+  2: using Microsoft.Extensions.DependencyInjection;
+  3: using Microsoft.Extensions.Logging;
+  4: using PositiveNews.Application.Interfaces;
+  5: using PositiveNews.Domain.Entities;
+  6: using PositiveNews.Domain.Enums;
+  7: using PositiveNews.Infrastructure.Persistence;
+  8: using static System.Runtime.InteropServices.JavaScript.JSType;
+  9: 
+ 10: namespace PositiveNews.Infrastructure.Services;
+ 11: 
+ 12: /// <summary>
+ 13: /// Iterates over all active sources, fetches their RSS feeds, 
+ 14: /// deduplicates against existing articles, and persists new ones.
+ 15: /// </summary>
+ 16: public class IngestionService : IIngestionService
+ 17: {
+ 18: 
+ 19:     private readonly IServiceScopeFactory _scopeFactory;
+ 20:     // Each source gets its own DbContext scope, which prevents stale tracking and memory bloat.
+ 21:     // This follows Microsoft's recommended pattern for consuming scoped services from hosted services.
+ 22:     private readonly IRssFeedReader _feedReader;
+ 23:     private readonly ILogger<IngestionService> _logger;
+ 24: 
+ 25:     /// <summary>
+ 26:     /// Polite delay between processing individual sources to avoid hammering external servers.
+ 27:     /// </summary>
+ 28:     private static readonly TimeSpan DelayBetweenSources = TimeSpan.FromSeconds(5); //TODO - These can be made configurable.
+ 29: 
+ 30:     /// <summary>
+ 31:     /// Small delay between persisting individual articles within a single source batch.
+ 32:     /// </summary>
+ 33:     private static readonly TimeSpan DelayBetweenArticles = TimeSpan.FromSeconds(1); //TODO - These can be made configurable.
+ 34: 
+ 35:     // Requesting external RSS feeds rapidly can trigger rate limiting or IP blocking.
+ 36: 
+ 37:     public IngestionService(
+ 38:         IServiceScopeFactory scopeFactory,
+ 39:         IRssFeedReader feedReader,
+ 40:         ILogger<IngestionService> logger)
+ 41:     {
+ 42:         _scopeFactory = scopeFactory;
+ 43:         _feedReader = feedReader;
+ 44:         _logger = logger;
+ 45:     }
+ 46: 
+ 47:     public async Task RunIngestionCycleAsync(CancellationToken cancellationToken = default)
+ 48:     {
+ 49:         _logger.LogInformation("=== Ingestion cycle started. ===");
+ 50: 
+ 51:         // Fetch the list of active sources.
+ 52:         List<Source> activeSources;
+ 53:         using (var scope = _scopeFactory.CreateScope())
+ 54:         {
+ 55:             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+ 56:             activeSources = await context.Sources
+ 57:                 .Where(s => s.IsActive && s.FeedUrl != null)
+ 58:                 .AsNoTracking()
+ 59:                 .ToListAsync(cancellationToken);
+ 60:         }
+ 61: 
+ 62:         _logger.LogInformation("Found {Count} active sources with feed URLs.", activeSources.Count);
+ 63: 
+ 64:         foreach (var source in activeSources)
+ 65:         {
+ 66:             if (cancellationToken.IsCancellationRequested) break;
+ 67: 
+ 68:             await ProcessSourceAsync(source, cancellationToken);
+ 69: 
+ 70:             // Polite delay between sources.
+ 71:             if (!cancellationToken.IsCancellationRequested)
+ 72:             {
+ 73:                 _logger.LogDebug("Waiting {Delay} before next source...", DelayBetweenSources);
+ 74:                 await Task.Delay(DelayBetweenSources, cancellationToken);
+ 75:             }
+ 76:         }
+ 77: 
+ 78:         _logger.LogInformation("=== Ingestion cycle completed. ===");
+ 79:     }
+ 80: 
+ 81:     private async Task ProcessSourceAsync(Source source, CancellationToken cancellationToken)
+ 82:     {
+ 83:         _logger.LogInformation("Processing source: {SourceName} ({FeedUrl})", source.Name, source.FeedUrl);
+ 84: 
+ 85:         // Create a fresh scope (and therefore a fresh DbContext) for each source.
+ 86:         using var scope = _scopeFactory.CreateScope();
+ 87:         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+ 88: 
+ 89:         // Create an IngestionRun record.
+ 90:         var run = new IngestionRun
+ 91:         {
+ 92:             SourceId = source.Id,
+ 93:             StartedAt = DateTime.UtcNow,
+ 94:             Status = IngestionStatus.Running
+ 95:         };
+ 96:         context.IngestionRuns.Add(run);
+ 97:         await context.SaveChangesAsync(cancellationToken);
+ 98: 
+ 99:         int newArticleCount = 0;
+100: 
+101:         try
+102:         {
+103:             var feedItems = await _feedReader.ReadFeedAsync(source.FeedUrl!, cancellationToken);
+104:             //Separate ReadFeedAsync because of Single Responsibility Principle and Dependency Inversion.
+105:             //IRssFeedReader handles the HTTP + XML parsing concern only.
+106:             //IIngestionService orchestrates the business logic (deduplication, persistence, logging).
+107: 
+108:             if (feedItems.Count == 0)
+109:             {
+110:                 _logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
+111:                 run.Status = IngestionStatus.Partial;
+112:                 run.ErrorMessage = "Feed returned zero items. The feed URL may be unavailable or empty.";
+113:                 run.FinishedAt = DateTime.UtcNow;
+114:                 await context.SaveChangesAsync(cancellationToken);
+115:                 return;
+116:             }
+117: 
+118:             foreach (var item in feedItems)
+119:             {
+120:                 if (cancellationToken.IsCancellationRequested) break;
+121: 
+122:                 // Deduplication: Check if this article already exists for this source.
+123:                 bool alreadyExists = false;
+124: 
+125:                 if (!string.IsNullOrWhiteSpace(item.ExternalId))
+126:                 {
+127:                     alreadyExists = await context.ArticlesMetadata
+128:                         .AnyAsync(a => a.SourceId == source.Id && a.ExternalId == item.ExternalId,
+129:                                   cancellationToken);
+130:                 }
+131: 
+132:                 if (!alreadyExists && !string.IsNullOrWhiteSpace(item.Link))
+133:                 {
+134:                     alreadyExists = await context.ArticlesMetadata
+135:                         .AnyAsync(a => a.SourceId == source.Id && a.Url == item.Link,
+136:                                   cancellationToken);
+137:                 }
+138: 
+139:                 if (alreadyExists)
+140:                 {
+141:                     _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
+142:                     continue;
+143:                 }
+144: 
+145:                 // Create the ArticleMetadata entry.
+146:                 var articleMeta = new ArticleMetadata
+147:                 {
+148:                     SourceId = source.Id,
+149:                     ExternalId = item.ExternalId,
+150:                     Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
+151:                     Author = item.Author,
+152:                     Url = item.Link,
+153:                     ImageUrl = item.ImageUrl,
+154:                     PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
+155:                     IngestedAt = DateTime.UtcNow,
+156:                     LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
+157:                     RegionCode = "Global",
+158:                     IsActive = true
+159:                 };
+160: 
+161:                 context.ArticlesMetadata.Add(articleMeta);
+162:                 await context.SaveChangesAsync(cancellationToken);
+163: 
+164:                 // Create the companion ArticleContent row (initially empty, to be filled by a future scraper).
+165:                 var articleContent = new ArticleContent
+166:                 {
+167:                     Id = articleMeta.Id,
+168:                     ContentRaw = item.ContentRaw,
+169:                     SummaryShort = item.Description,
+170:                     ContentClean = item.ContentClean
+171:                 };
+172:                 context.ArticlesContent.Add(articleContent);
+173:                 await context.SaveChangesAsync(cancellationToken);
+174: 
+175:                 newArticleCount++;
+176:                 _logger.LogInformation("Ingested new article: [{Id}] {Title}", articleMeta.Id, articleMeta.Title);
+177: 
+178:                 // Small polite delay between articles.
+179:                 await Task.Delay(DelayBetweenArticles, cancellationToken);
+180:             }
+181: 
+182:             run.Status = IngestionStatus.Success;
+183:             run.ItemsFetched = newArticleCount;
+184:             run.FinishedAt = DateTime.UtcNow;
+185:             await context.SaveChangesAsync(cancellationToken);
+186: 
+187:             _logger.LogInformation(
+188:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
+189:                 source.Name, newArticleCount, feedItems.Count);
+190:         }
+191:         catch (OperationCanceledException)
+192:         {
+193:             _logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
+194:             run.Status = IngestionStatus.Partial;
+195:             run.ErrorMessage = "Operation was cancelled.";
+196:             run.ItemsFetched = newArticleCount;
+197:             run.FinishedAt = DateTime.UtcNow;
+198:             await context.SaveChangesAsync(CancellationToken.None); // Save even on cancellation.
+199:         }
+200:         catch (Exception ex)
+201:         {
+202:             _logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
+203:             run.Status = IngestionStatus.Failed;
+204:             run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
+205:             run.ItemsFetched = newArticleCount;
+206:             run.FinishedAt = DateTime.UtcNow;
+207:             await context.SaveChangesAsync(CancellationToken.None);
+208:         }
+209:     }
+210: }
+
+================
+File: src/PositiveNews.Infrastructure/Services/RssFeedReader.cs
+================
+ 1: using Microsoft.Extensions.Logging;
+ 2: using PositiveNews.Application.DTOs;
+ 3: using PositiveNews.Application.Interfaces;
+ 4: using System.Xml.Linq;
+ 5: 
+ 6: namespace PositiveNews.Infrastructure.Services;
+ 7: 
+ 8: /// <summary>
+ 9: /// Fetches and parses an RSS/Atom feed using System.ServiceModel.Syndication.
+10: /// This class makes HTTP calls to external sources.
+11: /// </summary>
+12: public class RssFeedReader : IRssFeedReader
+13: {
+14:     private readonly IHttpClientFactory _httpClientFactory; // registered in Infrastructure.DependencyInjection (services.AddHttpClient())
+15:     private readonly ILogger<RssFeedReader> _logger;
+16:     private readonly IRssItemElementValidator _validator; 
+17:     private readonly IRssItemParser _parser;
+18:     private readonly IFeedItemCleaner _cleaner;
+19: 
+20:     // XML namespaces
+21:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
+22:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+23:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
+24: 
+25:     public RssFeedReader(IHttpClientFactory httpClientFactory, ILogger<RssFeedReader> logger,
+26:                          IRssItemElementValidator validator, IRssItemParser parser,
+27:                          IFeedItemCleaner cleaner)
+28:     {
+29:         _httpClientFactory = httpClientFactory;
+30:         _logger = logger;
+31:         _validator = validator;
+32:         _parser = parser;
+33:         _cleaner = cleaner;
+34:     }
+35: 
+36:     public async Task<IReadOnlyList<RssFeedItemDto>> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default)
+37:     {
+38:         var items = new List<RssFeedItemDto>();
+39: 
+40:         try
+41:         {
+42:             _logger.LogInformation("Fetching RSS feed from {FeedUrl}", feedUrl);
+43: 
+44:             var httpClient = _httpClientFactory.CreateClient("RssFeedClient");
+45:             using var response = await httpClient.GetAsync(feedUrl, cancellationToken);
+46:             response.EnsureSuccessStatusCode();
+47: 
+48:             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+49: 
+50:             var doc = XDocument.Load(stream);
+51:             var itemElements = doc.Descendants("item").ToList();
+52: 
+53:             if (itemElements is null)
+54:             {
+55:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
+56:                 return items;
+57:             }
+58:             _logger.LogInformation("Found {Count} items in RSS feed", itemElements.Count);
+59: 
+60:             foreach (var itemElement in itemElements)
+61:             {
+62:                 try
+63:                 {
+64:                     if (!_validator.IsValid(itemElement, ContentNs))
+65:                         continue;
+66: 
+67:                     var dto = _parser.Parse(itemElement, MediaNs, ContentNs, DcNs);
+68: 
+69:                     _cleaner.Clean(dto);
+70: 
+71:                     items.Add(dto);
+72:                 }
+73:                 catch (Exception ex)
+74:                 {
+75:                     _logger.LogWarning(ex, "Error parsing RSS item");
+76:                 }
+77:             }
+78:             _logger.LogInformation("Successfully parsed {Count} items from {FeedUrl}", items.Count, feedUrl);
+79:         }
+80:         catch (Exception ex)
+81:         {
+82:             _logger.LogError(ex, "Failed to read feed from {FeedUrl}.", feedUrl);
+83:         }
+84:         return items;
+85:     }
+86:    
+87: }
 
 
 

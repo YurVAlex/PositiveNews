@@ -40,6 +40,7 @@ public static class DependencyInjection
 
         // Application services
         services.AddScoped<IFeedReader, FeedReader>();
+        services.AddScoped<IFeedProcessor, FeedProcessor>();
         services.AddScoped<IFeedItemValidator, FeedItemValidator>();
         services.AddScoped<IFeedItemParser, FeedItemParser>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
