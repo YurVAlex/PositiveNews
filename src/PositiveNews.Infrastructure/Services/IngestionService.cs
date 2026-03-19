@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Enums;
 using PositiveNews.Infrastructure.Persistence;
+using System.Security.Cryptography;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PositiveNews.Infrastructure.Services;
@@ -88,7 +90,6 @@ public class IngestionService : IIngestionService
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Create an IngestionRun record.
         var run = new IngestionRun
         {
             SourceId = source.Id,
@@ -119,65 +120,26 @@ public class IngestionService : IIngestionService
 
             foreach (var item in dtoItems)
             {
-                if (cancellationToken.IsCancellationRequested) break;
+                cancellationToken.ThrowIfCancellationRequested();
 
-                // Deduplication: Check if this article already exists for this source.
-                bool alreadyExists = false;
-
-                if (!string.IsNullOrWhiteSpace(item.ExternalId))
+                try
                 {
-                    alreadyExists = await context.ArticlesMetadata
-                        .AnyAsync(a => a.SourceId == source.Id && a.ExternalId == item.ExternalId,
-                                  cancellationToken);
+                    if (await IsAlreadyExists(item, context, cancellationToken))
+                    {
+                        _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
+                        continue;
+                    }
+
+                    ProcessDto(source, item, context);
+
+                    newArticleCount++;
+                    _logger.LogInformation("Ingested new article: {Title}", item.Title);
                 }
-
-                if (!alreadyExists && !string.IsNullOrWhiteSpace(item.Link))
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    alreadyExists = await context.ArticlesMetadata
-                        .AnyAsync(a => a.SourceId == source.Id && a.Url == item.Link,
-                                  cancellationToken);
+                    _logger.LogError(ex, "Error processing DTO for article: {ExternalId}", item.ExternalId);
                 }
-
-                if (alreadyExists)
-                {
-                    _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
-                    continue;
-                }
-
-                // Create the ArticleMetadata entry.
-                var articleMeta = new ArticleMetadata
-                {
-                    SourceId = source.Id,
-                    ExternalId = item.ExternalId,
-                    Title = item.Title.Length > 500 ? item.Title[..500] : item.Title, // TODO use cutter/cleaner in Parser
-                    Author = item.Author,
-                    Url = item.Link,
-                    ImageUrl = item.ImageUrl,
-                    PublishedAt = item.PublishedDate ?? DateTime.UtcNow, // TODO use cutter/cleaner in Parser
-                    IngestedAt = DateTime.UtcNow,
-                    LanguageCode = source.DefaultLanguageCode, // TODO use LanguageDetection from NuGet
-                    RegionCode = "Global",
-                    IsActive = true
-                };
-
-                context.ArticlesMetadata.Add(articleMeta);
-                await context.SaveChangesAsync(cancellationToken);
-
-                // Create the companion ArticleContent row (initially empty, to be filled by a future scraper).
-                var articleContent = new ArticleContent
-                {
-                    Id = articleMeta.Id,
-                    ContentRaw = item.ContentRaw,
-                    SummaryShort = item.Description,
-                    ContentClean = item.ContentClean
-                };
-                context.ArticlesContent.Add(articleContent);
-                await context.SaveChangesAsync(cancellationToken);
-
-                newArticleCount++;
-                _logger.LogInformation("Ingested new article: [{Id}] {Title}", articleMeta.Id, articleMeta.Title);
-
-                // Small polite delay between articles.
+                
                 await Task.Delay(DelayBetweenArticles, cancellationToken);
             }
 
@@ -208,5 +170,55 @@ public class IngestionService : IIngestionService
             run.FinishedAt = DateTime.UtcNow;
             await context.SaveChangesAsync(CancellationToken.None);
         }
+    }
+
+    private static async Task<bool> IsAlreadyExists(RssFeedItemDto dto, 
+                                                    AppDbContext context, 
+                                                    CancellationToken cancellationToken)
+    {
+        bool alreadyExists = false;
+
+        if (!string.IsNullOrWhiteSpace(dto.ExternalId))
+        {
+            alreadyExists = await context.ArticlesMetadata
+                .AnyAsync(a => a.ExternalId == dto.ExternalId, cancellationToken);
+        }
+
+        if (!alreadyExists && !string.IsNullOrWhiteSpace(dto.Link))
+        {
+            alreadyExists = await context.ArticlesMetadata
+                .AnyAsync(a => a.Url == dto.Link, cancellationToken);
+        }
+
+        return alreadyExists;
+    }
+
+    private void ProcessDto(Source source, RssFeedItemDto dto, AppDbContext context)
+    {
+        var articleMeta = new ArticleMetadata
+        {
+            SourceId = source.Id,
+            ExternalId = dto.ExternalId,
+            Title = dto.Title,
+            Author = dto.Author,
+            Url = dto.Link,
+            ImageUrl = dto.ImageUrl,
+            PublishedAt = dto.PublishedDate,
+            IngestedAt = DateTime.UtcNow,
+            LanguageCode = source.DefaultLanguageCode,
+            RegionCode = "Global",
+            IsActive = true
+        };
+
+        var articleContent = new ArticleContent
+        {
+            ContentRaw = dto.ContentRaw,
+            SummaryShort = dto.Description,
+            ContentClean = dto.ContentClean
+        };
+
+        articleMeta.Content = articleContent;
+
+        context.ArticlesMetadata.Add(articleMeta);
     }
 }

@@ -8,6 +8,6 @@ namespace PositiveNews.Application.Interfaces
 {
     public interface IFeedItemCleaner
     {
-        RssFeedItemDto Clean(RssFeedItemDto dto);
+       void Clean(RssFeedItemDto dto);
     }
 }

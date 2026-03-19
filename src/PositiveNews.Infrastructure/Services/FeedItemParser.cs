@@ -16,16 +16,15 @@ public class FeedItemParser : IFeedItemParser
     public RssFeedItemDto Parse(XElement itemElement, XNamespace mediaNs, 
                                 XNamespace contentNs, XNamespace dcNs)
     {
-        // TODO Fix DTO
         // "!" is because validator guarantees it exists.
 
         return new RssFeedItemDto
         {
-            Title = itemElement.Element("title")!.Value,  //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
-            Link = itemElement.Element("link")!.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+            Title = itemElement.Element("title")!.Value,  
+            Link = itemElement.Element("link")!.Value,   
             Description = itemElement.Element("description")!.Value,
             ContentRaw = itemElement.Element(contentNs + "encoded")!.Value,
-            Author = itemElement.Element(dcNs + "creator")?.Value,    //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+            Author = itemElement.Element(dcNs + "creator")?.Value,    
             PublishedDate = ParseDate(itemElement),
             ImageUrl = ExtractImageUrl(itemElement, mediaNs, contentNs),
             Topics = ExtractCategories(itemElement),
@@ -162,38 +161,35 @@ public class FeedItemParser : IFeedItemParser
         return categories;
     }
 
-    private static DateTime? ParseDate(XElement item)
+    private static DateTime ParseDate(XElement item)
     {
         var dateStr = item.Element("pubDate")?.Value?.Trim();
 
-        if (string.IsNullOrEmpty(dateStr)) return null;
-
-        // Common RSS date formats
-        string[] formats = new[]
+        if (!string.IsNullOrWhiteSpace(dateStr))
         {
+            // Common RSS date formats
+            string[] formats = new[]
+            {
             "ddd, dd MMM yyyy HH:mm:ss zzz",
             "ddd, dd MMM yyyy HH:mm:ss K",
             "ddd, dd MMM yyyy HH:mm:ss",
             "yyyy-MM-ddTHH:mm:sszzz",
             "yyyy-MM-ddTHH:mm:ssK",
             "yyyy-MM-ddTHH:mm:ss"
-        };
+            };
 
-        if (DateTime.TryParseExact(dateStr, formats,
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None, out var result))
-        {
-            return result;
+            if (DateTime.TryParseExact(dateStr, formats,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var result))
+            {
+                return result;
+            }
+            // Try standard parse as fallback
+            if (DateTime.TryParse(dateStr, out result))
+            {
+                return result;
+            }
         }
-
-        // Try standard parse as fallback
-        if (DateTime.TryParse(dateStr, out result))
-        {
-            return result;
-        }
-
-        return null;
+        return DateTime.UtcNow;
     }
-
-   
 }

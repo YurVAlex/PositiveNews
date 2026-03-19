@@ -7,14 +7,17 @@ using System.Text.RegularExpressions;
 
 namespace PositiveNews.Infrastructure.Services
 {
-    internal class FeedItemCleaner : IFeedItemCleaner
+    public class FeedItemCleaner : IFeedItemCleaner
     {
-        public RssFeedItemDto Clean(RssFeedItemDto dto)
+        public void Clean(RssFeedItemDto dto)
         {
             dto.Description = CleanDescription(dto.Description);
             dto.ContentClean = CleanContent(dto.ContentRaw);
-
-            return dto;
+            dto.Title = CleanTitle(dto.Title);
+        }
+        private static string CleanTitle(string title)
+        {
+            return title.Length > 500 ? title[..500] : title;
         }
 
         private static string CleanDescription(string description)

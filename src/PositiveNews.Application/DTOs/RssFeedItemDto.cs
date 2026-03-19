@@ -6,7 +6,7 @@ namespace PositiveNews.Application.DTOs;
 /// </summary>
 public class RssFeedItemDto
 {
-    public required string Title { get; init; }
+    public required string Title { get; set; }
     public required string Link { get; init; }
 
     public required string ContentRaw { get; set; }
@@ -14,7 +14,7 @@ public class RssFeedItemDto
     public string? Author { get; init; }
     public string? ContentClean { get; set; }
 
-    public DateTime? PublishedDate { get; init; }
+    public DateTime PublishedDate { get; init; }
 
     public string? ExternalId { get; init; }
     public string? ImageUrl { get; init; }
