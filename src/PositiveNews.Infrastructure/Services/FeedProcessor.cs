@@ -66,7 +66,7 @@ public class FeedProcessor : IFeedProcessor
                     _logger.LogWarning(ex, "Error parsing RSS feed item");
                 }
 
-                _logger.LogInformation("Successfully processed {Count} feed items.", dtoItems.Count);
+                _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
             }
         }
         catch (Exception ex)
