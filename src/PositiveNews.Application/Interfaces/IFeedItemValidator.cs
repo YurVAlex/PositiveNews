@@ -2,5 +2,5 @@
 
 public interface IFeedItemValidator
 {
-    bool IsValid(XElement itemElement, XNamespace contentNs);
+    bool IsValid(XElement itemElement);
 }

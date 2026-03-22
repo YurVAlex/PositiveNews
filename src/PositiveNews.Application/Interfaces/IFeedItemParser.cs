@@ -3,6 +3,5 @@ using System.Xml.Linq;
 
 public interface IFeedItemParser
 {
-    RssFeedItemDto Parse(XElement itemElement, XNamespace contentNs,
-                         XNamespace DcNs, XNamespace MediaNs);
+    RssFeedItemDto Parse(XElement itemElement);
 }

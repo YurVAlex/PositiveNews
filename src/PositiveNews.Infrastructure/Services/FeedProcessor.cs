@@ -12,11 +12,6 @@ public class FeedProcessor : IFeedProcessor
     private readonly IFeedItemParser _parser;
     private readonly IFeedItemCleaner _cleaner;
 
-    // XML namespaces
-    private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
-    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
-    private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
-
     public FeedProcessor(IFeedItemValidator validator,
                          IFeedItemParser parser,
                          IFeedItemCleaner cleaner,
@@ -49,13 +44,13 @@ public class FeedProcessor : IFeedProcessor
             {
                 try
                 {
-                    if (!_validator.IsValid(feedItem, ContentNs))
+                    if (!_validator.IsValid(feedItem))
                     {
                         _logger.LogWarning("Skipping invalid feed item.");
                         continue;
                     }
 
-                    var dtoItem = _parser.Parse(feedItem, MediaNs, ContentNs, DcNs);
+                    var dtoItem = _parser.Parse(feedItem);
 
                     _cleaner.Clean(dtoItem);
 

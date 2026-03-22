@@ -3,18 +3,23 @@ using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Infrastructure.Services;
 using System.Net;
+using System.Text;
 using System.Xml.Linq;
 
 public class FeedItemParser : IFeedItemParser
 {
     private readonly ILogger<FeedReader> _logger;
+    // XML namespaces
+    private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
+    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+    private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
 
-        public FeedItemParser(ILogger<FeedReader> logger)
+
+    public FeedItemParser(ILogger<FeedReader> logger)
     {
         _logger = logger;
     }
-    public RssFeedItemDto Parse(XElement itemElement, XNamespace mediaNs, 
-                                XNamespace contentNs, XNamespace dcNs)
+    public RssFeedItemDto Parse(XElement itemElement)
     {
         // "!" is because validator guarantees it exists.
 
@@ -23,10 +28,10 @@ public class FeedItemParser : IFeedItemParser
             Title = itemElement.Element("title")!.Value,  
             Link = itemElement.Element("link")!.Value,   
             Description = itemElement.Element("description")!.Value,
-            ContentRaw = itemElement.Element(contentNs + "encoded")!.Value,
-            Author = itemElement.Element(dcNs + "creator")?.Value,    
+            ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
+            Author = itemElement.Element(DcNs + "creator")?.Value,    
             PublishedDate = ParseDate(itemElement),
-            ImageUrl = ExtractImageUrl(itemElement, mediaNs, contentNs),
+            ImageTag = ConstructImgTag(itemElement),
             Topics = ExtractCategories(itemElement),
             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
         };
@@ -35,87 +40,116 @@ public class FeedItemParser : IFeedItemParser
     /// <summary>
     /// Extracts image URL:
     /// </summary>
-    private string? ExtractImageUrl(XElement itemElement, XNamespace mediaNs, XNamespace contentNs)
+    public static string? ConstructImgTag(XElement itemElement)
     {
-        // TRY 1: media:content
-        var mediaContent = itemElement.Element(mediaNs + "content");
+        // 1. media:thumbnail (direct child or nested inside media:content)
+        var thumbnail =
+            itemElement.Element(MediaNs + "thumbnail") ??
+            itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
+
+        if (thumbnail != null)
+        {
+            return BuildImgTag(
+                src: thumbnail.Attribute("url")?.Value,
+                width: thumbnail.Attribute("width")?.Value,
+                height: thumbnail.Attribute("height")?.Value,
+                alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail",
+                // No srcset/sizes expected from media:thumbnail usually
+                srcset: null,
+                sizes: null
+            );
+        }
+
+        // 2. First <img> inside <description>
+        var descriptionHtml = itemElement.Element("description")?.Value;
+        if (!string.IsNullOrWhiteSpace(descriptionHtml))
+        {
+            var imgFromDesc = ExtractImgFromHtml(descriptionHtml);
+            if (imgFromDesc != null)
+                return imgFromDesc;
+        }
+
+        // 3. media:content (full image)
+        var mediaContent = itemElement.Element(MediaNs + "content");
         if (mediaContent != null)
         {
-            var url = mediaContent.Attribute("url")?.Value;
-            if (!string.IsNullOrWhiteSpace(url))
-            {
-                _logger.LogDebug("Found image URL in media:content: {Url}", url);
-                return url;
-            }
+            return BuildImgTag(
+                src: mediaContent.Attribute("url")?.Value,
+                width: mediaContent.Attribute("width")?.Value,
+                height: mediaContent.Attribute("height")?.Value,
+                alt: mediaContent.Attribute("alt")?.Value ?? "Article image"
+            );
         }
-        // TRY 2: media:thumbnail
-        var mediaThumbnail = itemElement.Element(mediaNs + "thumbnail");
-        if (mediaThumbnail != null)
+
+        // 4. First <img> inside <content:encoded> (only reached if needed)
+        var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
+        if (!string.IsNullOrWhiteSpace(encodedHtml))
         {
-            var url = mediaThumbnail.Attribute("url")?.Value;
-            if (!string.IsNullOrWhiteSpace(url))
-            {
-                _logger.LogDebug("Found image URL in media:thumbnail: {Url}", url);
-                return url;
-            }
+            var imgFromEncoded = ExtractImgFromHtml(encodedHtml);
+            if (imgFromEncoded != null)
+                return imgFromEncoded;
         }
-        // TRY 3: Extract from content:encoded (fallback)
-        var contentElement = itemElement.Element(contentNs + "encoded");
-        if (contentElement != null)
-        {
-            var imageUrl = ExtractImageUrlFromHtml(contentElement.Value);
-            if (!string.IsNullOrWhiteSpace(imageUrl))
-            {
-                _logger.LogDebug("Found image URL in content:encoded: {Url}", imageUrl);
-                return imageUrl;
-            }
-        }
+
         return null;
     }
 
-    /// <summary>
-    /// Extracts first image URL from HTML content
-    /// Looks for: img src, picture, or first jpg/png URL
-    /// </summary>
-    private string? ExtractImageUrlFromHtml(string htmlContent)
+    private static string? ExtractImgFromHtml(string? html)
     {
-        if (string.IsNullOrWhiteSpace(htmlContent))
+        if (string.IsNullOrWhiteSpace(html))
             return null;
 
-        try
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        var img = doc.DocumentNode.SelectSingleNode("//img");
+        if (img == null)
+            return null;
+
+        return BuildImgTag(
+            src: img.GetAttributeValue("src", null),
+            width: img.GetAttributeValue("width", null),
+            height: img.GetAttributeValue("height", null),
+            alt: img.GetAttributeValue("alt", null),
+            srcset: img.GetAttributeValue("srcset", null),
+            sizes: img.GetAttributeValue("sizes", null)
+        );
+    }
+
+    private static string? BuildImgTag(
+    string? src,
+    string? width = null,
+    string? height = null,
+    string? alt = null,
+    string? srcset = null,
+    string? sizes = null)
+    {
+        if (string.IsNullOrWhiteSpace(src))
+            return null;
+
+        // Safeguard for huge sizes (NASA etc.)
+        if (!string.IsNullOrWhiteSpace(sizes) &&
+            (sizes.Contains("2048px") || sizes.Contains("3279w") || sizes.Contains("2000w")))
         {
-            // TRY 1: Find <img> tag with src attribute
-            var imgMatch = System.Text.RegularExpressions.Regex.Match(
-                htmlContent,
-                @"<img[^>]+src=[""']?([^""'\s>]+)[""']?",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-            if (imgMatch.Success)
-            {
-                var src = imgMatch.Groups[1].Value;
-                if (IsValidImageUrl(src))
-                {
-                    return src;
-                }
-            }
-
-            // TRY 2: Find first .jpg or .png URL
-            var urlMatch = System.Text.RegularExpressions.Regex.Match(
-                htmlContent,
-                @"https?://[^\s""'<>]+\.(jpg|jpeg|png|gif|webp)",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-            if (urlMatch.Success)
-            {
-                return urlMatch.Value;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error extracting image URL from HTML");
+            sizes = "(max-width: 1024px) 100vw, 1024px";
         }
 
-        return null;
+        alt ??= "Article image";
+
+        var sb = new StringBuilder();
+        sb.Append($"<img src=\"{WebUtility.HtmlEncode(src)}\" ");
+
+        sb.Append($"class=\"img-fluid w-100 rounded mb-3\" ");
+        sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
+
+        sb.Append("style=\"object-fit: cover;\" ");  
+
+        if (!string.IsNullOrWhiteSpace(srcset))
+            sb.Append($"srcset=\"{WebUtility.HtmlEncode(srcset)}\" ");
+        if (!string.IsNullOrWhiteSpace(sizes))
+            sb.Append($"sizes=\"{WebUtility.HtmlEncode(sizes)}\" ");
+
+        sb.Append("/>");
+        return sb.ToString();
     }
 
     /// <summary>

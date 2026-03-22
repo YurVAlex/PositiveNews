@@ -28,21 +28,7 @@
                             @(string.IsNullOrEmpty(article.Author) ? "Unknown Author" : article.Author) • @article.PublishedAt.ToString("MMM dd, yyyy")
                         </h6>
 
-                        @if (!string.IsNullOrEmpty(article.ImageUrl))
-                        {
-                            // Eagerly load the first 3 images, lazy load the rest
-                            var loadingStrategy = i < 3 ? "eager" : "lazy";
-                            var decodingStrategy = i < 2 ? "sync" : "async";
-                            
-                            <img src="@article.ImageUrl"
-                                 width="800"
-                                 height="400"
-                                 class="img-fluid w-100 rounded mb-3"
-                                 alt="Article image"
-                                 style="max-height: 400px; object-fit: cover;"
-                                 decoding="@decodingStrategy"
-                                 loading="@loadingStrategy" />
-                        }
+                        <article-img image-tag="@article.ImageTag" index="@i"></article-img>
 
                         <div class="d-flex gap-2 mb-2">
                             <button class="btn btn-outline-secondary" onclick="toggleSummary('summary-@article.Id')">Show summary</button>

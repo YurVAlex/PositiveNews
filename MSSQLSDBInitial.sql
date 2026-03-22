@@ -99,7 +99,7 @@ CREATE TABLE [Catalog].[ArticlesMetadata](
     [Title] [nvarchar](500) NOT NULL,
     [Author] [nvarchar](300) NULL,
     [Url] [nvarchar](1000) NOT NULL,
-    [ImageUrl] [nvarchar](1000) NULL,
+    [ImageTag] [nvarchar](max) NULL,
     
     -- TIMESTAMPS: PublishedAt is NOT NULL because sorting by "Unknown Date" breaks the feed UI.
     [PublishedAt] [datetime2](7) NOT NULL DEFAULT sysutcdatetime(), 
@@ -284,7 +284,7 @@ GO
 -- Includes 'PositivityScore' to filter negative news instantly without table lookups.
 CREATE NONCLUSTERED INDEX [IX_ArticlesMeta_Feed_Date] 
 ON [Catalog].[ArticlesMetadata] ([LanguageCode], [RegionCode], [PublishedAt] DESC)
-INCLUDE ([Title], [ImageUrl], [SourceId], [PositivityScore], [ViewCount])
+INCLUDE ([Title], [ImageTag], [SourceId], [PositivityScore], [ViewCount])
 WHERE [IsActive] = 1;
 GO
 

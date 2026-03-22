@@ -10,7 +10,7 @@ public class ArticleMetadata
     public string Title { get; set; } = string.Empty;
     public string? Author { get; set; }
     public string Url { get; set; } = string.Empty;
-    public string? ImageUrl { get; set; }
+    public string? ImageTag { get; set; }
     public DateTime PublishedAt { get; set; }
     public DateTime IngestedAt { get; set; }
     public DateTime? AnalyzedAt { get; set; }

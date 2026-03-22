@@ -8,7 +8,7 @@
         public string Title { get; set; } = string.Empty;
         public string? Author { get; set; }
         public DateTime PublishedAt { get; set; }
-        public string? ImageUrl { get; set; }
+        public string? ImageTag { get; set; }
         public string? SummaryShort { get; set; }
     }
 }

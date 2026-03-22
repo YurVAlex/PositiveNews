@@ -123,7 +123,7 @@ public class IngestionService : IIngestionService
                         continue;
                     }
 
-                    ProcessDto(source, item, context);
+                    TakeArticleData(source, item, context);
 
                     newArticleCount++;
                     _logger.LogInformation("Ingested new article: {Title}", item.Title);
@@ -182,7 +182,7 @@ public class IngestionService : IIngestionService
         return alreadyExists;
     }
 
-    private void ProcessDto(Source source, RssFeedItemDto dto, AppDbContext context)
+    private static void TakeArticleData(Source source, RssFeedItemDto dto, AppDbContext context)
     {
         var articleMeta = new ArticleMetadata
         {
@@ -191,7 +191,7 @@ public class IngestionService : IIngestionService
             Title = dto.Title,
             Author = dto.Author,
             Url = dto.Link,
-            ImageUrl = dto.ImageUrl,
+            ImageTag = dto.ImageTag,
             PublishedAt = dto.PublishedDate,
             IngestedAt = DateTime.UtcNow,
             LanguageCode = source.DefaultLanguageCode,

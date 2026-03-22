@@ -9,14 +9,14 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
 {
     public void Configure(EntityTypeBuilder<ArticleMetadata> builder)
     {
-        builder.ToTable("ArticlesMetadata", SchemaNames.Catalog);
+        builder.ToTable("ArticlesMetadata", SchemaNames.Catalog); 
 
         builder.HasKey(a => a.Id);
         builder.Property(a => a.ExternalId).HasMaxLength(300);
         builder.Property(a => a.Title).HasMaxLength(500).IsRequired();
         builder.Property(a => a.Author).HasMaxLength(300);
         builder.Property(a => a.Url).HasMaxLength(1000).IsRequired();
-        builder.Property(a => a.ImageUrl).HasMaxLength(1000);
+        builder.Property(a => a.ImageTag).HasColumnType("nvarchar(max)");
         builder.Property(a => a.PublishedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.IngestedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.PositivityScore).HasColumnType("decimal(5,4)");

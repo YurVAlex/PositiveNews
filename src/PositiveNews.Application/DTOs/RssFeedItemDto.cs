@@ -17,7 +17,7 @@ public class RssFeedItemDto
     public DateTime PublishedDate { get; init; }
 
     public string? ExternalId { get; init; }
-    public string? ImageUrl { get; init; }
+    public string? ImageTag { get; set; }
 
     public List<string>? Topics { get; init; } 
 }

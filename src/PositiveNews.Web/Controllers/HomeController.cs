@@ -42,7 +42,7 @@ namespace PositiveNews.Web.Controllers
                     Title = a.Title,
                     Author = a.Author,
                     PublishedAt = a.PublishedAt,
-                    ImageUrl = a.ImageUrl,
+                    ImageTag = a.ImageTag,
                     SummaryShort = a.Content != null ? a.Content.SummaryShort : "No summary available."
                 })
                 .ToListAsync();
