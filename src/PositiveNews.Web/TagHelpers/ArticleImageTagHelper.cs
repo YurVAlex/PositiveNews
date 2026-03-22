@@ -27,7 +27,7 @@ public class ArticleImageTagHelper : TagHelper
         }
 
         // 🚀 Dynamic strategies
-        var loading = Index < 3 ? "eager" : "lazy";
+        var loading = Index < 2 ? "eager" : "lazy";
 
         img.SetAttributeValue("loading", loading);
 

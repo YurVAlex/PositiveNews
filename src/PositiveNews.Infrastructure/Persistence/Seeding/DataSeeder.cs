@@ -108,14 +108,14 @@ public static class DataSeeder
             },
             new()
             {
-                Name = "MIT News",
-                BaseUrl = "https://web.mit.edu/",
-                FeedUrl = "https://news.mit.edu/rss/feed",
+                Name = "This Is Colossal News",
+                BaseUrl = "https://www.thisiscolossal.com",
+                FeedUrl = "https://www.thisiscolossal.com/feed",
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
-                Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
-                LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
-            }
+                Description = "Contemporary art and visual culture",
+                LogoUrl = "https://www.thisiscolossal.com/wp-content/uploads/2024/08/icon-crow-150x150.png"
+            },
         };
 
         context.Sources.AddRange(sources);

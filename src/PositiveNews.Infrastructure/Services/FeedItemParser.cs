@@ -53,10 +53,7 @@ public class FeedItemParser : IFeedItemParser
                 src: thumbnail.Attribute("url")?.Value,
                 width: thumbnail.Attribute("width")?.Value,
                 height: thumbnail.Attribute("height")?.Value,
-                alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail",
-                // No srcset/sizes expected from media:thumbnail usually
-                srcset: null,
-                sizes: null
+                alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail"
             );
         }
 
@@ -106,47 +103,29 @@ public class FeedItemParser : IFeedItemParser
             return null;
 
         return BuildImgTag(
-            src: img.GetAttributeValue("src", null),
-            width: img.GetAttributeValue("width", null),
-            height: img.GetAttributeValue("height", null),
-            alt: img.GetAttributeValue("alt", null),
-            srcset: img.GetAttributeValue("srcset", null),
-            sizes: img.GetAttributeValue("sizes", null)
+            src: img.GetAttributeValue("src", ""),
+            width: img.GetAttributeValue("width", "800"),
+            height: img.GetAttributeValue("height", "600"),
+            alt: img.GetAttributeValue("alt", "Article image")
         );
     }
 
     private static string? BuildImgTag(
-    string? src,
-    string? width = null,
-    string? height = null,
-    string? alt = null,
-    string? srcset = null,
-    string? sizes = null)
+    string? src = "",
+    string? width = "800",
+    string? height = "600",
+    string? alt = "Article image")
     {
         if (string.IsNullOrWhiteSpace(src))
             return null;
 
-        // Safeguard for huge sizes (NASA etc.)
-        if (!string.IsNullOrWhiteSpace(sizes) &&
-            (sizes.Contains("2048px") || sizes.Contains("3279w") || sizes.Contains("2000w")))
-        {
-            sizes = "(max-width: 1024px) 100vw, 1024px";
-        }
-
-        alt ??= "Article image";
-
         var sb = new StringBuilder();
         sb.Append($"<img src=\"{WebUtility.HtmlEncode(src)}\" ");
-
         sb.Append($"class=\"img-fluid w-100 rounded mb-3\" ");
+        sb.Append($"width = \"{width}\" height = \"{height}\" ");
         sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
 
         sb.Append("style=\"object-fit: cover;\" ");  
-
-        if (!string.IsNullOrWhiteSpace(srcset))
-            sb.Append($"srcset=\"{WebUtility.HtmlEncode(srcset)}\" ");
-        if (!string.IsNullOrWhiteSpace(sizes))
-            sb.Append($"sizes=\"{WebUtility.HtmlEncode(sizes)}\" ");
 
         sb.Append("/>");
         return sb.ToString();
