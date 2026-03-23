@@ -116,6 +116,36 @@ public static class DataSeeder
                 Description = "Contemporary art and visual culture",
                 LogoUrl = "https://www.thisiscolossal.com/wp-content/uploads/2024/08/icon-crow-150x150.png"
             },
+            new()
+            {
+                Name = "Design You Trust",
+                BaseUrl = "https://designyoutrust.com",
+                FeedUrl = "https://designyoutrust.com/feed",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "A daily dose of architecture and street art",
+                LogoUrl = "https://img.ws.mms.shopee.com.br/78107abce75961845158eb136bdc9290"
+            },
+            new()
+            {
+                Name = "Nomadic Matt",
+                BaseUrl = "https://www.nomadicmatt.com",
+                FeedUrl = "https://www.nomadicmatt.com/feed",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "Budget travel and nomadic tips",
+                LogoUrl = "https://www.nomadicmatt.com/wp-content/uploads/2017/06/nomadic_matt_logo.png"
+            },
+            new()
+            {
+                Name = "Tiny Buddha",
+                BaseUrl = "https://tinybuddha.com",
+                FeedUrl = "https://tinybuddha.com/feed",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "Psychology, self-development and happiness",
+                LogoUrl = "https://cdn.tinybuddha.com/wp-content/themes/tinybuddha/images/logo.png"
+            },
         };
 
         context.Sources.AddRange(sources);
