@@ -128,16 +128,6 @@ public static class DataSeeder
             },
             new()
             {
-                Name = "Nomadic Matt",
-                BaseUrl = "https://www.nomadicmatt.com",
-                FeedUrl = "https://www.nomadicmatt.com/feed",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Budget travel and nomadic tips",
-                LogoUrl = "https://www.nomadicmatt.com/wp-content/uploads/2017/06/nomadic_matt_logo.png"
-            },
-            new()
-            {
                 Name = "Tiny Buddha",
                 BaseUrl = "https://tinybuddha.com",
                 FeedUrl = "https://tinybuddha.com/feed",
@@ -146,6 +136,26 @@ public static class DataSeeder
                 Description = "Psychology, self-development and happiness",
                 LogoUrl = "https://cdn.tinybuddha.com/wp-content/themes/tinybuddha/images/logo.png"
             },
+            new()
+            {
+                Name = "Raptitude",
+                BaseUrl = "https://raptitude.com",
+                FeedUrl = "https://www.raptitude.com/feed/",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "Smart about the main thing",
+                LogoUrl = "https://ideanomics.ru/wp-content/uploads/2021/11/raptitude-300x300.png"
+            },
+             new()
+            {
+                Name = "Econlib",
+                BaseUrl = "https://www.econlib.org",
+                FeedUrl = "https://https://www.econlib.org/feed/main",
+                TrustScore = 1.0m,
+                DefaultLanguageCode = "en",
+                Description = "The Library of Economics and Liberty",
+                LogoUrl = "https://www.econlib.org/wp-content/themes/econlib/assets/img/econlib-logo-2022-dark.png"
+            }
         };
 
         context.Sources.AddRange(sources);
