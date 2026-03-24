@@ -1904,46 +1904,86 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 108:             },
 109:             new()
 110:             {
-111:                 Name = "MIT News",
-112:                 BaseUrl = "https://web.mit.edu/",
-113:                 FeedUrl = "https://news.mit.edu/rss/feed",
+111:                 Name = "This Is Colossal News",
+112:                 BaseUrl = "https://www.thisiscolossal.com",
+113:                 FeedUrl = "https://www.thisiscolossal.com/feed",
 114:                 TrustScore = 1.0m,
 115:                 DefaultLanguageCode = "en",
-116:                 Description = "MIT News is dedicated to communicating to the media and the public the news and achievements of the students, faculty, staff and the greater MIT community.",
-117:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/de/thumb/0/01/Massachusetts-Institute-of-Technology-Logo.svg/250px-Massachusetts-Institute-of-Technology-Logo.svg.png"
-118:             }
-119:         };
-120: 
-121:         context.Sources.AddRange(sources);
-122:         await context.SaveChangesAsync();
-123:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
-124:     }
-125: 
-126:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
-127:     {
-128:         if (await context.Users.AnyAsync()) return;
-129: 
-130:         // Seed a system/admin user to own future moderation actions.
-131:         // In production, the password hash would come from a proper Identity hasher.
-132:         var adminUser = new User
-133:         {
-134:             Email = "admin@positivenews.local",
-135:             EmailConfirmed = true,
-136:             Name = "System Administrator",
-137:             PasswordHash = null, // Will be set via proper Auth flow later.
-138:             IsActive = true
-139:         };
-140: 
-141:         context.Users.Add(adminUser);
-142:         await context.SaveChangesAsync();
-143: 
-144:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-145:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
-146:         await context.SaveChangesAsync();
-147: 
-148:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
-149:     }
-150: }
+116:                 Description = "Contemporary art and visual culture",
+117:                 LogoUrl = "https://www.thisiscolossal.com/wp-content/uploads/2024/08/icon-crow-150x150.png"
+118:             },
+119:             new()
+120:             {
+121:                 Name = "Design You Trust",
+122:                 BaseUrl = "https://designyoutrust.com",
+123:                 FeedUrl = "https://designyoutrust.com/feed",
+124:                 TrustScore = 1.0m,
+125:                 DefaultLanguageCode = "en",
+126:                 Description = "A daily dose of architecture and street art",
+127:                 LogoUrl = "https://img.ws.mms.shopee.com.br/78107abce75961845158eb136bdc9290"
+128:             },
+129:             new()
+130:             {
+131:                 Name = "Tiny Buddha",
+132:                 BaseUrl = "https://tinybuddha.com",
+133:                 FeedUrl = "https://tinybuddha.com/feed",
+134:                 TrustScore = 1.0m,
+135:                 DefaultLanguageCode = "en",
+136:                 Description = "Psychology, self-development and happiness",
+137:                 LogoUrl = "https://cdn.tinybuddha.com/wp-content/themes/tinybuddha/images/logo.png"
+138:             },
+139:             new()
+140:             {
+141:                 Name = "Raptitude",
+142:                 BaseUrl = "https://raptitude.com",
+143:                 FeedUrl = "https://www.raptitude.com/feed/",
+144:                 TrustScore = 1.0m,
+145:                 DefaultLanguageCode = "en",
+146:                 Description = "Smart about the main thing",
+147:                 LogoUrl = "https://ideanomics.ru/wp-content/uploads/2021/11/raptitude-300x300.png"
+148:             },
+149:              new()
+150:             {
+151:                 Name = "Econlib",
+152:                 BaseUrl = "https://www.econlib.org",
+153:                 FeedUrl = "https://https://www.econlib.org/feed/main",
+154:                 TrustScore = 1.0m,
+155:                 DefaultLanguageCode = "en",
+156:                 Description = "The Library of Economics and Liberty",
+157:                 LogoUrl = "https://www.econlib.org/wp-content/themes/econlib/assets/img/econlib-logo-2022-dark.png"
+158:             }
+159:         };
+160: 
+161:         context.Sources.AddRange(sources);
+162:         await context.SaveChangesAsync();
+163:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
+164:     }
+165: 
+166:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
+167:     {
+168:         if (await context.Users.AnyAsync()) return;
+169: 
+170:         // Seed a system/admin user to own future moderation actions.
+171:         // In production, the password hash would come from a proper Identity hasher.
+172:         var adminUser = new User
+173:         {
+174:             Email = "admin@positivenews.local",
+175:             EmailConfirmed = true,
+176:             Name = "System Administrator",
+177:             PasswordHash = null, // Will be set via proper Auth flow later.
+178:             IsActive = true
+179:         };
+180: 
+181:         context.Users.Add(adminUser);
+182:         await context.SaveChangesAsync();
+183: 
+184:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
+185:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
+186:         await context.SaveChangesAsync();
+187: 
+188:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
+189:     }
+190: }
 
 ================
 File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
@@ -2152,211 +2192,175 @@ File: src/PositiveNews.Infrastructure/Services/FeedItemParser.cs
  37:         };
  38:     }
  39: 
- 40:     public static string? ConstructImgTag(XElement itemElement)
- 41:     {
- 42:         // 1. media:thumbnail (direct or nested)
- 43:         var thumbnail =
- 44:             itemElement.Element(MediaNs + "thumbnail") ??
- 45:             itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
- 46: 
- 47:         if (thumbnail != null)
- 48:         {
- 49:             return BuildImgTag(
- 50:                 src: thumbnail.Attribute("url")?.Value,
- 51:                 width: thumbnail.Attribute("width")?.Value,
- 52:                 height: thumbnail.Attribute("height")?.Value,
- 53:                 alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail"
- 54:             );
- 55:         }
- 56: 
- 57:         // 2. description
- 58:         var descriptionHtml = itemElement.Element("description")?.Value;
- 59:         if (!string.IsNullOrWhiteSpace(descriptionHtml))
- 60:         {
- 61:             var imgFromDesc = ExtractImgFromHtml(descriptionHtml);
- 62:             if (imgFromDesc != null) return imgFromDesc;
- 63:         }
- 64: 
- 65:         // 3. media:content
- 66:         var mediaContent = itemElement.Element(MediaNs + "content");
- 67:         if (mediaContent != null)
- 68:         {
- 69:             return BuildImgTag(
- 70:                 src: mediaContent.Attribute("url")?.Value,
- 71:                 width: mediaContent.Attribute("width")?.Value,
- 72:                 height: mediaContent.Attribute("height")?.Value,
- 73:                 alt: mediaContent.Attribute("alt")?.Value ?? "Article image"
- 74:             );
- 75:         }
- 76: 
- 77:         // 4. content:encoded
- 78:         var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
- 79:         if (!string.IsNullOrWhiteSpace(encodedHtml))
- 80:         {
- 81:             var imgFromEncoded = ExtractImgFromHtml(encodedHtml);
- 82:             if (imgFromEncoded != null) return imgFromEncoded;
- 83:         }
- 84: 
- 85:         return null;
- 86:     }
- 87: 
- 88:     private static string? ExtractImgFromHtml(string? html)
- 89:     {
- 90:         if (string.IsNullOrWhiteSpace(html)) return null;
- 91: 
- 92:         var doc = new HtmlDocument();
- 93:         doc.LoadHtml(html);
- 94:         var img = doc.DocumentNode.SelectSingleNode("//img");
- 95:         if (img == null) return null;
- 96: 
- 97:         return BuildImgTag(
- 98:             src: img.GetAttributeValue("src", null),
- 99:             width: img.GetAttributeValue("width", null),
-100:             height: img.GetAttributeValue("height", null),
-101:             alt: img.GetAttributeValue("alt", null),
-102:             srcset: img.GetAttributeValue("srcset", null),
-103:             sizes: img.GetAttributeValue("sizes", null)
-104:         );
-105:     }
-106: 
-107:     private static string? BuildImgTag(
-108:      string? src,
-109:      string? width = null,
-110:      string? height = null,
-111:      string? alt = null,
-112:      string? srcset = null,
-113:      string? sizes = null)
-114:     {
-115:         if (string.IsNullOrWhiteSpace(src))
-116:             return null;
-117: 
-118:         alt ??= "Article image";
-119: 
-120:         // ── AGGRESSIVE PREVIEW SAFEGUARD ──
-121:         // 1. Strip everything bigger than 1024w from srcset
-122:         srcset = CleanSrcsetForPreview(srcset);
-123: 
-124:         // 2. Force a card-friendly slot size (800 px max is perfect for previews)
-125:         sizes = "(max-width: 576px) 100vw, (max-width: 992px) 80vw, 800px";
-126: 
-127:         var sb = new StringBuilder();
-128:         sb.Append($"<img src=\"{WebUtility.HtmlEncode(src)}\" ");
+ 40:     /// <summary>
+ 41:     /// Extracts image URL:
+ 42:     /// </summary>
+ 43:     public static string? ConstructImgTag(XElement itemElement)
+ 44:     {
+ 45:         // 1. media:thumbnail (direct child or nested inside media:content)
+ 46:         var thumbnail =
+ 47:             itemElement.Element(MediaNs + "thumbnail") ??
+ 48:             itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
+ 49: 
+ 50:         if (thumbnail != null)
+ 51:         {
+ 52:             return BuildImgTag(
+ 53:                 src: thumbnail.Attribute("url")?.Value,
+ 54:                 width: thumbnail.Attribute("width")?.Value,
+ 55:                 height: thumbnail.Attribute("height")?.Value,
+ 56:                 alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail"
+ 57:             );
+ 58:         }
+ 59: 
+ 60:         // 2. First <img> inside <description>
+ 61:         var descriptionHtml = itemElement.Element("description")?.Value;
+ 62:         if (!string.IsNullOrWhiteSpace(descriptionHtml))
+ 63:         {
+ 64:             var imgFromDesc = ExtractImgFromHtml(descriptionHtml);
+ 65:             if (imgFromDesc != null)
+ 66:                 return imgFromDesc;
+ 67:         }
+ 68: 
+ 69:         // 3. media:content (full image)
+ 70:         var mediaContent = itemElement.Element(MediaNs + "content");
+ 71:         if (mediaContent != null)
+ 72:         {
+ 73:             return BuildImgTag(
+ 74:                 src: mediaContent.Attribute("url")?.Value,
+ 75:                 width: mediaContent.Attribute("width")?.Value,
+ 76:                 height: mediaContent.Attribute("height")?.Value,
+ 77:                 alt: mediaContent.Attribute("alt")?.Value ?? "Article image"
+ 78:             );
+ 79:         }
+ 80: 
+ 81:         // 4. First <img> inside <content:encoded> (only reached if needed)
+ 82:         var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
+ 83:         if (!string.IsNullOrWhiteSpace(encodedHtml))
+ 84:         {
+ 85:             var imgFromEncoded = ExtractImgFromHtml(encodedHtml);
+ 86:             if (imgFromEncoded != null)
+ 87:                 return imgFromEncoded;
+ 88:         }
+ 89: 
+ 90:         return null;
+ 91:     }
+ 92: 
+ 93:     private static string? ExtractImgFromHtml(string? html)
+ 94:     {
+ 95:         if (string.IsNullOrWhiteSpace(html))
+ 96:             return null;
+ 97: 
+ 98:         var doc = new HtmlDocument();
+ 99:         doc.LoadHtml(html);
+100: 
+101:         var img = doc.DocumentNode.SelectSingleNode("//img");
+102:         if (img == null)
+103:             return null;
+104: 
+105:         return BuildImgTag(
+106:             src: img.GetAttributeValue("src", ""),
+107:             width: img.GetAttributeValue("width", "800"),
+108:             height: img.GetAttributeValue("height", "600"),
+109:             alt: img.GetAttributeValue("alt", "Article image")
+110:         );
+111:     }
+112: 
+113:     private static string? BuildImgTag(
+114:     string? src = "",
+115:     string? width = "800",
+116:     string? height = "600",
+117:     string? alt = "Article image")
+118:     {
+119:         if (string.IsNullOrWhiteSpace(src))
+120:             return null;
+121: 
+122:         var sb = new StringBuilder();
+123:         sb.Append($"<img src=\"{WebUtility.HtmlEncode(src)}\" ");
+124:         sb.Append($"class=\"img-fluid w-100 rounded mb-3\" ");
+125:         sb.Append($"width = \"{width}\" height = \"{height}\" ");
+126:         sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
+127: 
+128:         sb.Append("style=\"object-fit: cover;\" ");  
 129: 
-130:         // NO fixed width/height — let .img-fluid w-100 handle scaling
-131:         sb.Append("class=\"img-fluid w-100 rounded mb-3\" ");
-132:         sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
-133:         sb.Append("style=\"object-fit: cover; aspect-ratio: 16 / 9;\" "); // prevents layout shift
-134: 
-135:         if (!string.IsNullOrWhiteSpace(srcset))
-136:             sb.Append($"srcset=\"{WebUtility.HtmlEncode(srcset)}\" ");
-137:         if (!string.IsNullOrWhiteSpace(sizes))
-138:             sb.Append($"sizes=\"{WebUtility.HtmlEncode(sizes)}\" ");
-139: 
-140:         sb.Append("/>");
-141:         return sb.ToString();
-142:     }
-143: 
-144:     // ── NEW STRICT CLEANER: only ≤ 1024w candidates survive ──
-145:     private static string? CleanSrcsetForPreview(string? srcset)
-146:     {
-147:         if (string.IsNullOrWhiteSpace(srcset))
-148:             return null;
-149: 
-150:         var parts = srcset.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-151:         var good = new List<string>();
-152: 
-153:         foreach (var part in parts)
-154:         {
-155:             var trimmed = part.Trim();
-156: 
-157:             var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)\s*[wW]");
-158: 
-159:             if (match.Success && int.TryParse(match.Groups[1].Value, out int width))
-160:             {
-161:                 if (width <= 800)
-162:                 {
-163:                     good.Add(trimmed);
-164:                 }
-165:             }
-166:         }
-167:         return good.Count > 0 ? string.Join(", ", good) : null;
-168:     }
-169: 
-170:     /// <summary>
-171:     /// Validates that URL is a proper image URL
-172:     /// </summary>
-173:     private bool IsValidImageUrl(string? url)
-174:     {
-175:         if (string.IsNullOrWhiteSpace(url))
-176:             return false;
-177: 
-178:         // Must start with http/https
-179:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-180:             return false;
-181: 
-182:         // Must have image extension
-183:         var lowerUrl = url.ToLower();
-184:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-185:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
-186:     }
-187: 
-188:     /// <summary>
-189:     /// Extracts all category tags as topics
-190:     /// Returns list of category values, or ["Default"] if none found
-191:     /// </summary>
-192:     private List<string> ExtractCategories(XElement itemElement)
-193:     {
-194:         var categories = itemElement
-195:             .Elements("category")
-196:             .Select(c => c.Value)
-197:             .Where(v => !string.IsNullOrWhiteSpace(v))
-198:             .Distinct()
-199:             .ToList();
-200: 
-201:         // If no categories found, return default
-202:         if (categories == null || categories.Count == 0)
-203:         {
-204:             categories = ["Default"];
-205:             _logger.LogDebug("No categories found, using default");
-206:         }
-207: 
-208:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
-209: 
-210:         return categories;
-211:     }
-212: 
-213:     private static DateTime ParseDate(XElement item)
-214:     {
-215:         var dateStr = item.Element("pubDate")?.Value?.Trim();
-216: 
-217:         if (!string.IsNullOrWhiteSpace(dateStr))
-218:         {
-219:             // Common RSS date formats
-220:             string[] formats = new[]
-221:             {
-222:             "ddd, dd MMM yyyy HH:mm:ss zzz",
-223:             "ddd, dd MMM yyyy HH:mm:ss K",
-224:             "ddd, dd MMM yyyy HH:mm:ss",
-225:             "yyyy-MM-ddTHH:mm:sszzz",
-226:             "yyyy-MM-ddTHH:mm:ssK",
-227:             "yyyy-MM-ddTHH:mm:ss"
-228:             };
-229: 
-230:             if (DateTime.TryParseExact(dateStr, formats,
-231:                 System.Globalization.CultureInfo.InvariantCulture,
-232:                 System.Globalization.DateTimeStyles.None, out var result))
-233:             {
-234:                 return result;
-235:             }
-236:             // Try standard parse as fallback
-237:             if (DateTime.TryParse(dateStr, out result))
-238:             {
-239:                 return result;
-240:             }
-241:         }
-242:         return DateTime.UtcNow;
-243:     }
-244: }
+130:         sb.Append("/>");
+131:         return sb.ToString();
+132:     }
+133: 
+134:     /// <summary>
+135:     /// Validates that URL is a proper image URL
+136:     /// </summary>
+137:     private bool IsValidImageUrl(string? url)
+138:     {
+139:         if (string.IsNullOrWhiteSpace(url))
+140:             return false;
+141: 
+142:         // Must start with http/https
+143:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+144:             return false;
+145: 
+146:         // Must have image extension
+147:         var lowerUrl = url.ToLower();
+148:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+149:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
+150:     }
+151: 
+152:     /// <summary>
+153:     /// Extracts all category tags as topics
+154:     /// Returns list of category values, or ["Default"] if none found
+155:     /// </summary>
+156:     private List<string> ExtractCategories(XElement itemElement)
+157:     {
+158:         var categories = itemElement
+159:             .Elements("category")
+160:             .Select(c => c.Value)
+161:             .Where(v => !string.IsNullOrWhiteSpace(v))
+162:             .Distinct()
+163:             .ToList();
+164: 
+165:         // If no categories found, return default
+166:         if (categories == null || categories.Count == 0)
+167:         {
+168:             categories = ["Default"];
+169:             _logger.LogDebug("No categories found, using default");
+170:         }
+171: 
+172:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
+173: 
+174:         return categories;
+175:     }
+176: 
+177:     private static DateTime ParseDate(XElement item)
+178:     {
+179:         var dateStr = item.Element("pubDate")?.Value?.Trim();
+180: 
+181:         if (!string.IsNullOrWhiteSpace(dateStr))
+182:         {
+183:             // Common RSS date formats
+184:             string[] formats = new[]
+185:             {
+186:             "ddd, dd MMM yyyy HH:mm:ss zzz",
+187:             "ddd, dd MMM yyyy HH:mm:ss K",
+188:             "ddd, dd MMM yyyy HH:mm:ss",
+189:             "yyyy-MM-ddTHH:mm:sszzz",
+190:             "yyyy-MM-ddTHH:mm:ssK",
+191:             "yyyy-MM-ddTHH:mm:ss"
+192:             };
+193: 
+194:             if (DateTime.TryParseExact(dateStr, formats,
+195:                 System.Globalization.CultureInfo.InvariantCulture,
+196:                 System.Globalization.DateTimeStyles.None, out var result))
+197:             {
+198:                 return result;
+199:             }
+200:             // Try standard parse as fallback
+201:             if (DateTime.TryParse(dateStr, out result))
+202:             {
+203:                 return result;
+204:             }
+205:         }
+206:         return DateTime.UtcNow;
+207:     }
+208: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/FeedItemValidator.cs
@@ -3071,16 +3075,14 @@ File: src/PositiveNews.Web/TagHelpers/ArticleImageTagHelper.cs
 27:         }
 28: 
 29:         // 🚀 Dynamic strategies
-30:         var loading = Index < 3 ? "eager" : "lazy";
-31:         var decoding = Index < 2 ? "sync" : "async";
-32: 
-33:         img.SetAttributeValue("loading", loading);
-34:         img.SetAttributeValue("decoding", decoding);
-35: 
-36:         output.TagName = null; // remove <article-img>
-37:         output.Content.SetHtmlContent(img.OuterHtml);
-38:     }
-39: }
+30:         var loading = Index < 2 ? "eager" : "lazy";
+31: 
+32:         img.SetAttributeValue("loading", loading);
+33: 
+34:         output.TagName = null; // remove <article-img>
+35:         output.Content.SetHtmlContent(img.OuterHtml);
+36:     }
+37: }
 
 ================
 File: src/PositiveNews.Web/wwwroot/lib/jquery-validation/LICENSE.md

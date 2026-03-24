@@ -9,11 +9,8 @@ using System.Xml.Linq;
 public class FeedItemParser : IFeedItemParser
 {
     private readonly ILogger<FeedReader> _logger;
-    // XML namespaces
-    private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
-    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+    
     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
-
 
     public FeedItemParser(ILogger<FeedReader> logger)
     {
@@ -31,7 +28,7 @@ public class FeedItemParser : IFeedItemParser
             ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
             Author = itemElement.Element(DcNs + "creator")?.Value,    
             PublishedDate = ParseDate(itemElement),
-            ImageTag = ConstructImgTag(itemElement),
+            ImageTag = ExtractThumbnailImgTag(itemElement),
             Topics = ExtractCategories(itemElement),
             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
         };
@@ -40,7 +37,7 @@ public class FeedItemParser : IFeedItemParser
     /// <summary>
     /// Extracts image URL:
     /// </summary>
-    public static string? ConstructImgTag(XElement itemElement)
+    public static string? ExtractThumbnailImgTag(XElement itemElement)
     {
         // 1. media:thumbnail (direct child or nested inside media:content)
         var thumbnail =
