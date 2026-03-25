@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IFeedProcessor, FeedProcessor>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
         services.AddScoped<IIngestionService, IngestionService>();
+        services.AddScoped<IImgTagExtractor, ImgTagExtractor>();
 
         // Background services
         services.AddHostedService<IngestionBackgroundService>();

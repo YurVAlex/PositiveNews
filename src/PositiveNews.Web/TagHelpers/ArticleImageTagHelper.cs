@@ -26,10 +26,10 @@ public class ArticleImageTagHelper : TagHelper
             return;
         }
 
-        // 🚀 Dynamic strategies
+        // Only add loading strategy — do not touch sizes/srcset/style
         var loading = Index < 2 ? "eager" : "lazy";
-
         img.SetAttributeValue("loading", loading);
+        img.SetAttributeValue("decoding", "async");
 
         output.TagName = null; // remove <article-img>
         output.Content.SetHtmlContent(img.OuterHtml);

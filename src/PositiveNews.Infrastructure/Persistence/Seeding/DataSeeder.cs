@@ -145,16 +145,6 @@ public static class DataSeeder
                 DefaultLanguageCode = "en",
                 Description = "Smart about the main thing",
                 LogoUrl = "https://ideanomics.ru/wp-content/uploads/2021/11/raptitude-300x300.png"
-            },
-             new()
-            {
-                Name = "Econlib",
-                BaseUrl = "https://www.econlib.org",
-                FeedUrl = "https://https://www.econlib.org/feed/main",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "The Library of Economics and Liberty",
-                LogoUrl = "https://www.econlib.org/wp-content/themes/econlib/assets/img/econlib-logo-2022-dark.png"
             }
         };
 

@@ -4,6 +4,7 @@ using PositiveNews.Application.Interfaces;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace PositiveNews.Infrastructure.Services
 {
@@ -36,7 +37,9 @@ namespace PositiveNews.Infrastructure.Services
                 .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
                 .Where(t => !string.IsNullOrWhiteSpace(t));
 
-            return string.Join(" ", texts);
+            var result = string.Join(" ", texts);
+
+            return result.Length > 1999 ? texts.First() : result;
         }
 
         private static string CleanContent(string rawContent)
