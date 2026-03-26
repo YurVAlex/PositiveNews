@@ -84,7 +84,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en-US",
                 Description = "Latest news from NVIDIA.",
-                LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
+                LogoUrl = "/Logos/Nvidia_logo.png"
             },
             new()
             {
@@ -94,7 +94,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Making solutions the news.",
-                LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
+                LogoUrl = "/Logos/Optimist_logo.png"
             },
             new()
             {
@@ -104,7 +104,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Latest news from NASA.",
-                LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
+                LogoUrl = "/Logos/NASA_logo.png"
             },
             new()
             {
@@ -114,7 +114,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Contemporary art and visual culture",
-                LogoUrl = "https://www.thisiscolossal.com/wp-content/uploads/2024/08/icon-crow-150x150.png"
+                LogoUrl = "/Logos/Colossal_logo.png"
             },
             new()
             {
@@ -124,7 +124,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "A daily dose of architecture and street art",
-                LogoUrl = "https://img.ws.mms.shopee.com.br/78107abce75961845158eb136bdc9290"
+                LogoUrl = "/Logos/Design_logo.png"
             },
             new()
             {
@@ -134,7 +134,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Psychology, self-development and happiness",
-                LogoUrl = "https://cdn.tinybuddha.com/wp-content/themes/tinybuddha/images/logo.png"
+                LogoUrl = "/Logos/Buddha_logo.png"
             },
             new()
             {
@@ -144,7 +144,7 @@ public static class DataSeeder
                 TrustScore = 1.0m,
                 DefaultLanguageCode = "en",
                 Description = "Smart about the main thing",
-                LogoUrl = "https://ideanomics.ru/wp-content/uploads/2021/11/raptitude-300x300.png"
+                LogoUrl = "/Logos/Raptitude_logo.png"
             }
         };
 

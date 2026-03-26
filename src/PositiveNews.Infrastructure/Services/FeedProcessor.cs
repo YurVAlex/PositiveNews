@@ -23,9 +23,10 @@ public class FeedProcessor : IFeedProcessor
         _logger = loger;
     }
 
-    public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed)
+    public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, out int invalidCount)
     {
         var dtoItems = new List<RssFeedItemDto>();
+        invalidCount = 0;
 
         try
         {
@@ -47,6 +48,7 @@ public class FeedProcessor : IFeedProcessor
                     if (!_validator.IsValid(feedItem))
                     {
                         _logger.LogWarning("Skipping invalid feed item.");
+                        invalidCount++;
                         continue;
                     }
 
@@ -59,6 +61,7 @@ public class FeedProcessor : IFeedProcessor
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Error parsing RSS feed item");
+                    invalidCount++;
                 }
 
                 _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);

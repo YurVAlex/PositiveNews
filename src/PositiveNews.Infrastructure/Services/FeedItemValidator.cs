@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using HtmlAgilityPack;
+using System.Xml.Linq;
 
 public class FeedItemValidator : IFeedItemValidator
 {
@@ -9,6 +10,18 @@ public class FeedItemValidator : IFeedItemValidator
 
         if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
             return false;
+
+        var html = itemElement.Element(ContentNs + "encoded")!.Value;
+
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+
+        if (doc.DocumentNode == null ||
+            doc.DocumentNode.InnerHtml == null ||
+            string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText))
+        {
+            return false;
+        }
 
         return true;
     }

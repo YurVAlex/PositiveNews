@@ -1,9 +1,7 @@
-﻿using HtmlAgilityPack;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Infrastructure.Services;
 using PositiveNews.Application.Interfaces;
-using System.Text;
 using System.Xml.Linq;
 
 public class FeedItemParser : IFeedItemParser

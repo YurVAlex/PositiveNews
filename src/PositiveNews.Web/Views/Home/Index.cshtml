@@ -16,9 +16,13 @@
                     <div class="card-header bg-white d-flex align-items-center border-0 pb-0">
                         @if (!string.IsNullOrEmpty(article.SourceLogoUrl))
                         {
-                            <img src="@article.SourceLogoUrl" alt="@article.SourceName" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;" />
+                            <img src="@article.SourceLogoUrl"
+                                 alt="@article.SourceName"
+                                 class="border-light me-2"
+                                 style="width: 32px; height: 32px; object-fit: cover;" />
                         }
-                        <span class="fw-bold text-muted">@article.SourceName</span>
+    
+                        <span class="fw-bold text-muted fs-5">@article.SourceName</span>
                     </div>
 
                     <div class="card-body">

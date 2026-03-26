@@ -99,7 +99,7 @@ public class IngestionService : IIngestionService
         {
             var doc = await _feedReader.ReadFeedAsync(url, cancellationToken);
 
-            var dtoItems = _feedProcessor.ProcessFeed(url, doc);
+            var dtoItems = _feedProcessor.ProcessFeed(url, doc, out int invalidCount);
 
             if (dtoItems.Count == 0)
             {
@@ -139,8 +139,8 @@ public class IngestionService : IIngestionService
             await context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
-                source.Name, newArticleCount, dtoItems.Count);
+                "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {InvalidCount} rejected.",
+                source.Name, newArticleCount, dtoItems.Count+invalidCount, invalidCount);
         }
         catch (OperationCanceledException)
         {
