@@ -39,7 +39,7 @@ Notes:
 - Some files may have been excluded based on .gitignore rules and Repomix's configuration
 - Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
 - Only files matching these patterns are included: **/*.cs, **/*.csproj, **/*.sln, **/*.json, **/*.sql, **/*.md, **/Dockerfile, **/.dockerignore
-- Files matching these patterns are excluded: **/bin/**, **/obj/**, **/.vs/**, **/.vscode/**, **/TestResults/**, **/*.user, **/*.suo, **/AppPackages/**, **/BundleArtifacts/**, **/dist/**, **/node_modules/**, **/Migrations/**, **/appsettings.Development.json, **/appsettings.Local.json, repomix-output.txt
+- Files matching these patterns are excluded: **/PositiveNews.Application/**, **/PositiveNews.Domain/**, **/PositiveNews.Web/**, **/bin/**, **/obj/**, **/.vs/**, **/.vscode/**, **/TestResults/**, **/*.user, **/*.suo, **/AppPackages/**, **/BundleArtifacts/**, **/dist/**, **/node_modules/**, **/Migrations/**, **/appsettings.Development.json, **/appsettings.Local.json, repomix-output.txt
 - Files matching patterns in .gitignore are excluded
 - Files matching default ignore patterns are excluded
 - Line numbers have been added to the beginning of each line
@@ -52,34 +52,6 @@ Directory Structure
 MSSQLSDBInitial.sql
 README.md
 repomix.config.json
-src/PositiveNews.Application/DependencyInjection.cs
-src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
-src/PositiveNews.Application/Interfaces/IFeedItemCleaner.cs
-src/PositiveNews.Application/Interfaces/IFeedItemParser.cs
-src/PositiveNews.Application/Interfaces/IFeedItemValidator.cs
-src/PositiveNews.Application/Interfaces/IFeedProcessor.cs
-src/PositiveNews.Application/Interfaces/IFeedReader.cs
-src/PositiveNews.Application/Interfaces/IIngestionService.cs
-src/PositiveNews.Application/PositiveNews.Application.csproj
-src/PositiveNews.Application/Properties/launchSettings.json
-src/PositiveNews.Domain/Constants/SchemaNames.cs
-src/PositiveNews.Domain/Entities/ArticleContent.cs
-src/PositiveNews.Domain/Entities/ArticleMetadata.cs
-src/PositiveNews.Domain/Entities/ArticleTopic.cs
-src/PositiveNews.Domain/Entities/AuditLog.cs
-src/PositiveNews.Domain/Entities/Comment.cs
-src/PositiveNews.Domain/Entities/IngestionRun.cs
-src/PositiveNews.Domain/Entities/Role.cs
-src/PositiveNews.Domain/Entities/Source.cs
-src/PositiveNews.Domain/Entities/Topic.cs
-src/PositiveNews.Domain/Entities/User.cs
-src/PositiveNews.Domain/Entities/UserFeedPreference.cs
-src/PositiveNews.Domain/Entities/UserRole.cs
-src/PositiveNews.Domain/Entities/UserSourceFilter.cs
-src/PositiveNews.Domain/Entities/UserTopicFilter.cs
-src/PositiveNews.Domain/Enums/AuditEntityType.cs
-src/PositiveNews.Domain/Enums/IngestionStatus.cs
-src/PositiveNews.Domain/PositiveNews.Domain.csproj
 src/PositiveNews.Infrastructure/BackgroundJobs/IngestionBackgroundService.cs
 src/PositiveNews.Infrastructure/DependencyInjection.cs
 src/PositiveNews.Infrastructure/Persistence/AppDbContext.cs
@@ -105,18 +77,8 @@ src/PositiveNews.Infrastructure/Services/FeedItemParser.cs
 src/PositiveNews.Infrastructure/Services/FeedItemValidator.cs
 src/PositiveNews.Infrastructure/Services/FeedProcessor.cs
 src/PositiveNews.Infrastructure/Services/FeedReader.cs
+src/PositiveNews.Infrastructure/Services/ImgTagExtractor.cs
 src/PositiveNews.Infrastructure/Services/IngestionService.cs
-src/PositiveNews.Web/appsettings.json
-src/PositiveNews.Web/Controllers/HomeController.cs
-src/PositiveNews.Web/Models/ArticleDetailViewModel.cs
-src/PositiveNews.Web/Models/ArticlePreviewViewModel.cs
-src/PositiveNews.Web/Models/ErrorViewModel.cs
-src/PositiveNews.Web/Models/FeedIndexViewModel.cs
-src/PositiveNews.Web/PositiveNews.Web.csproj
-src/PositiveNews.Web/Program.cs
-src/PositiveNews.Web/Properties/launchSettings.json
-src/PositiveNews.Web/TagHelpers/ArticleImageTagHelper.cs
-src/PositiveNews.Web/wwwroot/lib/jquery-validation/LICENSE.md
 src/PositiveNews.WebApi/appsettings.json
 src/PositiveNews.WebApi/PositiveNews.WebApi.csproj
 src/PositiveNews.WebApi/Program.cs
@@ -544,526 +506,32 @@ File: repomix.config.json
 19:   ],
 20:   "ignore": {
 21:     "customPatterns": [
-22:       "**/bin/**",
-23:       "**/obj/**",
-24:       "**/.vs/**",
-25:       "**/.vscode/**",
-26:       "**/TestResults/**",
-27:       "**/*.user",
-28:       "**/*.suo",
-29:       "**/AppPackages/**",
-30:       "**/BundleArtifacts/**",
-31:       "**/dist/**",
-32:       "**/node_modules/**",
-33:       "**/Migrations/**",
-34:       "**/appsettings.Development.json",
-35:       "**/appsettings.Local.json",
-36:       "repomix-output.txt"
-37:     ],
-38:     "useGitignore": true,
-39:     "useDefaultPatterns": true
-40:   },
-41:   "security": {
-42:     "enableChecking": true
-43:   }
-44: }
-
-================
-File: src/PositiveNews.Application/DependencyInjection.cs
-================
- 1: using Microsoft.Extensions.DependencyInjection;
- 2: 
- 3: namespace PositiveNews.Application;
- 4: 
- 5: /// <summary>
- 6: /// Clean Registration Pattern for the Application layer.
- 7: /// Will host service registrations when Application-level services appear.
- 8: /// </summary>
- 9: public static class DependencyInjection
-10: {
-11:     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
-12:     {
-13:         // Future: AutoMapper profiles, FluentValidation validators, etc.
-14:         return services;
-15:     }
-16: }
-
-================
-File: src/PositiveNews.Application/DTOs/RssFeedItemDto.cs
-================
- 1: namespace PositiveNews.Application.DTOs;
- 2: 
- 3: /// <summary>
- 4: /// Represents a single item parsed from an RSS feed.
- 5: /// This DTO is source-agnostic and carries only the data the ingestion pipeline needs.
- 6: /// </summary>
- 7: public class RssFeedItemDto
- 8: {
- 9:     public required string Title { get; set; }
-10:     public required string Link { get; init; }
-11: 
-12:     public required string ContentRaw { get; set; }
-13:     public required string Description { get; set; }
-14:     public string? Author { get; init; }
-15:     public string? ContentClean { get; set; }
-16: 
-17:     public DateTime PublishedDate { get; init; }
-18: 
-19:     public string? ExternalId { get; init; }
-20:     public string? ImageTag { get; set; }
-21: 
-22:     public List<string>? Topics { get; init; } 
-23: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IFeedItemCleaner.cs
-================
- 1: using PositiveNews.Application.DTOs;
- 2: using System;
- 3: using System.Collections.Generic;
- 4: using System.Text;
- 5: using System.Xml.Linq;
- 6: 
- 7: namespace PositiveNews.Application.Interfaces
- 8: {
- 9:     public interface IFeedItemCleaner
-10:     {
-11:        void Clean(RssFeedItemDto dto);
-12:     }
-13: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IFeedItemParser.cs
-================
-1: using PositiveNews.Application.DTOs;
-2: using System.Xml.Linq;
-3: 
-4: public interface IFeedItemParser
-5: {
-6:     RssFeedItemDto Parse(XElement itemElement);
-7: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IFeedItemValidator.cs
-================
-1: using System.Xml.Linq;
-2: 
-3: public interface IFeedItemValidator
-4: {
-5:     bool IsValid(XElement itemElement);
-6: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IFeedProcessor.cs
-================
-1: using PositiveNews.Application.DTOs;
-2: using System.Xml.Linq;
-3: 
-4: namespace PositiveNews.Application.Interfaces;
-5: 
-6: public interface IFeedProcessor
-7: {
-8:     IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed);
-9: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IFeedReader.cs
-================
-1: using System.Xml.Linq;
-2: 
-3: namespace PositiveNews.Application.Interfaces;
-4: 
-5: public interface IFeedReader
-6: {
-7:     Task<XDocument> ReadFeedAsync(string feedUrl, CancellationToken cancellationToken = default);
-8: }
-
-================
-File: src/PositiveNews.Application/Interfaces/IIngestionService.cs
-================
- 1: namespace PositiveNews.Application.Interfaces;
- 2: 
- 3: /// <summary>
- 4: /// Orchestrates the ingestion cycle: fetches feeds from all active sources,
- 5: /// deduplicates, and persists new articles.
- 6: /// </summary>
- 7: public interface IIngestionService
- 8: {
- 9:     Task RunIngestionCycleAsync(CancellationToken cancellationToken = default);
-10: }
-
-================
-File: src/PositiveNews.Application/PositiveNews.Application.csproj
-================
- 1: <Project Sdk="Microsoft.NET.Sdk">
- 2: 
- 3:   <ItemGroup>
- 4:     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3">
- 5:       <PrivateAssets>all</PrivateAssets>
- 6:       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
- 7:     </PackageReference>
- 8:     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
- 9:     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-10:     <PackageReference Include="System.ServiceModel.Syndication" Version="10.0.3" />
-11:   </ItemGroup>
-12: 
-13:   <ItemGroup>
-14:     <ProjectReference Include="..\PositiveNews.Domain\PositiveNews.Domain.csproj" />
-15:   </ItemGroup>
-16: 
-17:   <PropertyGroup>
-18:     <TargetFramework>net10.0</TargetFramework>
-19:     <ImplicitUsings>enable</ImplicitUsings>
-20:     <Nullable>enable</Nullable>
-21:   </PropertyGroup>
-22: 
-23: </Project>
-
-================
-File: src/PositiveNews.Application/Properties/launchSettings.json
-================
-1: {}
-
-================
-File: src/PositiveNews.Domain/Constants/SchemaNames.cs
-================
- 1: namespace PositiveNews.Domain.Constants;
- 2: 
- 3: /// <summary>
- 4: /// Centralizes SQL schema names to avoid magic strings in EF configurations.
- 5: /// </summary>
- 6: public static class SchemaNames
- 7: {
- 8:     public const string Identity = "Identity";
- 9:     public const string Catalog = "Catalog";
-10:     public const string Community = "Community";
-11:     public const string Admin = "Admin";
-12: }
-
-================
-File: src/PositiveNews.Domain/Entities/ArticleContent.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class ArticleContent
- 4: {
- 5:     public long Id { get; set; } // Same PK as ArticleMetadata (1-to-1)
- 6:     public string? ContentRaw { get; set; }
- 7:     public string? ContentClean { get; set; }
- 8:     public string? SummaryShort { get; set; }
- 9: 
-10:     // Navigation
-11:     public ArticleMetadata Metadata { get; set; } = null!;
-12: }
-
-================
-File: src/PositiveNews.Domain/Entities/ArticleMetadata.cs
-================
- 1: using System.Xml.Linq;
- 2: 
- 3: namespace PositiveNews.Domain.Entities;
- 4: 
- 5: public class ArticleMetadata
- 6: {
- 7:     public long Id { get; set; }
- 8:     public int SourceId { get; set; }
- 9:     public string? ExternalId { get; set; }
-10:     public string Title { get; set; } = string.Empty;
-11:     public string? Author { get; set; }
-12:     public string Url { get; set; } = string.Empty;
-13:     public string? ImageTag { get; set; }
-14:     public DateTime PublishedAt { get; set; }
-15:     public DateTime IngestedAt { get; set; }
-16:     public DateTime? AnalyzedAt { get; set; }
-17:     public decimal? PositivityScore { get; set; }
-18:     public long ViewCount { get; set; }
-19:     public string LanguageCode { get; set; } = "und";
-20:     public string RegionCode { get; set; } = "Global";
-21:     public bool IsActive { get; set; } = true;
-22:     public long? ModeratedBy { get; set; }
-23: 
-24:     // Navigation
-25:     public Source Source { get; set; } = null!;
-26:     public User? Moderator { get; set; }
-27:     public ArticleContent? Content { get; set; }
-28:     public ICollection<ArticleTopic> ArticleTopics { get; set; } = new List<ArticleTopic>();
-29:     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
-30: }
-
-================
-File: src/PositiveNews.Domain/Entities/ArticleTopic.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class ArticleTopic
- 4: {
- 5:     public long ArticleId { get; set; }
- 6:     public int TopicId { get; set; }
- 7: 
- 8:     // Navigation
- 9:     public ArticleMetadata Article { get; set; } = null!;
-10:     public Topic Topic { get; set; } = null!;
-11: }
-
-================
-File: src/PositiveNews.Domain/Entities/AuditLog.cs
-================
- 1: using PositiveNews.Domain.Enums;
- 2: 
- 3: namespace PositiveNews.Domain.Entities;
- 4: 
- 5: public class AuditLog
- 6: {
- 7:     public long Id { get; set; }
- 8:     public AuditEntityType EntityType { get; set; }
- 9:     public long EntityId { get; set; }
-10:     public string? ChangedField { get; set; }
-11:     public string? OldValue { get; set; }
-12:     public string? NewValue { get; set; }
-13:     public string? Reason { get; set; }
-14:     public string? Note { get; set; }
-15:     public long ModeratorId { get; set; }
-16:     public DateTime CreatedAt { get; set; }
-17: 
-18:     // Navigation
-19:     public User Moderator { get; set; } = null!;
-20: }
-
-================
-File: src/PositiveNews.Domain/Entities/Comment.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class Comment
- 4: {
- 5:     public long Id { get; set; }
- 6:     public long ArticleId { get; set; }
- 7:     public long UserId { get; set; }
- 8:     public long? ParentId { get; set; }
- 9:     public string Content { get; set; } = string.Empty;
-10:     public DateTime CreatedAt { get; set; }
-11:     public DateTime? EditedAt { get; set; }
-12:     public bool IsActive { get; set; } = true;
-13:     public long? ModeratedBy { get; set; }
-14: 
-15:     // Navigation
-16:     public ArticleMetadata Article { get; set; } = null!;
-17:     public User User { get; set; } = null!;
-18:     public Comment? Parent { get; set; }
-19:     public User? Moderator { get; set; }
-20:     public ICollection<Comment> Replies { get; set; } = new List<Comment>();
-21: }
-
-================
-File: src/PositiveNews.Domain/Entities/IngestionRun.cs
-================
- 1: using PositiveNews.Domain.Enums;
- 2: 
- 3: namespace PositiveNews.Domain.Entities;
- 4: 
- 5: public class IngestionRun
- 6: {
- 7:     public long Id { get; set; }
- 8:     public int SourceId { get; set; }
- 9:     public DateTime StartedAt { get; set; }
-10:     public DateTime? FinishedAt { get; set; }
-11:     public IngestionStatus Status { get; set; }
-12:     public int ItemsFetched { get; set; }
-13:     public string? ErrorMessage { get; set; }
-14: 
-15:     // Navigation
-16:     public Source Source { get; set; } = null!;
-17: }
-
-================
-File: src/PositiveNews.Domain/Entities/Role.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class Role
- 4: {
- 5:     public int Id { get; set; }
- 6:     public string Name { get; set; } = string.Empty;
- 7: 
- 8:     // Navigation
- 9:     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-10: }
-
-================
-File: src/PositiveNews.Domain/Entities/Source.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class Source
- 4: {
- 5:     public int Id { get; set; }
- 6:     public string Name { get; set; } = string.Empty;
- 7:     public string? Description { get; set; }
- 8:     public string BaseUrl { get; set; } = string.Empty;
- 9:     public string? FeedUrl { get; set; }
-10:     public string? LogoUrl { get; set; }
-11:     public string? ApiEndpoint { get; set; }
-12:     public string? ApiEncryptedKey { get; set; }
-13:     public decimal TrustScore { get; set; } = 1.0m;
-14:     public string DefaultLanguageCode { get; set; } = "en";
-15:     public DateTime CreatedAt { get; set; }
-16:     public bool IsActive { get; set; } = true;
-17:     public long? ModeratedBy { get; set; }
-18: 
-19:     // Navigation
-20:     public User? Moderator { get; set; }
-21:     public ICollection<ArticleMetadata> Articles { get; set; } = new List<ArticleMetadata>();
-22:     public ICollection<IngestionRun> IngestionRuns { get; set; } = new List<IngestionRun>();
-23:     public ICollection<UserSourceFilter> UserSourceFilters { get; set; } = new List<UserSourceFilter>();
-24: }
-
-================
-File: src/PositiveNews.Domain/Entities/Topic.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class Topic
- 4: {
- 5:     public int Id { get; set; }
- 6:     public string Name { get; set; } = string.Empty;
- 7:     public string Slug { get; set; } = string.Empty;
- 8:     public string? Description { get; set; }
- 9: 
-10:     // Navigation
-11:     public ICollection<ArticleTopic> ArticleTopics { get; set; } = new List<ArticleTopic>();
-12:     public ICollection<UserTopicFilter> UserTopicFilters { get; set; } = new List<UserTopicFilter>();
-13: }
-
-================
-File: src/PositiveNews.Domain/Entities/User.cs
-================
- 1: using System.Xml.Linq;
- 2: 
- 3: namespace PositiveNews.Domain.Entities;
- 4: 
- 5: public class User
- 6: {
- 7:     public long Id { get; set; }
- 8:     public string Email { get; set; } = string.Empty;
- 9:     public bool EmailConfirmed { get; set; }
-10:     public string Name { get; set; } = string.Empty;
-11:     public string? PasswordHash { get; set; }
-12:     public DateTime? LastLoginAt { get; set; }
-13:     public int FailedLoginCount { get; set; }
-14:     public string? AvatarPictureUrl { get; set; }
-15:     public DateTime CreatedAt { get; set; }
-16:     public bool IsActive { get; set; } = true;
-17:     public long? ModeratedBy { get; set; }
-18: 
-19:     // Navigation
-20:     public User? Moderator { get; set; }
-21:     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-22:     public UserFeedPreference? FeedPreference { get; set; }
-23:     public ICollection<UserSourceFilter> SourceFilters { get; set; } = new List<UserSourceFilter>();
-24:     public ICollection<UserTopicFilter> TopicFilters { get; set; } = new List<UserTopicFilter>();
-25:     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
-26: }
-
-================
-File: src/PositiveNews.Domain/Entities/UserFeedPreference.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class UserFeedPreference
- 4: {
- 5:     public long UserId { get; set; }
- 6:     public decimal MinPositivity { get; set; } = 0.5m;
- 7:     public string SortBy { get; set; } = "Date";
- 8:     public string? LanguageCode { get; set; }
- 9:     public string? RegionCode { get; set; }
-10: 
-11:     // Navigation
-12:     public User User { get; set; } = null!;
-13: }
-
-================
-File: src/PositiveNews.Domain/Entities/UserRole.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class UserRole
- 4: {
- 5:     public long UserId { get; set; }
- 6:     public int RoleId { get; set; }
- 7: 
- 8:     // Navigation
- 9:     public User User { get; set; } = null!;
-10:     public Role Role { get; set; } = null!;
-11: }
-
-================
-File: src/PositiveNews.Domain/Entities/UserSourceFilter.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class UserSourceFilter
- 4: {
- 5:     public long UserId { get; set; }
- 6:     public int SourceId { get; set; }
- 7: 
- 8:     // Navigation
- 9:     public User User { get; set; } = null!;
-10:     public Source Source { get; set; } = null!;
-11: }
-
-================
-File: src/PositiveNews.Domain/Entities/UserTopicFilter.cs
-================
- 1: namespace PositiveNews.Domain.Entities;
- 2: 
- 3: public class UserTopicFilter
- 4: {
- 5:     public long UserId { get; set; }
- 6:     public int TopicId { get; set; }
- 7: 
- 8:     // Navigation
- 9:     public User User { get; set; } = null!;
-10:     public Topic Topic { get; set; } = null!;
-11: }
-
-================
-File: src/PositiveNews.Domain/Enums/AuditEntityType.cs
-================
-1: namespace PositiveNews.Domain.Enums;
-2: 
-3: public enum AuditEntityType
-4: {
-5:     Article,
-6:     Comment,
-7:     User,
-8:     Source
-9: }
-
-================
-File: src/PositiveNews.Domain/Enums/IngestionStatus.cs
-================
-1: namespace PositiveNews.Domain.Enums;
-2: 
-3: public enum IngestionStatus
-4: {
-5:     Running,
-6:     Success,
-7:     Failed,
-8:     Partial
-9: }
-
-================
-File: src/PositiveNews.Domain/PositiveNews.Domain.csproj
-================
-1: <Project Sdk="Microsoft.NET.Sdk">
-2: 
-3:   <PropertyGroup>
-4:     <TargetFramework>net10.0</TargetFramework>
-5:     <ImplicitUsings>enable</ImplicitUsings>
-6:     <Nullable>enable</Nullable>
-7:   </PropertyGroup>
-8: 
-9: </Project>
+22:       "**/PositiveNews.Application/**",
+23:       "**/PositiveNews.Domain/**",
+24:       "**/PositiveNews.Web/**",
+25:       "**/bin/**",
+26:       "**/obj/**",
+27:       "**/.vs/**",
+28:       "**/.vscode/**",
+29:       "**/TestResults/**",
+30:       "**/*.user",
+31:       "**/*.suo",
+32:       "**/AppPackages/**",
+33:       "**/BundleArtifacts/**",
+34:       "**/dist/**",
+35:       "**/node_modules/**",
+36:       "**/Migrations/**",
+37:       "**/appsettings.Development.json",
+38:       "**/appsettings.Local.json",
+39:       "repomix-output.txt"
+40:     ],
+41:     "useGitignore": true,
+42:     "useDefaultPatterns": true
+43:   },
+44:   "security": {
+45:     "enableChecking": true
+46:   }
+47: }
 
 ================
 File: src/PositiveNews.Infrastructure/BackgroundJobs/IngestionBackgroundService.cs
@@ -1194,13 +662,14 @@ File: src/PositiveNews.Infrastructure/DependencyInjection.cs
 44:         services.AddScoped<IFeedProcessor, FeedProcessor>();
 45:         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
 46:         services.AddScoped<IIngestionService, IngestionService>();
-47: 
-48:         // Background services
-49:         services.AddHostedService<IngestionBackgroundService>();
-50: 
-51:         return services;
-52:     }
-53: }
+47:         services.AddScoped<IImgTagExtractor, ImgTagExtractor>();
+48: 
+49:         // Background services
+50:         services.AddHostedService<IngestionBackgroundService>();
+51: 
+52:         return services;
+53:     }
+54: }
 
 ================
 File: src/PositiveNews.Infrastructure/Persistence/AppDbContext.cs
@@ -1880,7 +1349,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
  84:                 TrustScore = 1.0m,
  85:                 DefaultLanguageCode = "en-US",
  86:                 Description = "Latest news from NVIDIA.",
- 87:                 LogoUrl = "https://upload.wikimedia.org/wikipedia/sco/thumb/2/21/Nvidia_logo.svg/250px-Nvidia_logo.svg.png"
+ 87:                 LogoUrl = "/Logos/Nvidia_logo.png"
  88:             },
  89:             new()
  90:             {
@@ -1890,7 +1359,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
  94:                 TrustScore = 1.0m,
  95:                 DefaultLanguageCode = "en",
  96:                 Description = "Making solutions the news.",
- 97:                 LogoUrl = "https://www.optimistdaily.com/wp-content/themes/magazine-pro/images/logo.png"
+ 97:                 LogoUrl = "/Logos/Optimist_logo.png"
  98:             },
  99:             new()
 100:             {
@@ -1900,7 +1369,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 104:                 TrustScore = 1.0m,
 105:                 DefaultLanguageCode = "en",
 106:                 Description = "Latest news from NASA.",
-107:                 LogoUrl = "https://www.nasa.gov/wp-content/themes/nasa/assets/images/nasa-logo@2x.png"
+107:                 LogoUrl = "/Logos/NASA_logo.png"
 108:             },
 109:             new()
 110:             {
@@ -1910,7 +1379,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 114:                 TrustScore = 1.0m,
 115:                 DefaultLanguageCode = "en",
 116:                 Description = "Contemporary art and visual culture",
-117:                 LogoUrl = "https://www.thisiscolossal.com/wp-content/uploads/2024/08/icon-crow-150x150.png"
+117:                 LogoUrl = "/Logos/Colossal_logo.png"
 118:             },
 119:             new()
 120:             {
@@ -1920,7 +1389,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 124:                 TrustScore = 1.0m,
 125:                 DefaultLanguageCode = "en",
 126:                 Description = "A daily dose of architecture and street art",
-127:                 LogoUrl = "https://img.ws.mms.shopee.com.br/78107abce75961845158eb136bdc9290"
+127:                 LogoUrl = "/Logos/Design_logo.png"
 128:             },
 129:             new()
 130:             {
@@ -1930,7 +1399,7 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 134:                 TrustScore = 1.0m,
 135:                 DefaultLanguageCode = "en",
 136:                 Description = "Psychology, self-development and happiness",
-137:                 LogoUrl = "https://cdn.tinybuddha.com/wp-content/themes/tinybuddha/images/logo.png"
+137:                 LogoUrl = "/Logos/Buddha_logo.png"
 138:             },
 139:             new()
 140:             {
@@ -1940,50 +1409,40 @@ File: src/PositiveNews.Infrastructure/Persistence/Seeding/DataSeeder.cs
 144:                 TrustScore = 1.0m,
 145:                 DefaultLanguageCode = "en",
 146:                 Description = "Smart about the main thing",
-147:                 LogoUrl = "https://ideanomics.ru/wp-content/uploads/2021/11/raptitude-300x300.png"
-148:             },
-149:              new()
-150:             {
-151:                 Name = "Econlib",
-152:                 BaseUrl = "https://www.econlib.org",
-153:                 FeedUrl = "https://https://www.econlib.org/feed/main",
-154:                 TrustScore = 1.0m,
-155:                 DefaultLanguageCode = "en",
-156:                 Description = "The Library of Economics and Liberty",
-157:                 LogoUrl = "https://www.econlib.org/wp-content/themes/econlib/assets/img/econlib-logo-2022-dark.png"
-158:             }
-159:         };
-160: 
-161:         context.Sources.AddRange(sources);
-162:         await context.SaveChangesAsync();
-163:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
-164:     }
-165: 
-166:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
-167:     {
-168:         if (await context.Users.AnyAsync()) return;
-169: 
-170:         // Seed a system/admin user to own future moderation actions.
-171:         // In production, the password hash would come from a proper Identity hasher.
-172:         var adminUser = new User
-173:         {
-174:             Email = "admin@positivenews.local",
-175:             EmailConfirmed = true,
-176:             Name = "System Administrator",
-177:             PasswordHash = null, // Will be set via proper Auth flow later.
-178:             IsActive = true
-179:         };
-180: 
-181:         context.Users.Add(adminUser);
-182:         await context.SaveChangesAsync();
-183: 
-184:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-185:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
-186:         await context.SaveChangesAsync();
-187: 
-188:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
-189:     }
-190: }
+147:                 LogoUrl = "/Logos/Raptitude_logo.png"
+148:             }
+149:         };
+150: 
+151:         context.Sources.AddRange(sources);
+152:         await context.SaveChangesAsync();
+153:         logger.LogInformation("Seeded {Count} sources.", sources.Count);
+154:     }
+155: 
+156:     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
+157:     {
+158:         if (await context.Users.AnyAsync()) return;
+159: 
+160:         // Seed a system/admin user to own future moderation actions.
+161:         // In production, the password hash would come from a proper Identity hasher.
+162:         var adminUser = new User
+163:         {
+164:             Email = "admin@positivenews.local",
+165:             EmailConfirmed = true,
+166:             Name = "System Administrator",
+167:             PasswordHash = null, // Will be set via proper Auth flow later.
+168:             IsActive = true
+169:         };
+170: 
+171:         context.Users.Add(adminUser);
+172:         await context.SaveChangesAsync();
+173: 
+174:         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
+175:         context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
+176:         await context.SaveChangesAsync();
+177: 
+178:         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
+179:     }
+180: }
 
 ================
 File: src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj
@@ -2025,361 +1484,261 @@ File: src/PositiveNews.Infrastructure/Services/FeedItemCleaner.cs
   4: using System.Net;
   5: using System.Text;
   6: using System.Text.RegularExpressions;
-  7: 
-  8: namespace PositiveNews.Infrastructure.Services
-  9: {
- 10:     public class FeedItemCleaner : IFeedItemCleaner
- 11:     {
- 12:         public void Clean(RssFeedItemDto dto)
- 13:         {
- 14:             dto.Description = CleanDescription(dto.Description);
- 15:             dto.ContentClean = CleanContent(dto.ContentRaw);
- 16:             dto.Title = CleanTitle(dto.Title);
- 17:         }
- 18:         private static string CleanTitle(string title)
- 19:         {
- 20:             return title.Length > 500 ? title[..500] : title;
- 21:         }
- 22: 
- 23:         private static string CleanDescription(string description)
- 24:         {
- 25:             if (!description.Contains('<'))
- 26:                 return WebUtility.HtmlDecode(description).Trim();
- 27: 
- 28:             var doc = LoadDocument(description);
- 29: 
- 30:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
- 31: 
- 32:             if (paragraphs == null || paragraphs.Count == 0)
- 33:                 return WebUtility.HtmlDecode(doc.DocumentNode.InnerText).Trim();
- 34: 
- 35:             var texts = paragraphs
- 36:                 .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
- 37:                 .Where(t => !string.IsNullOrWhiteSpace(t));
- 38: 
- 39:             return string.Join(" ", texts);
- 40:         }
+  7: using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
+  8: 
+  9: namespace PositiveNews.Infrastructure.Services
+ 10: {
+ 11:     public class FeedItemCleaner : IFeedItemCleaner
+ 12:     {
+ 13:         public void Clean(RssFeedItemDto dto)
+ 14:         {
+ 15:             dto.Description = CleanDescription(dto.Description);
+ 16:             dto.ContentClean = CleanContent(dto.ContentRaw);
+ 17:             dto.Title = CleanTitle(dto.Title);
+ 18:         }
+ 19:         private static string CleanTitle(string title)
+ 20:         {
+ 21:             return title.Length > 500 ? title[..500] : title;
+ 22:         }
+ 23: 
+ 24:         private static string CleanDescription(string description)
+ 25:         {
+ 26:             if (!description.Contains('<'))
+ 27:                 return WebUtility.HtmlDecode(description).Trim();
+ 28: 
+ 29:             var doc = LoadDocument(description);
+ 30: 
+ 31:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
+ 32: 
+ 33:             if (paragraphs == null || paragraphs.Count == 0)
+ 34:                 return WebUtility.HtmlDecode(doc.DocumentNode.InnerText).Trim();
+ 35: 
+ 36:             var texts = paragraphs
+ 37:                 .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
+ 38:                 .Where(t => !string.IsNullOrWhiteSpace(t));
+ 39: 
+ 40:             var result = string.Join(" ", texts);
  41: 
- 42:         private static string CleanContent(string rawContent)
- 43:         {
- 44:             var doc = LoadDocument(rawContent);
- 45: 
- 46:             var builder = new StringBuilder();
- 47: 
- 48:             AppendParagraphs(doc, builder);
- 49:             AppendImages(doc, builder);
+ 42:             return result.Length > 1999 ? texts.First() : result;
+ 43:         }
+ 44: 
+ 45:         private static string CleanContent(string rawContent)
+ 46:         {
+ 47:             var doc = LoadDocument(rawContent);
+ 48: 
+ 49:             var builder = new StringBuilder();
  50: 
- 51:             var cleaned = RemoveTrailingPostLinks(builder.ToString());
- 52: 
- 53:             return cleaned.Trim();
- 54:         }
+ 51:             AppendParagraphs(doc, builder);
+ 52:             AppendImages(doc, builder);
+ 53: 
+ 54:             var cleaned = RemoveTrailingPostLinks(builder.ToString());
  55: 
- 56:         private static HtmlDocument LoadDocument(string html)
- 57:         {
- 58:             var doc = new HtmlDocument();
- 59:             doc.LoadHtml(html);
- 60:             return doc;
- 61:         }
- 62: 
- 63:         private static void AppendParagraphs(HtmlDocument doc, StringBuilder builder)
- 64:         {
- 65:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
- 66: 
- 67:             if (paragraphs == null)
- 68:                 return;
+ 56:             return cleaned.Trim();
+ 57:         }
+ 58: 
+ 59:         private static HtmlDocument LoadDocument(string html)
+ 60:         {
+ 61:             var doc = new HtmlDocument();
+ 62:             doc.LoadHtml(html);
+ 63:             return doc;
+ 64:         }
+ 65: 
+ 66:         private static void AppendParagraphs(HtmlDocument doc, StringBuilder builder)
+ 67:         {
+ 68:             var paragraphs = doc.DocumentNode.SelectNodes("//p");
  69: 
- 70:             foreach (var p in paragraphs)
- 71:             {
- 72:                 var text = HtmlEntity.DeEntitize(p.InnerText).Trim();
- 73: 
- 74:                 if (string.IsNullOrWhiteSpace(text))
- 75:                     continue;
+ 70:             if (paragraphs == null)
+ 71:                 return;
+ 72: 
+ 73:             foreach (var p in paragraphs)
+ 74:             {
+ 75:                 var text = HtmlEntity.DeEntitize(p.InnerText).Trim();
  76: 
- 77:                 if (ShouldRemoveParagraph(text))
+ 77:                 if (string.IsNullOrWhiteSpace(text))
  78:                     continue;
  79: 
- 80:                 RemoveLinks(p);
- 81: 
- 82:                 builder.AppendLine(p.OuterHtml);
- 83:             }
- 84:         }
- 85: 
- 86:         private static void AppendImages(HtmlDocument doc, StringBuilder builder)
- 87:         {
- 88:             var images = doc.DocumentNode.SelectNodes("//img");
- 89: 
- 90:             if (images == null)
- 91:                 return;
+ 80:                 if (ShouldRemoveParagraph(text))
+ 81:                     continue;
+ 82: 
+ 83:                 RemoveLinks(p);
+ 84: 
+ 85:                 builder.AppendLine(p.OuterHtml);
+ 86:             }
+ 87:         }
+ 88: 
+ 89:         private static void AppendImages(HtmlDocument doc, StringBuilder builder)
+ 90:         {
+ 91:             var images = doc.DocumentNode.SelectNodes("//img");
  92: 
- 93:             foreach (var img in images)
- 94:                 builder.AppendLine(img.OuterHtml);
- 95:         }
- 96: 
- 97:         private static bool ShouldRemoveParagraph(string text)
- 98:         {
- 99:             var lower = text.ToLowerInvariant();
-100: 
-101:             return lower.Contains("did this solution stand out")
-102:                 || lower.Contains("becoming an emissary")
-103:                 || lower.StartsWith("the post ")
-104:                 || lower.Contains("appeared first on");
-105:         }
-106: 
-107:         private static void RemoveLinks(HtmlNode node)
-108:         {
-109:             var links = node.SelectNodes(".//a");
-110: 
-111:             if (links == null)
-112:                 return;
+ 93:             if (images == null)
+ 94:                 return;
+ 95: 
+ 96:             foreach (var img in images)
+ 97:                 builder.AppendLine(img.OuterHtml);
+ 98:         }
+ 99: 
+100:         private static bool ShouldRemoveParagraph(string text)
+101:         {
+102:             var lower = text.ToLowerInvariant();
+103: 
+104:             return lower.Contains("did this solution stand out")
+105:                 || lower.Contains("becoming an emissary")
+106:                 || lower.StartsWith("the post ")
+107:                 || lower.Contains("appeared first on");
+108:         }
+109: 
+110:         private static void RemoveLinks(HtmlNode node)
+111:         {
+112:             var links = node.SelectNodes(".//a");
 113: 
-114:             foreach (var link in links)
-115:             {
-116:                 var textNode = HtmlTextNode.CreateNode(link.InnerText);
-117:                 link.ParentNode.ReplaceChild(textNode, link);
-118:             }
-119:         }
-120: 
-121:         private static string RemoveTrailingPostLinks(string content)
-122:         {
-123:             return Regex.Replace(
-124:                 content,
-125:                 @"<\/p>\s*The post\s*<a.*?<\/a>.*",
-126:                 "",
-127:                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
-128:         }
-129:     }
-130: }
+114:             if (links == null)
+115:                 return;
+116: 
+117:             foreach (var link in links)
+118:             {
+119:                 var textNode = HtmlTextNode.CreateNode(link.InnerText);
+120:                 link.ParentNode.ReplaceChild(textNode, link);
+121:             }
+122:         }
+123: 
+124:         private static string RemoveTrailingPostLinks(string content)
+125:         {
+126:             return Regex.Replace(
+127:                 content,
+128:                 @"<\/p>\s*The post\s*<a.*?<\/a>.*",
+129:                 "",
+130:                 RegexOptions.IgnoreCase | RegexOptions.Singleline);
+131:         }
+132:     }
+133: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/FeedItemParser.cs
 ================
-  1: using HtmlAgilityPack;
-  2: using Microsoft.Extensions.Logging;
-  3: using PositiveNews.Application.DTOs;
-  4: using PositiveNews.Infrastructure.Services;
-  5: using System.Net;
-  6: using System.Text;
-  7: using System.Xml.Linq;
-  8: 
-  9: public class FeedItemParser : IFeedItemParser
- 10: {
- 11:     private readonly ILogger<FeedReader> _logger;
- 12:     // XML namespaces
- 13:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
- 14:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
- 15:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
- 16: 
- 17: 
- 18:     public FeedItemParser(ILogger<FeedReader> logger)
- 19:     {
- 20:         _logger = logger;
- 21:     }
- 22:     public RssFeedItemDto Parse(XElement itemElement)
- 23:     {
- 24:         // "!" is because validator guarantees it exists.
- 25: 
- 26:         return new RssFeedItemDto
- 27:         {
- 28:             Title = itemElement.Element("title")!.Value,  
- 29:             Link = itemElement.Element("link")!.Value,   
- 30:             Description = itemElement.Element("description")!.Value,
- 31:             ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
- 32:             Author = itemElement.Element(DcNs + "creator")?.Value,    
- 33:             PublishedDate = ParseDate(itemElement),
- 34:             ImageTag = ConstructImgTag(itemElement),
- 35:             Topics = ExtractCategories(itemElement),
- 36:             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
- 37:         };
- 38:     }
- 39: 
- 40:     /// <summary>
- 41:     /// Extracts image URL:
- 42:     /// </summary>
- 43:     public static string? ConstructImgTag(XElement itemElement)
- 44:     {
- 45:         // 1. media:thumbnail (direct child or nested inside media:content)
- 46:         var thumbnail =
- 47:             itemElement.Element(MediaNs + "thumbnail") ??
- 48:             itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
- 49: 
- 50:         if (thumbnail != null)
- 51:         {
- 52:             return BuildImgTag(
- 53:                 src: thumbnail.Attribute("url")?.Value,
- 54:                 width: thumbnail.Attribute("width")?.Value,
- 55:                 height: thumbnail.Attribute("height")?.Value,
- 56:                 alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail"
- 57:             );
- 58:         }
- 59: 
- 60:         // 2. First <img> inside <description>
- 61:         var descriptionHtml = itemElement.Element("description")?.Value;
- 62:         if (!string.IsNullOrWhiteSpace(descriptionHtml))
- 63:         {
- 64:             var imgFromDesc = ExtractImgFromHtml(descriptionHtml);
- 65:             if (imgFromDesc != null)
- 66:                 return imgFromDesc;
- 67:         }
- 68: 
- 69:         // 3. media:content (full image)
- 70:         var mediaContent = itemElement.Element(MediaNs + "content");
- 71:         if (mediaContent != null)
- 72:         {
- 73:             return BuildImgTag(
- 74:                 src: mediaContent.Attribute("url")?.Value,
- 75:                 width: mediaContent.Attribute("width")?.Value,
- 76:                 height: mediaContent.Attribute("height")?.Value,
- 77:                 alt: mediaContent.Attribute("alt")?.Value ?? "Article image"
- 78:             );
- 79:         }
- 80: 
- 81:         // 4. First <img> inside <content:encoded> (only reached if needed)
- 82:         var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
- 83:         if (!string.IsNullOrWhiteSpace(encodedHtml))
- 84:         {
- 85:             var imgFromEncoded = ExtractImgFromHtml(encodedHtml);
- 86:             if (imgFromEncoded != null)
- 87:                 return imgFromEncoded;
- 88:         }
- 89: 
- 90:         return null;
- 91:     }
- 92: 
- 93:     private static string? ExtractImgFromHtml(string? html)
- 94:     {
- 95:         if (string.IsNullOrWhiteSpace(html))
- 96:             return null;
- 97: 
- 98:         var doc = new HtmlDocument();
- 99:         doc.LoadHtml(html);
-100: 
-101:         var img = doc.DocumentNode.SelectSingleNode("//img");
-102:         if (img == null)
-103:             return null;
-104: 
-105:         return BuildImgTag(
-106:             src: img.GetAttributeValue("src", ""),
-107:             width: img.GetAttributeValue("width", "800"),
-108:             height: img.GetAttributeValue("height", "600"),
-109:             alt: img.GetAttributeValue("alt", "Article image")
-110:         );
-111:     }
-112: 
-113:     private static string? BuildImgTag(
-114:     string? src = "",
-115:     string? width = "800",
-116:     string? height = "600",
-117:     string? alt = "Article image")
-118:     {
-119:         if (string.IsNullOrWhiteSpace(src))
-120:             return null;
-121: 
-122:         var sb = new StringBuilder();
-123:         sb.Append($"<img src=\"{WebUtility.HtmlEncode(src)}\" ");
-124:         sb.Append($"class=\"img-fluid w-100 rounded mb-3\" ");
-125:         sb.Append($"width = \"{width}\" height = \"{height}\" ");
-126:         sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
-127: 
-128:         sb.Append("style=\"object-fit: cover;\" ");  
-129: 
-130:         sb.Append("/>");
-131:         return sb.ToString();
-132:     }
-133: 
-134:     /// <summary>
-135:     /// Validates that URL is a proper image URL
-136:     /// </summary>
-137:     private bool IsValidImageUrl(string? url)
-138:     {
-139:         if (string.IsNullOrWhiteSpace(url))
-140:             return false;
-141: 
-142:         // Must start with http/https
-143:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
-144:             return false;
-145: 
-146:         // Must have image extension
-147:         var lowerUrl = url.ToLower();
-148:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-149:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
-150:     }
-151: 
-152:     /// <summary>
-153:     /// Extracts all category tags as topics
-154:     /// Returns list of category values, or ["Default"] if none found
-155:     /// </summary>
-156:     private List<string> ExtractCategories(XElement itemElement)
-157:     {
-158:         var categories = itemElement
-159:             .Elements("category")
-160:             .Select(c => c.Value)
-161:             .Where(v => !string.IsNullOrWhiteSpace(v))
-162:             .Distinct()
-163:             .ToList();
-164: 
-165:         // If no categories found, return default
-166:         if (categories == null || categories.Count == 0)
-167:         {
-168:             categories = ["Default"];
-169:             _logger.LogDebug("No categories found, using default");
-170:         }
-171: 
-172:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
-173: 
-174:         return categories;
-175:     }
-176: 
-177:     private static DateTime ParseDate(XElement item)
-178:     {
-179:         var dateStr = item.Element("pubDate")?.Value?.Trim();
-180: 
-181:         if (!string.IsNullOrWhiteSpace(dateStr))
-182:         {
-183:             // Common RSS date formats
-184:             string[] formats = new[]
-185:             {
-186:             "ddd, dd MMM yyyy HH:mm:ss zzz",
-187:             "ddd, dd MMM yyyy HH:mm:ss K",
-188:             "ddd, dd MMM yyyy HH:mm:ss",
-189:             "yyyy-MM-ddTHH:mm:sszzz",
-190:             "yyyy-MM-ddTHH:mm:ssK",
-191:             "yyyy-MM-ddTHH:mm:ss"
-192:             };
-193: 
-194:             if (DateTime.TryParseExact(dateStr, formats,
-195:                 System.Globalization.CultureInfo.InvariantCulture,
-196:                 System.Globalization.DateTimeStyles.None, out var result))
-197:             {
-198:                 return result;
-199:             }
-200:             // Try standard parse as fallback
-201:             if (DateTime.TryParse(dateStr, out result))
-202:             {
-203:                 return result;
-204:             }
-205:         }
-206:         return DateTime.UtcNow;
-207:     }
-208: }
+ 1: using Microsoft.Extensions.Logging;
+ 2: using PositiveNews.Application.DTOs;
+ 3: using PositiveNews.Infrastructure.Services;
+ 4: using PositiveNews.Application.Interfaces;
+ 5: using System.Xml.Linq;
+ 6: 
+ 7: public class FeedItemParser : IFeedItemParser
+ 8: {
+ 9:     private readonly ILogger<FeedReader> _logger;
+10:     private readonly IImgTagExtractor _imgTagExtractor;
+11:     
+12:     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
+13:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+14: 
+15:     public FeedItemParser(ILogger<FeedReader> logger, IImgTagExtractor imgTagextractor)
+16:     {
+17:         _logger = logger;
+18:         _imgTagExtractor = imgTagextractor;
+19:     }
+20:     public RssFeedItemDto Parse(XElement itemElement)
+21:     {
+22:         return new RssFeedItemDto
+23:         {
+24:             Title = itemElement.Element("title")!.Value,              // "!" is because validator guarantees it exists.
+25:             Link = itemElement.Element("link")!.Value,   
+26:             Description = itemElement.Element("description")!.Value,
+27:             ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
+28:             Author = itemElement.Element(DcNs + "creator")?.Value,    
+29:             PublishedDate = ParseDate(itemElement),
+30:             ImageTag = _imgTagExtractor.ExtractImgTag(itemElement),
+31:             Topics = ExtractCategories(itemElement),
+32:             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+33:         };
+34:     }
+35: 
+36:     /// <summary>
+37:     /// Extracts all category tags as topics
+38:     /// Returns list of category values, or ["Default"] if none found
+39:     /// </summary>
+40:     private List<string> ExtractCategories(XElement itemElement)
+41:     {
+42:         var categories = itemElement
+43:             .Elements("category")
+44:             .Select(c => c.Value)
+45:             .Where(v => !string.IsNullOrWhiteSpace(v))
+46:             .Distinct()
+47:             .ToList();
+48: 
+49:         // If no categories found, return default
+50:         if (categories == null || categories.Count == 0)
+51:         {
+52:             categories = ["Default"];
+53:             _logger.LogDebug("No categories found, using default");
+54:         }
+55: 
+56:         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
+57: 
+58:         return categories;
+59:     }
+60: 
+61:     private static DateTime ParseDate(XElement item)
+62:     {
+63:         var dateStr = item.Element("pubDate")?.Value?.Trim();
+64: 
+65:         if (!string.IsNullOrWhiteSpace(dateStr))
+66:         {
+67:             // Common RSS date formats
+68:             string[] formats = new[]
+69:             {
+70:             "ddd, dd MMM yyyy HH:mm:ss zzz",
+71:             "ddd, dd MMM yyyy HH:mm:ss K",
+72:             "ddd, dd MMM yyyy HH:mm:ss",
+73:             "yyyy-MM-ddTHH:mm:sszzz",
+74:             "yyyy-MM-ddTHH:mm:ssK",
+75:             "yyyy-MM-ddTHH:mm:ss"
+76:             };
+77: 
+78:             if (DateTime.TryParseExact(dateStr, formats,
+79:                 System.Globalization.CultureInfo.InvariantCulture,
+80:                 System.Globalization.DateTimeStyles.None, out var result))
+81:             {
+82:                 return result;
+83:             }
+84:             // Try standard parse as fallback
+85:             if (DateTime.TryParse(dateStr, out result))
+86:             {
+87:                 return result;
+88:             }
+89:         }
+90:         return DateTime.UtcNow;
+91:     }
+92: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/FeedItemValidator.cs
 ================
- 1: using System.Xml.Linq;
- 2: 
- 3: public class FeedItemValidator : IFeedItemValidator
- 4: {
- 5:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
- 6:     public bool IsValid(XElement itemElement) //TODO: Additional validation
- 7:     {
- 8:        var fields = new[] { "title", "link", "description", ContentNs + "encoded" };
- 9: 
-10:         if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
-11:             return false;
-12: 
-13:         return true;
-14:     }
-15: }
+ 1: using HtmlAgilityPack;
+ 2: using System.Xml.Linq;
+ 3: 
+ 4: public class FeedItemValidator : IFeedItemValidator
+ 5: {
+ 6:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+ 7:     public bool IsValid(XElement itemElement) //TODO: Additional validation
+ 8:     {
+ 9:        var fields = new[] { "title", "link", "description", ContentNs + "encoded" };
+10: 
+11:         if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
+12:             return false;
+13: 
+14:         var html = itemElement.Element(ContentNs + "encoded")!.Value;
+15: 
+16:         var doc = new HtmlDocument();
+17:         doc.LoadHtml(html);
+18: 
+19:         if (doc.DocumentNode == null ||
+20:             doc.DocumentNode.InnerHtml == null ||
+21:             string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText))
+22:         {
+23:             return false;
+24:         }
+25: 
+26:         return true;
+27:     }
+28: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/FeedProcessor.cs
@@ -2409,55 +1768,58 @@ File: src/PositiveNews.Infrastructure/Services/FeedProcessor.cs
 23:         _logger = loger;
 24:     }
 25: 
-26:     public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed)
+26:     public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, out int invalidCount)
 27:     {
 28:         var dtoItems = new List<RssFeedItemDto>();
-29: 
-30:         try
-31:         {
-32:             _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
-33: 
-34:             var feedItems = feed.Descendants("item").ToList();
-35: 
-36:             if (feedItems is null)
-37:             {
-38:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
-39:                 return dtoItems;
-40:             }
-41:             _logger.LogInformation("Found {Count} items in RSS feed.", feedItems.Count);
-42: 
-43:             foreach (var feedItem in feedItems)
-44:             {
-45:                 try
-46:                 {
-47:                     if (!_validator.IsValid(feedItem))
-48:                     {
-49:                         _logger.LogWarning("Skipping invalid feed item.");
-50:                         continue;
-51:                     }
-52: 
-53:                     var dtoItem = _parser.Parse(feedItem);
+29:         invalidCount = 0;
+30: 
+31:         try
+32:         {
+33:             _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
+34: 
+35:             var feedItems = feed.Descendants("item").ToList();
+36: 
+37:             if (feedItems is null)
+38:             {
+39:                 _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
+40:                 return dtoItems;
+41:             }
+42:             _logger.LogInformation("Found {Count} items in RSS feed.", feedItems.Count);
+43: 
+44:             foreach (var feedItem in feedItems)
+45:             {
+46:                 try
+47:                 {
+48:                     if (!_validator.IsValid(feedItem))
+49:                     {
+50:                         _logger.LogWarning("Skipping invalid feed item.");
+51:                         invalidCount++;
+52:                         continue;
+53:                     }
 54: 
-55:                     _cleaner.Clean(dtoItem);
+55:                     var dtoItem = _parser.Parse(feedItem);
 56: 
-57:                     dtoItems.Add(dtoItem);
-58:                 }
-59:                 catch (Exception ex)
-60:                 {
-61:                     _logger.LogWarning(ex, "Error parsing RSS feed item");
-62:                 }
-63: 
-64:                 _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
-65:             }
-66:         }
-67:         catch (Exception ex)
-68:         {
-69:             _logger.LogError(ex, "Failed to process RSS feed from {FeedUrl}", feedUrl);
-70:         }
-71: 
-72:         return dtoItems;
-73:     }
-74: }
+57:                     _cleaner.Clean(dtoItem);
+58: 
+59:                     dtoItems.Add(dtoItem);
+60:                 }
+61:                 catch (Exception ex)
+62:                 {
+63:                     _logger.LogWarning(ex, "Error parsing RSS feed item");
+64:                     invalidCount++;
+65:                 }
+66: 
+67:                 _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
+68:             }
+69:         }
+70:         catch (Exception ex)
+71:         {
+72:             _logger.LogError(ex, "Failed to process RSS feed from {FeedUrl}", feedUrl);
+73:         }
+74: 
+75:         return dtoItems;
+76:     }
+77: }
 
 ================
 File: src/PositiveNews.Infrastructure/Services/FeedReader.cs
@@ -2506,6 +1868,502 @@ File: src/PositiveNews.Infrastructure/Services/FeedReader.cs
 42:         }
 43:     }
 44: }
+
+================
+File: src/PositiveNews.Infrastructure/Services/ImgTagExtractor.cs
+================
+  1: using HtmlAgilityPack;
+  2: using Microsoft.Extensions.Logging;
+  3: using PositiveNews.Application.DTOs;
+  4: using PositiveNews.Application.Interfaces;
+  5: using PositiveNews.Domain.Entities;
+  6: using System;
+  7: using System.Collections.Generic;
+  8: using System.Net;
+  9: using System.Text;
+ 10: using System.Xml.Linq;
+ 11: 
+ 12: namespace PositiveNews.Infrastructure.Services;
+ 13: 
+ 14: public class ImgTagExtractor : IImgTagExtractor
+ 15: {
+ 16:     private readonly ILogger<FeedReader> _logger;
+ 17: 
+ 18:     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
+ 19:     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
+ 20: 
+ 21:     public ImgTagExtractor(ILogger<FeedReader> logger)
+ 22:     {
+ 23:         _logger = logger;
+ 24:     }
+ 25:     public string? ExtractImgTag(XElement itemElement)
+ 26:     {
+ 27:         try
+ 28:         {
+ 29:             // 1. media:thumbnail (direct child or nested inside media:content)
+ 30:             var thumbnail =
+ 31:                 itemElement.Element(MediaNs + "thumbnail") ??
+ 32:                 itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
+ 33: 
+ 34:             if (thumbnail != null)
+ 35:             {
+ 36:                 return BuildImgTag(
+ 37:                     src: thumbnail.Attribute("url")?.Value,
+ 38:                     width: thumbnail.Attribute("width")?.Value,
+ 39:                     height: thumbnail.Attribute("height")?.Value,
+ 40:                     alt: thumbnail.Attribute("alt")?.Value ?? "Article thumbnail"
+ 41:                 );
+ 42:             }
+ 43: 
+ 44:             // 2. Prefered <img> inside <description>
+ 45:             var descriptionHtml = itemElement.Element("description")?.Value;
+ 46:             if (!string.IsNullOrWhiteSpace(descriptionHtml))
+ 47:             {
+ 48:                 var imgFromDesc = ExtractPreferedImgFromHtml(descriptionHtml);
+ 49:                 if (imgFromDesc != null)
+ 50:                     return imgFromDesc;
+ 51:             }
+ 52: 
+ 53:             // 3. Prefered <img> inside <content:encoded> 
+ 54:             var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
+ 55:             if (!string.IsNullOrWhiteSpace(encodedHtml))
+ 56:             {
+ 57:                 var imgFromEncoded = ExtractPreferedImgFromHtml(encodedHtml);
+ 58:                 if (imgFromEncoded != null)
+ 59:                     return imgFromEncoded;
+ 60:             }
+ 61: 
+ 62:             // 4. media:content (only reached if needed)
+ 63:             var mediaContent = itemElement.Element(MediaNs + "content");
+ 64:             if (mediaContent != null)
+ 65:             {
+ 66:                 return BuildImgTag(
+ 67:                     src: mediaContent.Attribute("url")?.Value,
+ 68:                     width: mediaContent.Attribute("width")?.Value,
+ 69:                     height: mediaContent.Attribute("height")?.Value,
+ 70:                     alt: mediaContent.Attribute("alt")?.Value ?? "Article image"
+ 71:                 );
+ 72:             }
+ 73: 
+ 74:             // 5. Eny <img> inside <description>
+ 75:             if (!string.IsNullOrWhiteSpace(descriptionHtml))
+ 76:             {
+ 77:                 var imgFromDesc = ExtractEnyImgFromHtml(descriptionHtml);
+ 78:                 if (imgFromDesc != null)
+ 79:                     return imgFromDesc;
+ 80:             }
+ 81: 
+ 82:             // 6. Eny <img> inside <content:encoded> 
+ 83:             if (!string.IsNullOrWhiteSpace(encodedHtml))
+ 84:             {
+ 85:                 var imgFromEncoded = ExtractEnyImgFromHtml(encodedHtml);
+ 86:                 if (imgFromEncoded != null)
+ 87:                     return imgFromEncoded;
+ 88:             }
+ 89: 
+ 90:             _logger.LogWarning("No thumbnail image tag extracted for current article.");
+ 91:             return null;
+ 92:         }
+ 93:         catch (Exception ex)
+ 94:         {
+ 95:             _logger.LogError(ex, "Error durring image tag extracting");
+ 96:             return null;
+ 97:         }
+ 98:         }
+ 99: 
+100: 
+101:     private static string? ExtractPreferedImgFromHtml(string? html)
+102:     {
+103:         if (string.IsNullOrWhiteSpace(html))
+104:             return null;
+105: 
+106:         var doc = new HtmlDocument();
+107:         doc.LoadHtml(html);
+108: 
+109:         // fallback: any img without slot
+110:         var img = doc.DocumentNode.SelectSingleNode("//img[not(@slot) and @srcset]");
+111: 
+112:         if (img == null)
+113:             return null;
+114: 
+115:         // ← IMPORTANT: Now we forward srcset and sizes
+116:         return BuildImgTag(
+117:             src: img.GetAttributeValue("src", ""),
+118:             width: img.GetAttributeValue("width", ""),
+119:             height: img.GetAttributeValue("height", ""),
+120:             alt: img.GetAttributeValue("alt", "Article image"),
+121:             srcset: img.GetAttributeValue("srcset", ""),
+122:             sizes: img.GetAttributeValue("sizes", "")
+123:         );
+124:     }
+125: 
+126:     private static string? ExtractEnyImgFromHtml(string? html)
+127:     {
+128:         if (string.IsNullOrWhiteSpace(html))
+129:             return null;
+130: 
+131:         var doc = new HtmlDocument();
+132:         doc.LoadHtml(html);
+133: 
+134:         var img = doc.DocumentNode.SelectSingleNode("//img");
+135: 
+136:         if (img == null)
+137:             return null;
+138: 
+139:         // ← IMPORTANT: Now we forward srcset and sizes
+140:         return BuildImgTag(
+141:             src: img.GetAttributeValue("src", ""),
+142:             width: img.GetAttributeValue("width", ""),
+143:             height: img.GetAttributeValue("height", ""),
+144:             alt: img.GetAttributeValue("alt", "Article image"),
+145:             srcset: img.GetAttributeValue("srcset", ""),
+146:             sizes: img.GetAttributeValue("sizes", "")
+147:         );
+148:     }
+149: 
+150:     // ===================================================================
+151:     // CleanSrcsetForPreview - FIXED: properly handles commas inside URLs
+152:     // ===================================================================
+153:     private static string? CleanSrcsetForPreview(string? srcset)
+154:     {
+155:         if (string.IsNullOrWhiteSpace(srcset))
+156:             return null;
+157: 
+158:         // Matches: URL + optional descriptor (e.g. "300w")
+159:         var matches = System.Text.RegularExpressions.Regex.Matches(
+160:             srcset,
+161:             @"(?<url>\S+)(?:\s+(?<w>\d+)w)?"
+162:         );
+163: 
+164:         var candidates = new List<(string url, int? width)>();
+165: 
+166:         foreach (System.Text.RegularExpressions.Match match in matches)
+167:         {
+168:             var url = match.Groups["url"].Value;
+169:             int? width = null;
+170: 
+171:             if (match.Groups["w"].Success &&
+172:                 int.TryParse(match.Groups["w"].Value, out var w))
+173:             {
+174:                 width = w;
+175:             }
+176: 
+177:             // Skip garbage matches
+178:             if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("http"))
+179:                 continue;
+180: 
+181:             candidates.Add((url, width));
+182:         }
+183: 
+184:         if (candidates.Count == 0)
+185:             return null;
+186: 
+187:         var maxWidth = GetPreferredMaxWidth(candidates);
+188: 
+189:         var filtered = candidates
+190:             .Where(c => !c.width.HasValue || c.width <= maxWidth)
+191:             .OrderBy(c => c.width ?? int.MaxValue)
+192:             .ToList();
+193: 
+194:         // Fallback: if nothing <= 1024, take smallest available
+195:         if (filtered.Count == 0)
+196:         {
+197:             var smallest = candidates
+198:                 .Where(c => c.width.HasValue)
+199:                 .OrderBy(c => c.width)
+200:                 .FirstOrDefault();
+201: 
+202:             if (smallest.url != null)
+203:                 filtered.Add(smallest);
+204:         }
+205: 
+206:         return filtered.Count > 0
+207:             ? string.Join(", ", filtered.Select(c =>
+208:                 c.width.HasValue ? $"{c.url} {c.width}w" : c.url))
+209:             : null;
+210:     }
+211: 
+212:     // ===================================================================
+213:     // BuildImgTag - Simplified and safe for previews
+214:     // ===================================================================
+215:     private static string? BuildImgTag(
+216:         string? src = "",
+217:         string? width = "",
+218:         string? height = "",
+219:         string? alt = "",
+220:         string? srcset = "",
+221:         string? sizes = "")
+222:     {
+223:         if (string.IsNullOrWhiteSpace(src))
+224:             return null;
+225: 
+226:         alt ??= "Article image";
+227: 
+228:         // Clean and limit srcset
+229:         srcset = CleanSrcsetForPreview(srcset);
+230: 
+231:         // Force safe sizes for card previews
+232:         sizes = "(max-width: 576px) 100vw, (max-width: 992px) 80vw, 805px";
+233: 
+234:         var sb = new StringBuilder();
+235: 
+236:         var bestSrc = PickBestSrcFromSrcset(srcset) ?? src;
+237: 
+238:         sb.Append($"<img src=\"{WebUtility.HtmlEncode(bestSrc)}\" ");
+239: 
+240:         if (!string.IsNullOrWhiteSpace(width))
+241:         {
+242:             sb.Append($"width=\"{width}\" ");
+243:         }
+244: 
+245:         if (!string.IsNullOrWhiteSpace(height))
+246:         {
+247:             sb.Append($"height=\"{height}\" ");
+248:         }
+249: 
+250:         sb.Append("class=\"img-fluid w-100 rounded mb-3\" ");
+251:         sb.Append($"alt=\"{WebUtility.HtmlEncode(alt)}\" ");
+252: 
+253:         if (!string.IsNullOrWhiteSpace(srcset))
+254:         {
+255:             sb.Append($"srcset=\"{WebUtility.HtmlEncode(srcset)}\" ");
+256:             sb.Append($"sizes=\"{WebUtility.HtmlEncode(sizes)}\" ");
+257:         }
+258: 
+259:         sb.Append("/>");
+260:         return sb.ToString();
+261:     }
+262: 
+263:     private static string? PickBestSrcFromSrcset(string? srcset, int targetWidth = 805)
+264:     {
+265:         if (string.IsNullOrWhiteSpace(srcset))
+266:             return null;
+267: 
+268:         var matches = System.Text.RegularExpressions.Regex.Matches(
+269:             srcset,
+270:             @"(?<url>\S+)(?:\s+(?<w>\d+)w)?"
+271:         );
+272: 
+273:         var candidates = new List<(string url, int width)>();
+274: 
+275:         foreach (System.Text.RegularExpressions.Match match in matches)
+276:         {
+277:             if (!match.Groups["w"].Success)
+278:                 continue;
+279: 
+280:             if (int.TryParse(match.Groups["w"].Value, out var w))
+281:             {
+282:                 var url = match.Groups["url"].Value;
+283:                 candidates.Add((url, w));
+284:             }
+285:         }
+286: 
+287:         if (candidates.Count == 0)
+288:             return null;
+289: 
+290:         return candidates
+291:             .OrderBy(c => Math.Abs(c.width - targetWidth))
+292:             .First()
+293:             .url;
+294:     }
+295: 
+296:     private static int GetPreferredMaxWidth(List<(string url, int? width)> candidates)
+297:     {
+298:         var widths = candidates
+299:             .Where(c => c.width.HasValue)
+300:             .Select(c => c.width!.Value)
+301:             .OrderBy(w => w)
+302:             .ToList();
+303: 
+304:         if (widths.Count == 0)
+305:             return 805;
+306: 
+307:         bool hasPng = candidates.Any(c =>
+308:             c.url.Contains(".png", StringComparison.OrdinalIgnoreCase));
+309: 
+310:         // Ideal preview range
+311:         int target = hasPng ? 600 : 805;
+312: 
+313:         // Pick closest available width ABOVE target (not below → avoid blur)
+314:         var best = widths.FirstOrDefault(w => w >= target);
+315: 
+316:         if (best != 0)
+317:             return best;
+318: 
+319:         // fallback → largest available (if all smaller)
+320:         return widths.Last();
+321:     }
+322: }
+323: 
+324: 
+325: /*
+326:     /// <summary>
+327:     /// Validates that URL is a proper image URL
+328:     /// </summary>
+329:     private bool IsValidImageUrl(string? url)
+330:     {
+331:         if (string.IsNullOrWhiteSpace(url))
+332:             return false;
+333: 
+334:         // Must start with http/https
+335:         if (!url.StartsWith("http://") && !url.StartsWith("https://"))
+336:             return false;
+337: 
+338:         // Must have image extension
+339:         var lowerUrl = url.ToLower();
+340:         var validExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+341:         return validExtensions.Any(ext => lowerUrl.Contains(ext));
+342:     }
+343: 
+344:     private static ImgTagDto? ExtractThumbnailImgData(XElement itemElement)
+345:     {
+346:         // 1. media:thumbnail (direct child or nested inside media:content)
+347:         var thumbnail =
+348:             itemElement.Element(MediaNs + "thumbnail") ??
+349:             itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
+350:         if (thumbnail != null)
+351:             return ExtractImgDataFromXelement(thumbnail);
+352: 
+353: 
+354:         // 2. First <img> inside <description>
+355:         var descriptionHtml = itemElement.Element("description")?.Value;
+356:         if (!string.IsNullOrWhiteSpace(descriptionHtml))
+357:         {
+358:             var imgFromDesc = ExtractImgDataFromHtml(descriptionHtml);
+359: 
+360:             if (imgFromDesc != null)
+361:                 return imgFromDesc;
+362:         }
+363: 
+364:         // 3. media:content (full image)
+365:         var mediaContent = itemElement.Element(MediaNs + "content");
+366:         if (mediaContent != null)
+367:             return ExtractImgDataFromXelement(mediaContent);
+368: 
+369:         // 4. First <img> inside <content:encoded> (only reached if needed)
+370:         var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
+371:         if (!string.IsNullOrWhiteSpace(encodedHtml))
+372:         {
+373:             var imgFromEncoded = ExtractImgDataFromHtml(encodedHtml);
+374: 
+375:             if (imgFromEncoded != null)
+376:                 return imgFromEncoded;
+377:         }
+378:         return null;
+379:     }
+380: 
+381:     private static ImgTagDto? ExtractImgDataFromHtml(string? html)
+382:     {
+383:         if (string.IsNullOrWhiteSpace(html))
+384:             return null;
+385: 
+386:         var doc = new HtmlDocument();
+387:         doc.LoadHtml(html);
+388: 
+389:         var img = doc.DocumentNode.SelectSingleNode("//img");
+390:         if (img == null)
+391:             return null;
+392: 
+393:         return new ImgTagDto
+394:         {
+395:             Url = img.GetAttributeValue("src", ""),
+396:             Width = (img.GetAttributeValue("width", 800)),
+397:             Height = img.GetAttributeValue("height", 600),
+398:             Alt = img.GetAttributeValue("alt", "Article image"),
+399:             SrcSet = img.GetAttributeValue("srcset", "")
+400:         };
+401:     }
+402: 
+403:     private static string? CreateNewThumbnailTag(ImgTagDto imgDto)
+404:     {
+405:         if(!string.IsNullOrWhiteSpace(imgDto.SrcSet) &&
+406:             (imgDto.Width > 1024 || imgDto.Height > 768))
+407:         {
+408:             LightenImg(imgDto);
+409:         }
+410:     }
+411: 
+412:     private static void LightenImg(ImgTagDto imgDto)
+413:     {
+414:         var srcset = ParseSrcset(imgDto.SrcSet!);
+415: 
+416:         if (srcset.Count > 0)
+417:         {
+418:             var LightImgWidth = FindThumbnailWidth(srcset, 800);
+419: 
+420:             if (LightImgWidth != null)
+421:             {
+422:                 var ratio = imgDto.Width / imgDto.Height;
+423:                 imgDto.Width = (int)LightImgWidth;
+424:                 imgDto.Height = imgDto.Width / ratio;
+425: 
+426:                 imgDto.Url = srcset[imgDto.Width];
+427:             }
+428:         }
+429:     }
+430: 
+431:     private static int? FindThumbnailWidth(Dictionary<int, string> srcset, int target)
+432:     {
+433:         if (srcset == null || srcset.Count == 0)
+434:             return null;
+435: 
+436:         int closest = srcset.Keys.First();
+437:         int minDiff = Math.Abs(closest - target);
+438: 
+439:         foreach (var key in srcset.Keys)
+440:         {
+441:             int diff = Math.Abs(key - target);
+442: 
+443:             if (diff < minDiff)
+444:             {
+445:                 minDiff = diff;
+446:                 closest = key;
+447:             }
+448:         }
+449:         return closest;
+450:     }
+451: 
+452:     private static Dictionary<int, string> ParseSrcset(string srcset)
+453:     {
+454:         var result = new Dictionary<int, string>();
+455: 
+456:         if (string.IsNullOrWhiteSpace(srcset))
+457:             return result;
+458: 
+459:         var candidates = srcset.Split(',');
+460: 
+461:         foreach (var candidate in candidates)
+462:         {
+463:             var parts = candidate
+464:                 .Trim()
+465:                 .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+466: 
+467:             if (parts.Length == 0)
+468:                 continue;
+469: 
+470:             var url = parts[0];
+471: 
+472:             if (parts.Length > 1)
+473:             {
+474:                 var descriptor = parts[1];
+475: 
+476:                 // Handle "480w" → 480
+477:                 if (descriptor.EndsWith("w") &&
+478:                     int.TryParse(descriptor[..^1], out int width))
+479:                 {
+480:                     result[width] = url;
+481:                 }
+482:                 // Optional: handle "2x" → 2
+483:                 else if (descriptor.EndsWith("x") &&
+484:                          int.TryParse(descriptor[..^1], out int density))
+485:                 {
+486:                     result[density] = url;
+487:                 }
+488:             }
+489:         }
+490: 
+491:         return result;
+492:     }*/
 
 ================
 File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
@@ -2611,7 +2469,7 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
  99:         {
 100:             var doc = await _feedReader.ReadFeedAsync(url, cancellationToken);
 101: 
-102:             var dtoItems = _feedProcessor.ProcessFeed(url, doc);
+102:             var dtoItems = _feedProcessor.ProcessFeed(url, doc, out int invalidCount);
 103: 
 104:             if (dtoItems.Count == 0)
 105:             {
@@ -2651,8 +2509,8 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
 139:             await context.SaveChangesAsync(cancellationToken);
 140: 
 141:             _logger.LogInformation(
-142:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items.",
-143:                 source.Name, newArticleCount, dtoItems.Count);
+142:                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {InvalidCount} rejected.",
+143:                 source.Name, newArticleCount, dtoItems.Count+invalidCount, invalidCount);
 144:         }
 145:         catch (OperationCanceledException)
 146:         {
@@ -2723,392 +2581,6 @@ File: src/PositiveNews.Infrastructure/Services/IngestionService.cs
 211:         context.ArticlesMetadata.Add(articleMeta);
 212:     }
 213: }
-
-================
-File: src/PositiveNews.Web/appsettings.json
-================
- 1: {
- 2:   "ConnectionStrings": {
- 3:     "DefaultConnection": "Server=DESKTOP-0867BVN;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;",
- 4:     "AlternativeConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PositiveNewsDb_Dev;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False;"
- 5:   },
- 6:   "Ingestion": {
- 7:     "IntervalMinutes": 60
- 8:   },
- 9:   "Serilog": {
-10:     "MinimumLevel": {
-11:       "Default": "Information",
-12:       "Override": {
-13:         "Microsoft": "Warning",
-14:         "Microsoft.EntityFrameworkCore": "Warning",
-15:         "System": "Warning"
-16:       }
-17:     }
-18:   },
-19:   "AllowedHosts": "*"
-20: }
-
-================
-File: src/PositiveNews.Web/Controllers/HomeController.cs
-================
- 1: using Microsoft.AspNetCore.Mvc;
- 2: using Microsoft.EntityFrameworkCore;
- 3: using PositiveNews.Infrastructure.Persistence;
- 4: using PositiveNews.Web.Models;
- 5: using System.Diagnostics;
- 6: 
- 7: namespace PositiveNews.Web.Controllers
- 8: {
- 9:     public class HomeController : Controller
-10:     {
-11:         private readonly AppDbContext _context;
-12:         private const int PageSize = 10;
-13: 
-14:         public HomeController(AppDbContext context)
-15:         {
-16:             _context = context;
-17:         }
-18: 
-19:         // GET: /Home/Index?page=1
-20:         public async Task<IActionResult> Index(int page = 1)
-21:         {
-22:             // 1. Base query for active articles
-23:             var query = _context.ArticlesMetadata
-24:                 .Include(a => a.Source)
-25:                 .Include(a => a.Content)
-26:                 .Where(a => a.IsActive)
-27:                 .OrderByDescending(a => a.PublishedAt)
-28:                 .AsNoTracking();
-29: 
-30:             // 2. Pagination logic
-31:             var totalArticles = await query.CountAsync();
-32:             var totalPages = (int)Math.Ceiling(totalArticles / (double)PageSize);
-33: 
-34:             var articles = await query
-35:                 .Skip((page - 1) * PageSize)
-36:                 .Take(PageSize)
-37:                 .Select(a => new ArticlePreviewViewModel
-38:                 {
-39:                     Id = a.Id,
-40:                     SourceName = a.Source.Name,
-41:                     SourceLogoUrl = a.Source.LogoUrl,
-42:                     Title = a.Title,
-43:                     Author = a.Author,
-44:                     PublishedAt = a.PublishedAt,
-45:                     ImageTag = a.ImageTag,
-46:                     SummaryShort = a.Content != null ? a.Content.SummaryShort : "No summary available."
-47:                 })
-48:                 .ToListAsync();
-49: 
-50:             var viewModel = new FeedIndexViewModel
-51:             {
-52:                 Articles = articles,
-53:                 CurrentPage = page,
-54:                 TotalPages = totalPages
-55:             };
-56: 
-57:             return View(viewModel);
-58:         }
-59: 
-60:         // GET: /Home/ReadArticle/5
-61:         public async Task<IActionResult> ReadArticle(long id)
-62:         {
-63:             var article = await _context.ArticlesMetadata
-64:                 .Include(a => a.Source)
-65:                 .Include(a => a.Content)
-66:                 .AsNoTracking()
-67:                 .FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
-68: 
-69:             if (article == null)
-70:             {
-71:                 return NotFound();
-72:             }
-73: 
-74:             var viewModel = new ArticleDetailViewModel
-75:             {
-76:                 Title = article.Title,
-77:                 SourceName = article.Source.Name,
-78:                 Author = article.Author,
-79:                 PublishedAt = article.PublishedAt,
-80:                 ContentClean = article.Content?.ContentClean
-81:             };
-82: 
-83:             return View(viewModel);
-84:         }
-85: 
-86:         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-87:         public IActionResult Error()
-88:         {
-89:             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-90:         }
-91:     }
-92: }
-
-================
-File: src/PositiveNews.Web/Models/ArticleDetailViewModel.cs
-================
- 1: namespace PositiveNews.Web.Models
- 2: {
- 3:     public class ArticleDetailViewModel
- 4:     {
- 5:         public string Title { get; set; } = string.Empty;
- 6:         public string SourceName { get; set; } = string.Empty;
- 7:         public string? Author { get; set; }
- 8:         public DateTime PublishedAt { get; set; }
- 9:         public string? ContentClean { get; set; }
-10:     }
-11: }
-
-================
-File: src/PositiveNews.Web/Models/ArticlePreviewViewModel.cs
-================
- 1: namespace PositiveNews.Web.Models
- 2: {
- 3:     public class ArticlePreviewViewModel
- 4:     {
- 5:         public long Id { get; set; }
- 6:         public string SourceName { get; set; } = string.Empty;
- 7:         public string? SourceLogoUrl { get; set; }
- 8:         public string Title { get; set; } = string.Empty;
- 9:         public string? Author { get; set; }
-10:         public DateTime PublishedAt { get; set; }
-11:         public string? ImageTag { get; set; }
-12:         public string? SummaryShort { get; set; }
-13:     }
-14: }
-
-================
-File: src/PositiveNews.Web/Models/ErrorViewModel.cs
-================
-1: namespace PositiveNews.Web.Models
-2: {
-3:     public class ErrorViewModel
-4:     {
-5:         public string? RequestId { get; set; }
-6: 
-7:         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-8:     }
-9: }
-
-================
-File: src/PositiveNews.Web/Models/FeedIndexViewModel.cs
-================
-1: namespace PositiveNews.Web.Models
-2: {
-3:     public class FeedIndexViewModel
-4:     {
-5:         public List<ArticlePreviewViewModel> Articles { get; set; } = new();
-6:         public int CurrentPage { get; set; }
-7:         public int TotalPages { get; set; }
-8:     }
-9: }
-
-================
-File: src/PositiveNews.Web/PositiveNews.Web.csproj
-================
- 1: <Project Sdk="Microsoft.NET.Sdk.Web">
- 2: 
- 3:   <PropertyGroup>
- 4:     <TargetFramework>net10.0</TargetFramework>
- 5:     <Nullable>enable</Nullable>
- 6:     <ImplicitUsings>enable</ImplicitUsings>
- 7:   </PropertyGroup>
- 8: 	
- 9:   <ItemGroup>
-10:     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-11:     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-12:     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-13:   </ItemGroup>
-14: 	
-15:   <ItemGroup>
-16:     <ProjectReference Include="..\PositiveNews.Application\PositiveNews.Application.csproj" />
-17:     <ProjectReference Include="..\PositiveNews.Infrastructure\PositiveNews.Infrastructure.csproj" />
-18:   </ItemGroup>
-19: 	
-20:   <ItemGroup>
-21:     <Folder Include="logs\" />
-22:   </ItemGroup>
-23: 
-24: </Project>
-
-================
-File: src/PositiveNews.Web/Program.cs
-================
- 1: using Serilog;
- 2: using PositiveNews.Application;
- 3: using PositiveNews.Infrastructure;
- 4: using PositiveNews.Infrastructure.Persistence.Seeding;
- 5: 
- 6: namespace PositiveNews.Web;
- 7: 
- 8: public class Program
- 9: {
-10:     public static async Task Main(string[] args)
-11:     {
-12:         // 1. Bootstrap Serilog for startup logging
-13:         Log.Logger = new LoggerConfiguration()
-14:             .WriteTo.Console()
-15:             .WriteTo.File(
-16:                 path: "logs/positivenews-.log",
-17:                 rollingInterval: RollingInterval.Day,
-18:                 retainedFileCountLimit: 30,
-19:                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-20:             .CreateBootstrapLogger();
-21: 
-22:         try
-23:         {
-24:             Log.Information("Starting PositiveNews Web MVC...");
-25: 
-26:             var builder = WebApplication.CreateBuilder(args);
-27: 
-28:             // 2. Configure Serilog for the Host
-29:             builder.Host.UseSerilog((context, loggerConfig) =>
-30:             {
-31:                 loggerConfig
-32:                     .ReadFrom.Configuration(context.Configuration)
-33:                     .Enrich.FromLogContext()
-34:                     .WriteTo.Console()
-35:                     .WriteTo.File(
-36:                         path: "logs/positivenews-.log",
-37:                         rollingInterval: RollingInterval.Day,
-38:                         retainedFileCountLimit: 30,
-39:                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
-40:             });
-41: 
-42:             // 3. Register Clean Architecture Layers & MVC
-43:             builder.Services.AddApplicationServices();
-44:             builder.Services.AddInfrastructureServices(builder.Configuration);
-45:             builder.Services.AddControllersWithViews();
-46: 
-47:             var app = builder.Build();
-48: 
-49:             // 4. Seed Database (Applies migrations and populates sources/topics)
-50:             await DataSeeder.SeedAsync(app.Services);
-51: 
-52:             // 5. Configure the HTTP request pipeline
-53:             if (!app.Environment.IsDevelopment())
-54:             {
-55:                 app.UseExceptionHandler("/Home/Error");
-56:                 app.UseHsts();
-57:             }
-58: 
-59:             app.UseSerilogRequestLogging();
-60:             app.UseHttpsRedirection();
-61:             app.UseStaticFiles(); // Required for MVC wwwroot assets
-62:             app.UseRouting();
-63:             app.UseAuthorization();
-64: 
-65:             app.MapControllerRoute(
-66:                 name: "default",
-67:                 pattern: "{controller=Home}/{action=Index}/{id?}");
-68: 
-69:             // 6. Run the application
-70:             await app.RunAsync();
-71:         }
-72:         catch (Exception ex)
-73:         {
-74:             Log.Fatal(ex, "Application terminated unexpectedly.");
-75:         }
-76:         finally
-77:         {
-78:             await Log.CloseAndFlushAsync();
-79:         }
-80:     }
-81: }
-
-================
-File: src/PositiveNews.Web/Properties/launchSettings.json
-================
- 1: {
- 2:   "$schema": "https://json.schemastore.org/launchsettings.json",
- 3:   "profiles": {
- 4:     "http": {
- 5:       "commandName": "Project",
- 6:       "dotnetRunMessages": true,
- 7:       "launchBrowser": true,
- 8:       "applicationUrl": "http://localhost:5239",
- 9:       "environmentVariables": {
-10:         "ASPNETCORE_ENVIRONMENT": "Development"
-11:       }
-12:     },
-13:     "https": {
-14:       "commandName": "Project",
-15:       "dotnetRunMessages": true,
-16:       "launchBrowser": true,
-17:       "applicationUrl": "https://localhost:7196;http://localhost:5239",
-18:       "environmentVariables": {
-19:         "ASPNETCORE_ENVIRONMENT": "Development"
-20:       }
-21:     }
-22:   }
-23: }
-
-================
-File: src/PositiveNews.Web/TagHelpers/ArticleImageTagHelper.cs
-================
- 1: using Microsoft.AspNetCore.Razor.TagHelpers;
- 2: using HtmlAgilityPack;
- 3: 
- 4: [HtmlTargetElement("article-img")]
- 5: public class ArticleImageTagHelper : TagHelper
- 6: {
- 7:     public string? ImageTag { get; set; }
- 8: 
- 9:     public int Index { get; set; }
-10: 
-11:     public override void Process(TagHelperContext context, TagHelperOutput output)
-12:     {
-13:         if (string.IsNullOrWhiteSpace(ImageTag))
-14:         {
-15:             output.SuppressOutput();
-16:             return;
-17:         }
-18: 
-19:         var doc = new HtmlDocument();
-20:         doc.LoadHtml(ImageTag);
-21: 
-22:         var img = doc.DocumentNode.SelectSingleNode("//img");
-23:         if (img == null)
-24:         {
-25:             output.SuppressOutput();
-26:             return;
-27:         }
-28: 
-29:         // 🚀 Dynamic strategies
-30:         var loading = Index < 2 ? "eager" : "lazy";
-31: 
-32:         img.SetAttributeValue("loading", loading);
-33: 
-34:         output.TagName = null; // remove <article-img>
-35:         output.Content.SetHtmlContent(img.OuterHtml);
-36:     }
-37: }
-
-================
-File: src/PositiveNews.Web/wwwroot/lib/jquery-validation/LICENSE.md
-================
- 1: The MIT License (MIT)
- 2: =====================
- 3: 
- 4: Copyright Jörn Zaefferer
- 5: 
- 6: Permission is hereby granted, free of charge, to any person obtaining a copy
- 7: of this software and associated documentation files (the "Software"), to deal
- 8: in the Software without restriction, including without limitation the rights
- 9: to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-10: copies of the Software, and to permit persons to whom the Software is
-11: furnished to do so, subject to the following conditions:
-12: 
-13: The above copyright notice and this permission notice shall be included in
-14: all copies or substantial portions of the Software.
-15: 
-16: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-17: IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-18: FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-19: AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-20: LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-21: OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-22: THE SOFTWARE.
 
 ================
 File: src/PositiveNews.WebApi/appsettings.json

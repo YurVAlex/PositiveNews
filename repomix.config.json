@@ -9,6 +9,7 @@
   },
   "include": [
     "**/*.cs",
+     "**/*.cshtml",
     "**/*.csproj",
     "**/*.sln",
     "**/*.json",
@@ -19,6 +20,10 @@
   ],
   "ignore": {
     "customPatterns": [
+      "**/PositiveNews.Infrastructure/Persistence/**",
+      "**/PositiveNews.Application/**",
+      "**/PositiveNews.Domain/**",
+      "**/PositiveNews.Web/**",
       "**/bin/**",
       "**/obj/**",
       "**/.vs/**",
