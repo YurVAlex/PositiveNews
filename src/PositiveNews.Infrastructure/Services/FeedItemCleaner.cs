@@ -28,7 +28,10 @@ public class FeedItemCleaner : IFeedItemCleaner
         "hds-audio-player-",
         "secondary-navigation",
         "comparison-slider-parent",
-        "two-up-view"
+        "two-up-view",
+        "wp-biographia-pic",
+        "content-lists-inner",
+        "topic-cards"
     };
 
     // Patterns that trigger "stop processing all following content"
@@ -39,11 +42,6 @@ public class FeedItemCleaner : IFeedItemCleaner
         "To learn more about",
         "Discover More Topics From",
         "For more information on",
-        "send a message to:",
-        "Want to be part of the Optimism Movement?",
-        "Subscribe to",
-        "follow us on",
-        "Donate link:",
         "Click here to leave a comment on the site",
         "Members can also look for the following:",
         "What are you planning to play this weekend?",
@@ -54,7 +52,14 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static readonly string[] RemoveNodePatterns =
     {
     "Learn more about this image",
-    "Listen to this audio"
+    "Listen to this audio",
+    "follow us on",
+    "Donate link:",
+    "The Optimist Daily is a project of the World Business Academy",
+    "Subscribe to our",
+    
+    "Want to be part of the Optimism Movement?",
+    "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:"
     };
 
     private static readonly Regex YoutubeRegex = new(
@@ -265,14 +270,14 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void ProcessParagraph(HtmlNode node, StringBuilder builder)
     {
-        // First check for YouTube links inside paragraph
-        var links = node.SelectNodes(".//a[@href]");
-        if (links != null)
+        // Check for YouTube iframes FIRST and extract them
+        var iframes = node.SelectNodes(".//iframe");
+        if (iframes != null)
         {
-            foreach (var link in links)
+            foreach (var iframe in iframes)
             {
-                var href = link.GetAttributeValue("href", "");
-                var youtubeMatch = YoutubeRegex.Match(href);
+                var src = iframe.GetAttributeValue("src", "");
+                var youtubeMatch = YoutubeRegex.Match(src);
                 if (youtubeMatch.Success)
                 {
                     var videoId = youtubeMatch.Groups[1].Value;
@@ -283,8 +288,13 @@ public class FeedItemCleaner : IFeedItemCleaner
 
         var text = HtmlEntity.DeEntitize(node.InnerText).Trim();
 
-        var hasMedia = node.SelectNodes(".//img | .//video") != null;
+        // Include iframe in media check
+        var hasMedia = node.SelectNodes(".//img | .//video | .//iframe") != null;
         var hasText = !string.IsNullOrWhiteSpace(text);
+
+        // If paragraph ONLY contained iframe (already processed above), skip outputting empty <p>
+        if (!hasText && iframes != null && node.SelectNodes(".//img | .//video") == null)
+            return;
 
         if (!hasText && !hasMedia)
             return;
@@ -309,11 +319,15 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void ProcessImage(HtmlNode node, StringBuilder builder)
     {
+        var classAttr = node.GetAttributeValue("class", "");
+
         // Skip thumbnail images
         if (HasExactClass(node, "attachment-thumbnail size-thumbnail"))
             return;
 
         var cleanedNode = CleanAttributes(node);
+
+        // Standard image styling
         cleanedNode.SetAttributeValue("class", "img-fluid w-100 rounded mb-3");
         builder.AppendLine(cleanedNode.OuterHtml);
     }
