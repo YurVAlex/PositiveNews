@@ -66,8 +66,21 @@ public class FeedItemCleaner : IFeedItemCleaner
     @"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})",
     RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex StrongTildeRegex = new(
+    @"<strong>\s*(?<left>[^~<]+?)\s*~\s*[^<]*\s*</strong>",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex AppearedFirstOnRegex = new(
+    @"<a[^>]*>.*?<\/a>\s*appeared first on\s*<a[^>]*>.*?<\/a>\.?",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex OptimistEditorialRegex = new(
+    @"BY THE OPTIMIST DAILY(?:’S|'S)? EDITORIAL TEAM",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex ThePostRegex = new(
+    @"The post\s*<a[^>]*>.*?<\/a>\s*first appeared on\s*<a[^>]*>.*?<\/a>\.?",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline);
 
     public void Clean(RssFeedItemDto dto)
     {
@@ -76,19 +89,10 @@ public class FeedItemCleaner : IFeedItemCleaner
         dto.Title = CleanTitle(dto.Title);
     }
 
-
-
-
-
-
-
-
-
-
-
-
     private static string CleanContent(string rawContent)
     {
+        rawContent = RemoveTildeAuthor(rawContent);
+
         var doc = LoadDocument(rawContent);
         var builder = new StringBuilder();
         var stopProcessing = false;
@@ -520,23 +524,83 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static string CleanDescription(string description)
     {
-        if (!description.Contains('<'))
-            return WebUtility.HtmlDecode(description).Trim();
+        if (string.IsNullOrWhiteSpace(description))
+            return string.Empty;
 
-        var doc = LoadDocument(description);
+        // Decode HTML entities first
+        var html = WebUtility.HtmlDecode(description);
+
+        html = ThePostRegex.Replace(html, "");
+
+        // -------------------------------------------------------
+        // 1. Remove "~something" inside <strong>
+        // -------------------------------------------------------
+        html = StrongTildeRegex.Replace(html, "<strong>${left}</strong>");
+
+        // -------------------------------------------------------
+        // 2. Remove unwanted editorial paragraph
+        // -------------------------------------------------------
+        html = OptimistEditorialRegex.Replace(html, "");
+
+        // -------------------------------------------------------
+        // 3. Remove "appeared first on Colossal"
+        // -------------------------------------------------------
+        html = AppearedFirstOnRegex.Replace(html, "");
+
+        // -------------------------------------------------------
+        // 4. Parse HTML safely
+        // -------------------------------------------------------
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
 
         var paragraphs = doc.DocumentNode.SelectNodes("//p");
 
         if (paragraphs == null || paragraphs.Count == 0)
-            return WebUtility.HtmlDecode(doc.DocumentNode.InnerText).Trim();
+            return TrimAfterLastDot(doc.DocumentNode.InnerText);
 
         var texts = paragraphs
-            .Select(p => WebUtility.HtmlDecode(p.InnerText).Trim())
-            .Where(t => !string.IsNullOrWhiteSpace(t));
+    .Select(p => HtmlEntity.DeEntitize(p.InnerText).Trim())
+    .Where(t => !string.IsNullOrWhiteSpace(t))
+    .Where(t =>
+        !Regex.IsMatch(t, @"appeared first on", RegexOptions.IgnoreCase) &&
+        !Regex.IsMatch(t, @"BY THE OPTIMIST DAILY", RegexOptions.IgnoreCase) &&
+        !Regex.IsMatch(t, @"^The post ", RegexOptions.IgnoreCase)
+    );
 
         var result = string.Join(" ", texts);
 
-        return result.Length > 1999 ? texts.First() : result;
+        // Final safety cleanup (text-level)
+        result = Regex.Replace(
+            result,
+            @"The post .*? first appeared on .*?\.",
+            "",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+        result = Regex.Replace(
+            result,
+            @"BY THE OPTIMIST DAILY.*?(?=\.)",
+            "",
+            RegexOptions.IgnoreCase);
+
+        result = result.Length > 1999 ? result[..1999] : result;
+
+        // -------------------------------------------------------
+        // 5. Trim everything after last dot
+        // -------------------------------------------------------
+        return TrimAfterLastDot(result);
+    }
+
+    private static string TrimAfterLastDot(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        var lastDotIndex = text.LastIndexOf('.');
+
+        if (lastDotIndex > 0)
+            return text.Substring(0, lastDotIndex + 1).Trim();
+
+        return text.Trim();
     }
 
     private static string CleanTitle(string title)
@@ -544,4 +608,16 @@ public class FeedItemCleaner : IFeedItemCleaner
         return title.Length > 500 ? title[..500] : title;
     }
 
+    private static string RemoveTildeAuthor(string html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+            return html;
+
+        return Regex.Replace(
+            html,
+            @"<strong>\s*(?<left>[^~<]+?)\s*~\s*[^<]*\s*</strong>",
+            "<strong>${left}</strong>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled
+        );
+    }
 }
