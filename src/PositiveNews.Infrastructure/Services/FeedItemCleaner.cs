@@ -31,7 +31,8 @@ public class FeedItemCleaner : IFeedItemCleaner
         "two-up-view",
         "wp-biographia-pic",
         "content-lists-inner",
-        "topic-cards"
+        "topic-cards",
+        "twitter-tweet"
     };
 
     // Patterns that trigger "stop processing all following content"
@@ -57,7 +58,6 @@ public class FeedItemCleaner : IFeedItemCleaner
     "Donate link:",
     "The Optimist Daily is a project of the World Business Academy",
     "Subscribe to our",
-    
     "Want to be part of the Optimism Movement?",
     "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:"
     };
@@ -322,7 +322,12 @@ public class FeedItemCleaner : IFeedItemCleaner
         var classAttr = node.GetAttributeValue("class", "");
 
         // Skip thumbnail images
-        if (HasExactClass(node, "attachment-thumbnail size-thumbnail"))
+        if (HasExactClass(node, "attachment-thumbnail size-thumbnail") ||
+            HasExactClass(node, "wp-biographia-avatar avatar-100 photo"))
+            return;
+
+        if ((classAttr == "attachment-thumbnail size-thumbnail") || 
+            (classAttr == "wp-biographia-avatar avatar-100 photo"))
             return;
 
         var cleanedNode = CleanAttributes(node);
@@ -388,12 +393,28 @@ public class FeedItemCleaner : IFeedItemCleaner
     {
         if (node.NodeType == HtmlNodeType.Element)
         {
-            // Remove thumbnail images from cloned content
-            var thumbnails = node.SelectNodes(".//img[contains(@class, 'attachment-thumbnail size-thumbnail')]");
-            if (thumbnails != null)
+            // Remove thumbnail images
+            var avatars = node.SelectNodes(".//img[contains(@class, 'wp-biographia-avatar')]");
+            if (avatars != null)
             {
-                foreach (var thumb in thumbnails.ToList())
-                    thumb.Remove();
+                foreach (var avatar in avatars.ToList())
+                    avatar.Remove();
+            }
+
+            // Remove script tags anywhere in the subtree
+            var scripts = node.SelectNodes(".//script");
+            if (scripts != null)
+            {
+                foreach (var script in scripts.ToList())
+                    script.Remove();
+            }
+
+            // Remove other non-allowed tags from cloned content
+            var disallowedTags = node.SelectNodes(".//script | .//style | .//noscript");
+            if (disallowedTags != null)
+            {
+                foreach (var tag in disallowedTags.ToList())
+                    tag.Remove();
             }
 
             // Remove unwanted attributes
@@ -460,18 +481,20 @@ public class FeedItemCleaner : IFeedItemCleaner
 
         var tagName = node.Name.ToLowerInvariant();
 
-        // Check for divs that should be removed by class
-        if (tagName == "div")
+       
+        foreach (var pattern in RemoveDivClassPatterns)
         {
-            foreach (var pattern in RemoveDivClassPatterns)
-            {
-                if (HasClassContaining(node, pattern))
-                    return true;
-            }
+            if (HasClassContaining(node, pattern))
+                return true;
         }
+        
 
         // Check for thumbnail images
         if (tagName == "img" && HasExactClass(node, "attachment-thumbnail size-thumbnail"))
+            return true;
+
+        // ADD: Always remove script tags
+        if (tagName == "script")
             return true;
 
         return false;

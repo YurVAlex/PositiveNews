@@ -18,7 +18,8 @@ public class FeedItemValidator : IFeedItemValidator
 
         if (doc.DocumentNode == null ||
             doc.DocumentNode.InnerHtml == null ||
-            string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText))
+            string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText) ||
+            (doc.DocumentNode.InnerText.Length < 25))
         {
             return false;
         }

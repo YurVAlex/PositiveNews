@@ -135,16 +135,6 @@ public static class DataSeeder
                 DefaultLanguageCode = "en",
                 Description = "Psychology, self-development and happiness",
                 LogoUrl = "/Logos/Buddha_logo.png"
-            },
-            new()
-            {
-                Name = "Raptitude",
-                BaseUrl = "https://raptitude.com",
-                FeedUrl = "https://www.raptitude.com/feed/",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Smart about the main thing",
-                LogoUrl = "/Logos/Raptitude_logo.png"
             }
         };
 
