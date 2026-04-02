@@ -32,7 +32,8 @@ public class FeedItemCleaner : IFeedItemCleaner
         "wp-biographia-pic",
         "content-lists-inner",
         "topic-cards",
-        "twitter-tweet"
+        "twitter-tweet",
+        "attachment-medium size-medium wp-post-image" //first image for Design You Trust
     };
 
     // Patterns that trigger "stop processing all following content"
@@ -46,7 +47,8 @@ public class FeedItemCleaner : IFeedItemCleaner
         "Click here to leave a comment on the site",
         "Members can also look for the following:",
         "What are you planning to play this weekend?",
-        "in the comments below."
+        "in the comments below.",
+        "-end-"
     };
 
     // Patterns that trigger removal of a single node
@@ -58,6 +60,8 @@ public class FeedItemCleaner : IFeedItemCleaner
     "Donate link:",
     "The Optimist Daily is a project of the World Business Academy",
     "Subscribe to our",
+    ", visit:",
+    "https://",
     "Want to be part of the Optimism Movement?",
     "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:"
     };
