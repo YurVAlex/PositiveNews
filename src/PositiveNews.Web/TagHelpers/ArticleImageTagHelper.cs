@@ -28,8 +28,10 @@ public class ArticleImageTagHelper : TagHelper
 
         // Only add loading strategy — do not touch sizes/srcset/style
         var loading = Index < 2 ? "eager" : "lazy";
+        var decoding = Index < 2 ? "sync" : "async";
+
         img.SetAttributeValue("loading", loading);
-        img.SetAttributeValue("decoding", "async");
+        img.SetAttributeValue("decoding", decoding);
 
         output.TagName = null; // remove <article-img>
         output.Content.SetHtmlContent(img.OuterHtml);

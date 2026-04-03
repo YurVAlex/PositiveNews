@@ -16,13 +16,12 @@ public class ImgTagExtractor : IImgTagExtractor
     private readonly ILogger<FeedReader> _logger;
 
     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
-    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
 
     public ImgTagExtractor(ILogger<FeedReader> logger)
     {
         _logger = logger;
     }
-    public string? ExtractImgTag(XElement itemElement)
+    public string? ExtractImgTag(XElement itemElement, string contentClean)
     {
         try
         {
@@ -50,14 +49,10 @@ public class ImgTagExtractor : IImgTagExtractor
                     return imgFromDesc;
             }
 
-            // 3. Prefered <img> inside <content:encoded> 
-            var encodedHtml = itemElement.Element(ContentNs + "encoded")?.Value;
-            if (!string.IsNullOrWhiteSpace(encodedHtml))
-            {
-                var imgFromEncoded = ExtractPreferedImgFromHtml(encodedHtml);
+            // 3. Prefered <img> inside <contentClean> 
+                var imgFromEncoded = ExtractPreferedImgFromHtml(contentClean);
                 if (imgFromEncoded != null)
                     return imgFromEncoded;
-            }
 
             // 4. media:content (only reached if needed)
             var mediaContent = itemElement.Element(MediaNs + "content");
@@ -79,13 +74,10 @@ public class ImgTagExtractor : IImgTagExtractor
                     return imgFromDesc;
             }
 
-            // 6. Eny <img> inside <content:encoded> 
-            if (!string.IsNullOrWhiteSpace(encodedHtml))
-            {
-                var imgFromEncoded = ExtractEnyImgFromHtml(encodedHtml);
+            // 6. Eny <img> inside <contentClean> 
+                imgFromEncoded = ExtractEnyImgFromHtml(contentClean);
                 if (imgFromEncoded != null)
                     return imgFromEncoded;
-            }
 
             _logger.LogWarning("No thumbnail image tag extracted for current article.");
             return null;
@@ -98,7 +90,7 @@ public class ImgTagExtractor : IImgTagExtractor
         }
 
 
-    private static string? ExtractPreferedImgFromHtml(string? html)
+    private static string? ExtractImgFromHtml(string? html, string xpathQuery)
     {
         if (string.IsNullOrWhiteSpace(html))
             return null;
@@ -106,13 +98,24 @@ public class ImgTagExtractor : IImgTagExtractor
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
-        // fallback: any img without slot
-        var img = doc.DocumentNode.SelectSingleNode("//img[not(@slot) and @srcset]");
+        var images = doc.DocumentNode.SelectNodes(xpathQuery);
+
+        var img = images
+            ?.OrderBy(node =>
+            {
+                var heightAttr = node.GetAttributeValue("height", "");
+                var widthAttr = node.GetAttributeValue("width", "");
+
+                var height = int.TryParse(heightAttr, out var h) ? h : int.MaxValue;
+                var width = int.TryParse(widthAttr, out var w) ? w : int.MaxValue;
+
+                return height == int.MaxValue || width == int.MaxValue ? int.MaxValue : height / (double)width;
+            })
+            .FirstOrDefault();
 
         if (img == null)
             return null;
 
-        // ← IMPORTANT: Now we forward srcset and sizes
         return BuildImgTag(
             src: img.GetAttributeValue("src", ""),
             width: img.GetAttributeValue("width", ""),
@@ -122,30 +125,12 @@ public class ImgTagExtractor : IImgTagExtractor
             sizes: img.GetAttributeValue("sizes", "")
         );
     }
+
+    private static string? ExtractPreferedImgFromHtml(string? html)
+    => ExtractImgFromHtml(html, "//img[not(@slot) and @srcset]");
 
     private static string? ExtractEnyImgFromHtml(string? html)
-    {
-        if (string.IsNullOrWhiteSpace(html))
-            return null;
-
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
-
-        var img = doc.DocumentNode.SelectSingleNode("//img");
-
-        if (img == null)
-            return null;
-
-        // ← IMPORTANT: Now we forward srcset and sizes
-        return BuildImgTag(
-            src: img.GetAttributeValue("src", ""),
-            width: img.GetAttributeValue("width", ""),
-            height: img.GetAttributeValue("height", ""),
-            alt: img.GetAttributeValue("alt", "Article image"),
-            srcset: img.GetAttributeValue("srcset", ""),
-            sizes: img.GetAttributeValue("sizes", "")
-        );
-    }
+        => ExtractImgFromHtml(html, "//img");
 
     // ===================================================================
     // CleanSrcsetForPreview - FIXED: properly handles commas inside URLs

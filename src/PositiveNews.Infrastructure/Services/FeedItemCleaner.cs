@@ -41,7 +41,6 @@ public class FeedItemCleaner : IFeedItemCleaner
     {
         "About the Author",
         "For more information about",
-        "To learn more about",
         "Discover More Topics From",
         "For more information on",
         "Click here to leave a comment on the site",
@@ -55,6 +54,7 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static readonly string[] RemoveNodePatterns =
     {
     "Learn more about this image",
+     "To learn more about",
     "Listen to this audio",
     "follow us on",
     "Donate link:",

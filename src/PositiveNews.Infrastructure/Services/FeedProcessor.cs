@@ -11,15 +11,18 @@ public class FeedProcessor : IFeedProcessor
     private readonly IFeedItemValidator _validator;
     private readonly IFeedItemParser _parser;
     private readonly IFeedItemCleaner _cleaner;
+    private readonly IImgTagExtractor _imgTagExtractor;
 
     public FeedProcessor(IFeedItemValidator validator,
                          IFeedItemParser parser,
                          IFeedItemCleaner cleaner,
-                         ILogger<FeedProcessor> loger)
+                         ILogger<FeedProcessor> loger, 
+                         IImgTagExtractor imgTagExtractor)
     {
         _validator = validator;
         _parser = parser;
         _cleaner = cleaner;
+        _imgTagExtractor = imgTagExtractor;
         _logger = loger;
     }
 
@@ -55,6 +58,8 @@ public class FeedProcessor : IFeedProcessor
                     var dtoItem = _parser.Parse(feedItem);
 
                     _cleaner.Clean(dtoItem);
+
+                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentClean);
 
                     dtoItems.Add(dtoItem);
                 }

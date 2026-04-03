@@ -7,7 +7,6 @@ using System.Xml.Linq;
 public class FeedItemParser : IFeedItemParser
 {
     private readonly ILogger<FeedReader> _logger;
-    private readonly IImgTagExtractor _imgTagExtractor;
     
     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
@@ -15,7 +14,6 @@ public class FeedItemParser : IFeedItemParser
     public FeedItemParser(ILogger<FeedReader> logger, IImgTagExtractor imgTagextractor)
     {
         _logger = logger;
-        _imgTagExtractor = imgTagextractor;
     }
     public RssFeedItemDto Parse(XElement itemElement)
     {
@@ -27,7 +25,6 @@ public class FeedItemParser : IFeedItemParser
             ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
             Author = itemElement.Element(DcNs + "creator")?.Value,    
             PublishedDate = ParseDate(itemElement),
-            ImageTag = _imgTagExtractor.ExtractImgTag(itemElement),
             Topics = ExtractCategories(itemElement),
             ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
         };
