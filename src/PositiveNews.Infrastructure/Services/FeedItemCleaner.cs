@@ -29,7 +29,6 @@ public class FeedItemCleaner : IFeedItemCleaner
         "secondary-navigation",
         "comparison-slider-parent",
         "two-up-view",
-        "wp-biographia-pic",
         "content-lists-inner",
         "topic-cards",
         "twitter-tweet",
@@ -60,8 +59,6 @@ public class FeedItemCleaner : IFeedItemCleaner
     "Donate link:",
     "The Optimist Daily is a project of the World Business Academy",
     "Subscribe to our",
-    ", visit:",
-    "https://",
     "Want to be part of the Optimism Movement?",
     "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:"
     };
@@ -224,12 +221,12 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static string CreateYouTubeEmbed(string videoId)
     {
         return $@"<div class=""ratio ratio-16x9 mb-3"">
-  <iframe src=""https://www.youtube.com/embed/{videoId}"" 
-          title=""YouTube video"" 
-          allow=""accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"" 
-          allowfullscreen>
-  </iframe>
-</div>";
+                <iframe src=""https://www.youtube.com/embed/{videoId}"" 
+                title=""YouTube video"" 
+                allow=""accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"" 
+                allowfullscreen>
+                </iframe>
+                </div>";
     }
 
     private static void ProcessList(HtmlNode node, StringBuilder builder)
@@ -310,6 +307,23 @@ public class FeedItemCleaner : IFeedItemCleaner
         if (hasText && ShouldRemoveParagraph(text))
             return;
 
+        var images = node.SelectNodes(".//img");
+        if (images != null)
+        {
+            foreach (var img in images.ToList())
+            {
+                var imgBuilder = new StringBuilder();
+                ProcessImage(img, imgBuilder);
+
+                // Replace original <img> with processed one
+                var newImgDoc = new HtmlDocument();
+                newImgDoc.LoadHtml(imgBuilder.ToString());
+                var newImg = newImgDoc.DocumentNode.FirstChild;
+                img.ParentNode.ReplaceChild(newImg, img);
+            }
+        }
+
+        // THEN clean paragraph
         var cleanedNode = CleanAttributes(node);
         builder.AppendLine(cleanedNode.OuterHtml);
     }
@@ -329,20 +343,38 @@ public class FeedItemCleaner : IFeedItemCleaner
     {
         var classAttr = node.GetAttributeValue("class", "");
 
-        // Skip thumbnail images
-        if (HasExactClass(node, "attachment-thumbnail size-thumbnail") ||
-            HasExactClass(node, "wp-biographia-avatar avatar-100 photo"))
-            return;
+        if (classAttr.Contains("attachment-thumbnail size-thumbnail", StringComparison.OrdinalIgnoreCase)||
+            classAttr.Contains("wp-biographia-avatar", StringComparison.OrdinalIgnoreCase) ||
+            classAttr.Contains("wp-smiley", StringComparison.OrdinalIgnoreCase) ||  // ← Add this for emoji
+            classAttr.Contains("emoji", StringComparison.OrdinalIgnoreCase))
+        {
+            // Remove unwanted attributes
+            var toRemove = node.Attributes
+                .Where(attr => AttributesToRemove.Contains(attr.Name))
+                .Select(attr => attr.Name)
+                .ToList();
 
-        if ((classAttr == "attachment-thumbnail size-thumbnail") || 
-            (classAttr == "wp-biographia-avatar avatar-100 photo"))
-            return;
+            foreach (var attrName in toRemove)
+                node.Attributes.Remove(attrName);
 
-        var cleanedNode = CleanAttributes(node);
+            node.SetAttributeValue("class", "img-fluid w-5 rounded mb-3");
+            builder.AppendLine(node.OuterHtml);
+        }
+        else
+        {
+            // Remove unwanted attributes
+            var toRemove = node.Attributes
+                .Where(attr => AttributesToRemove.Contains(attr.Name))
+                .Select(attr => attr.Name)
+                .ToList();
 
-        // Standard image styling
-        cleanedNode.SetAttributeValue("class", "img-fluid w-100 rounded mb-3");
-        builder.AppendLine(cleanedNode.OuterHtml);
+            foreach (var attrName in toRemove)
+                node.Attributes.Remove(attrName);
+
+            // Standard image styling
+            node.SetAttributeValue("class", "img-fluid w-100 rounded mb-3");
+            builder.AppendLine(node.OuterHtml);
+        }
     }
 
     private static void ProcessVideo(HtmlNode node, StringBuilder builder)
@@ -399,15 +431,11 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void CleanAttributesRecursively(HtmlNode node)
     {
+        if (node == null || node.Name.Equals("img", StringComparison.OrdinalIgnoreCase))
+            return;
+
         if (node.NodeType == HtmlNodeType.Element)
         {
-            // Remove thumbnail images
-            var avatars = node.SelectNodes(".//img[contains(@class, 'wp-biographia-avatar')]");
-            if (avatars != null)
-            {
-                foreach (var avatar in avatars.ToList())
-                    avatar.Remove();
-            }
 
             // Remove script tags anywhere in the subtree
             var scripts = node.SelectNodes(".//script");
@@ -433,12 +461,6 @@ public class FeedItemCleaner : IFeedItemCleaner
 
             foreach (var attrName in toRemove)
                 node.Attributes.Remove(attrName);
-
-            // Set standard class for images
-            if (node.Name.Equals("img", StringComparison.OrdinalIgnoreCase))
-            {
-                node.SetAttributeValue("class", "img-fluid w-100 rounded mb-3");
-            }
         }
 
         foreach (var child in node.ChildNodes)
@@ -624,4 +646,6 @@ public class FeedItemCleaner : IFeedItemCleaner
             RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
     }
+
+
 }
