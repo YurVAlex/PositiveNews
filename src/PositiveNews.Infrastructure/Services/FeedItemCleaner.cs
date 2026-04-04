@@ -39,9 +39,9 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static readonly string[] StopProcessingPatterns =
     {
         "About the Author",
-        "For more information about",
+        //"For more information about",
         "Discover More Topics From",
-        "For more information on",
+        //"For more information on",
         "Click here to leave a comment on the site",
         "Members can also look for the following:",
         "What are you planning to play this weekend?",
@@ -92,8 +92,6 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static string CleanContent(string rawContent)
     {
-        rawContent = RemoveTildeAuthor(rawContent);
-
         var doc = LoadDocument(rawContent);
         var builder = new StringBuilder();
         var stopProcessing = false;
@@ -101,7 +99,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         ProcessNodesRecursively(doc.DocumentNode, builder, ref stopProcessing);
 
         var cleaned = RemoveTrailingPostLinks(builder.ToString());
-        return cleaned.Trim();
+        return RemoveTildeAuthor(cleaned).Trim();
     }
 
     private static HtmlDocument LoadDocument(string html)

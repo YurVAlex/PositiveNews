@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using System.Xml.Linq;
@@ -59,8 +60,17 @@ public class FeedProcessor : IFeedProcessor
 
                     _cleaner.Clean(dtoItem);
 
+                    if (string.IsNullOrWhiteSpace(dtoItem.ContentClean))
+                        continue;
+
                     dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentClean);
 
+                    if (!ContainsHeroImage(dtoItem.ContentClean) &&
+                        !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
+                    {
+                        dtoItem.ContentClean = string.Concat(dtoItem.ImageTag, dtoItem.ContentClean);
+                    }
+                    
                     dtoItems.Add(dtoItem);
                 }
                 catch (Exception ex)
@@ -78,5 +88,31 @@ public class FeedProcessor : IFeedProcessor
         }
 
         return dtoItems;
+    }
+
+    private bool ContainsHeroImage(string html)
+    {
+        try
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            var images = doc.DocumentNode.SelectNodes("//img");
+
+            if (images == null || images.Count == 0)
+                return false;
+
+            return images.Any(img =>
+            {
+                var classAttr = img.GetAttributeValue("class", "");
+                return classAttr.Contains("img-fluid", StringComparison.OrdinalIgnoreCase) &&
+                       classAttr.Contains("w-100", StringComparison.OrdinalIgnoreCase);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error checking for fluid images in HTML content");
+            return false;
+        }
     }
 }
