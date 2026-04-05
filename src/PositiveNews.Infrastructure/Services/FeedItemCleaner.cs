@@ -86,7 +86,7 @@ public class FeedItemCleaner : IFeedItemCleaner
     public void Clean(RssFeedItemDto dto)
     {
         dto.Description = CleanDescription(dto.Description);
-        dto.ContentClean = CleanContent(dto.ContentRaw);
+        dto.ContentRaw = CleanContent(dto.ContentRaw);  
         dto.Title = CleanTitle(dto.Title);
     }
 
@@ -99,7 +99,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         ProcessNodesRecursively(doc.DocumentNode, builder, ref stopProcessing);
 
         var cleaned = RemoveTrailingPostLinks(builder.ToString());
-        return RemoveTildeAuthor(cleaned).Trim();
+        return RemoveTildeAuthor(cleaned).Trim();  
     }
 
     private static HtmlDocument LoadDocument(string html)

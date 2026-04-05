@@ -60,15 +60,15 @@ public class FeedProcessor : IFeedProcessor
 
                     _cleaner.Clean(dtoItem);
 
-                    if (string.IsNullOrWhiteSpace(dtoItem.ContentClean))
+                    if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
                         continue;
 
-                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentClean);
+                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw);
 
-                    if (!ContainsHeroImage(dtoItem.ContentClean) &&
+                    if (!ContainsHeroImage(dtoItem.ContentRaw) &&
                         !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
                     {
-                        dtoItem.ContentClean = string.Concat(dtoItem.ImageTag, dtoItem.ContentClean);
+                        dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
                     }
                     
                     dtoItems.Add(dtoItem);

@@ -76,7 +76,7 @@ namespace PositiveNews.Web.Controllers
                 SourceName = article.Source.Name,
                 Author = article.Author,
                 PublishedAt = article.PublishedAt,
-                ContentClean = article.Content?.ContentClean
+                ContentHtml = article.Content?.ContentRaw
             };
 
             return View(viewModel);

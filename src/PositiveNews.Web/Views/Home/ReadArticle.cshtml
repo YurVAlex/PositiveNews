@@ -17,9 +17,9 @@
             </div>
 
             <div class="article-content fs-5" style="line-height: 1.8;">
-                @if (!string.IsNullOrEmpty(Model.ContentClean))
+                @if (!string.IsNullOrEmpty(Model.ContentHtml))
                 {
-                    @Html.Raw(Model.ContentClean)
+                    @Html.Raw(Model.ContentHtml)
                 }
                 else
                 {

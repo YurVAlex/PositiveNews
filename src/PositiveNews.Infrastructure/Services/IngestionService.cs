@@ -203,7 +203,6 @@ public class IngestionService : IIngestionService
         var articleContent = new ArticleContent
         {
             ContentRaw = dto.ContentRaw,
-            ContentClean = dto.ContentClean
         };
 
         articleMeta.Content = articleContent;

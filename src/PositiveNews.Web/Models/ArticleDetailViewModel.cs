@@ -6,6 +6,6 @@
         public string SourceName { get; set; } = string.Empty;
         public string? Author { get; set; }
         public DateTime PublishedAt { get; set; }
-        public string? ContentClean { get; set; }
+        public string? ContentHtml { get; set; }
     }
 }
