@@ -196,13 +196,13 @@ public class IngestionService : IIngestionService
             IngestedAt = DateTime.UtcNow,
             LanguageCode = source.DefaultLanguageCode,
             RegionCode = "Global",
-            IsActive = true
+            IsActive = true,
+            SummaryShort = dto.Description
         };
 
         var articleContent = new ArticleContent
         {
             ContentRaw = dto.ContentRaw,
-            SummaryShort = dto.Description,
             ContentClean = dto.ContentClean
         };
 

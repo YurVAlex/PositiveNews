@@ -18,6 +18,5 @@ public class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleConte
 
         builder.Property(c => c.ContentRaw).HasColumnType("nvarchar(max)");
         builder.Property(c => c.ContentClean).HasColumnType("nvarchar(max)");
-        builder.Property(c => c.SummaryShort).HasMaxLength(2000);
     }
 }

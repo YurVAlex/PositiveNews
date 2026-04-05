@@ -20,6 +20,7 @@ public class ArticleMetadata
     public string RegionCode { get; set; } = "Global";
     public bool IsActive { get; set; } = true;
     public long? ModeratedBy { get; set; }
+    public string? SummaryShort { get; set; }
 
     // Navigation
     public Source Source { get; set; } = null!;

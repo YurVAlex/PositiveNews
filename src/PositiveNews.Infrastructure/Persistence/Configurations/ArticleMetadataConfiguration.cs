@@ -24,6 +24,7 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
         builder.Property(a => a.LanguageCode).HasMaxLength(10).HasDefaultValue("und");
         builder.Property(a => a.RegionCode).HasMaxLength(10).HasDefaultValue("Global");
         builder.Property(a => a.IsActive).HasDefaultValue(true);
+        builder.Property(a => a.SummaryShort).HasMaxLength(2000);
 
         // Check constraint
         builder.ToTable(t => t.HasCheckConstraint(

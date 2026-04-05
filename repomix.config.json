@@ -13,17 +13,15 @@
     "**/*.csproj",
     "**/*.sln",
     "**/*.json",
-    "**/*.sql",
     "**/*.md",
     "**/Dockerfile",
     "**/.dockerignore"
   ],
   "ignore": {
     "customPatterns": [
-      "**/PositiveNews.Infrastructure/Persistence/**",
-      "**/PositiveNews.Application/**",
-      "**/PositiveNews.Domain/**",
-      "**/PositiveNews.Web/**",
+      "**/Properties/**",
+      "**/wwwroot/**",
+      "**/logs/**",
       "**/bin/**",
       "**/obj/**",
       "**/.vs/**",
@@ -38,7 +36,9 @@
       "**/Migrations/**",
       "**/appsettings.Development.json",
       "**/appsettings.Local.json",
-      "repomix-output.txt"
+      "repomix-output.txt",
+      "repomix.config.json",
+      "**/*.sql"
     ],
     "useGitignore": true,
     "useDefaultPatterns": true

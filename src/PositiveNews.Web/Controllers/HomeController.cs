@@ -22,7 +22,6 @@ namespace PositiveNews.Web.Controllers
             // 1. Base query for active articles
             var query = _context.ArticlesMetadata
                 .Include(a => a.Source)
-                .Include(a => a.Content)
                 .Where(a => a.IsActive)
                 .OrderByDescending(a => a.PublishedAt)
                 .AsNoTracking();
@@ -43,7 +42,7 @@ namespace PositiveNews.Web.Controllers
                     Author = a.Author,
                     PublishedAt = a.PublishedAt,
                     ImageTag = a.ImageTag,
-                    SummaryShort = a.Content != null ? a.Content.SummaryShort : "No summary available."
+                    SummaryShort = a.SummaryShort ?? "No summary available."
                 })
                 .ToListAsync();
 
