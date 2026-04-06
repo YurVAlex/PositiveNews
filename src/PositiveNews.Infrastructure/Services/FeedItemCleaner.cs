@@ -4,7 +4,6 @@ using PositiveNews.Application.Interfaces;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxTokenParser;
 
 namespace PositiveNews.Infrastructure.Services;
 

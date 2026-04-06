@@ -21,6 +21,8 @@
     "customPatterns": [
       "**/Properties/**",
       "**/wwwroot/**",
+      "**/PositiveNews.WebApi/**",
+      "**/PositiveNews.Web/**",
       "**/logs/**",
       "**/bin/**",
       "**/obj/**",
@@ -38,7 +40,8 @@
       "**/appsettings.Local.json",
       "repomix-output.txt",
       "repomix.config.json",
-      "**/*.sql"
+      "**/*.sql",
+      "**/*.csproj"
     ],
     "useGitignore": true,
     "useDefaultPatterns": true
