@@ -19,5 +19,5 @@ public class RssFeedItemDto
     public string? ExternalId { get; init; }
     public string? ImageTag { get; set; }
 
-    public List<string>? Topics { get; init; } 
+    public List<string>? Topics { get; set; } 
 }

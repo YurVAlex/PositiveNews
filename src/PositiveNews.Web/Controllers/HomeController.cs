@@ -1,3 +1,5 @@
+// File: PositiveNews.Web/Controllers/HomeController.cs
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Infrastructure.Persistence;
@@ -19,11 +21,13 @@ namespace PositiveNews.Web.Controllers
         // GET: /Home/Index?page=1
         public async Task<IActionResult> Index(int page = 1)
         {
-            // 1. Base query for active articles
+            // 1. Base query for active articles - OrderBy BEFORE any pagination operations
             var query = _context.ArticlesMetadata
                 .Include(a => a.Source)
+                .Include(a => a.ArticleTopics)
+                    .ThenInclude(at => at.Topic)
                 .Where(a => a.IsActive)
-                .OrderByDescending(a => a.PublishedAt)
+                .OrderByDescending(a => a.PublishedAt)  // OrderBy here, before Skip/Take
                 .AsNoTracking();
 
             // 2. Pagination logic
@@ -42,7 +46,11 @@ namespace PositiveNews.Web.Controllers
                     Author = a.Author,
                     PublishedAt = a.PublishedAt,
                     ImageTag = a.ImageTag,
-                    SummaryShort = a.SummaryShort ?? "No summary available."
+                    SummaryShort = a.SummaryShort ?? "No summary available.",
+                    Topics = a.ArticleTopics
+                        .Where(at => at.Topic != null)
+                        .Select(at => at.Topic.Name)
+                        .ToList()
                 })
                 .ToListAsync();
 

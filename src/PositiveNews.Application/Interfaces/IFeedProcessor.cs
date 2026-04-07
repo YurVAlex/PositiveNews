@@ -5,5 +5,5 @@ namespace PositiveNews.Application.Interfaces;
 
 public interface IFeedProcessor
 {
-    IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, out int invalidCount);
+    IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, out int invalidCount);
 }

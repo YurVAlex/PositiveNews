@@ -17,7 +17,7 @@ public class FeedProcessor : IFeedProcessor
     public FeedProcessor(IFeedItemValidator validator,
                          IFeedItemParser parser,
                          IFeedItemCleaner cleaner,
-                         ILogger<FeedProcessor> loger, 
+                         ILogger<FeedProcessor> loger,
                          IImgTagExtractor imgTagExtractor)
     {
         _validator = validator;
@@ -27,7 +27,7 @@ public class FeedProcessor : IFeedProcessor
         _logger = loger;
     }
 
-    public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, out int invalidCount)
+    public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, out int invalidCount)
     {
         var dtoItems = new List<RssFeedItemDto>();
         invalidCount = 0;
@@ -58,7 +58,12 @@ public class FeedProcessor : IFeedProcessor
 
                     var dtoItem = _parser.Parse(feedItem);
 
+                    if (dtoItem.Topics == null)
+                        dtoItem.Topics = new List<string>();
+
                     _cleaner.Clean(dtoItem);
+                    _cleaner.CleanTopics(dtoItem, lookup);
+                    EnrichTopics(feedUrl, dtoItem, lookup);
 
                     if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
                         continue;
@@ -70,7 +75,7 @@ public class FeedProcessor : IFeedProcessor
                     {
                         dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
                     }
-                    
+
                     dtoItems.Add(dtoItem);
                 }
                 catch (Exception ex)
@@ -88,6 +93,62 @@ public class FeedProcessor : IFeedProcessor
         }
 
         return dtoItems;
+    }
+
+    private void EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)
+    {
+        dto.Topics ??= new List<string>();
+
+        var result = new HashSet<string>(dto.Topics, StringComparer.OrdinalIgnoreCase);
+
+        void Add(string name)
+        {
+            if (lookup.ByName.ContainsKey(name))
+                result.Add(name);
+        }
+
+        // Source-specific rules
+        if (feedUrl.Contains("nvidia", StringComparison.OrdinalIgnoreCase))
+            Add("Technology");
+
+        if (feedUrl.Contains("nasa", StringComparison.OrdinalIgnoreCase))
+        {
+            Add("Space");
+            Add("Technology");
+            Add("Science");
+        }
+
+        if (feedUrl.Contains("tinybuddha", StringComparison.OrdinalIgnoreCase))
+            Add("Psychology");
+
+        // Parent topic expansion using reverse lookup
+        var expandedTopics = new HashSet<string>(result, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var topicName in result.ToList())
+        {
+            if (!lookup.ByName.TryGetValue(topicName, out var topic))
+                continue;
+
+            var slugWords = topic.Slug
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim());
+
+            foreach (var word in slugWords)
+            {
+                if (lookup.ByName.TryGetValue(word, out var related))
+                {
+                    result.Add(related.Name);
+                }
+            }
+        }
+
+        foreach (var expanded in expandedTopics)
+            result.Add(expanded);
+
+        if (result.Count == 0)
+            Add("Default");
+
+        dto.Topics = result.ToList();
     }
 
     private bool ContainsHeroImage(string html)

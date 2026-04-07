@@ -30,10 +30,7 @@ public class FeedItemParser : IFeedItemParser
         };
     }
 
-    /// <summary>
-    /// Extracts all category tags as topics
-    /// Returns list of category values, or ["Default"] if none found
-    /// </summary>
+    
     private List<string> ExtractCategories(XElement itemElement)
     {
         var categories = itemElement
@@ -41,17 +38,13 @@ public class FeedItemParser : IFeedItemParser
             .Select(c => c.Value)
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .Distinct()
-            .ToList();
+            .ToList(); // Creates a NEW list each time
 
-        // If no categories found, return default
-        if (categories == null || categories.Count == 0)
+        if (categories.Count == 0)
         {
-            categories = ["Default"];
-            _logger.LogDebug("No categories found, using default");
+            categories = new List<string> { "Default" }; // NEW list, not shared
         }
-
         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
-
         return categories;
     }
 

@@ -1,0 +1,13 @@
+﻿@model List<string>
+
+@if (Model != null && Model.Any())
+{
+    <div class="d-flex flex-wrap gap-1 mb-0 mt-0">
+            @foreach (var topic in Model)
+            {
+            <button class="btn btn-dark btn-sm" style="font-size: 0.85rem;">
+                    @topic
+                </button>
+            }
+        </div>
+}

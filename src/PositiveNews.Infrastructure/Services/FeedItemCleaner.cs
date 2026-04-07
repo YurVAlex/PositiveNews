@@ -1,6 +1,7 @@
 ﻿using HtmlAgilityPack;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
+using PositiveNews.Domain.Entities;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -644,5 +645,55 @@ public class FeedItemCleaner : IFeedItemCleaner
         );
     }
 
+    public void CleanTopics(RssFeedItemDto dto, TopicLookup lookup)
+    {
+        if (dto.Topics == null || dto.Topics.Count == 0)
+        {
+            dto.Topics = new List<string>(); // Replace with empty list
+            return;
+        }
 
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var raw in dto.Topics)
+        {
+            // Only split and match individual words, don't add the original raw string
+            var words = raw
+                .Split(new[] { ' ', ',', ';', '&', '/', '|', '-' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => w.Trim().ToLowerInvariant())
+                .Where(w => w.Length > 2); // Ignore short words like "new", "the", "and"
+
+            foreach (var word in words)
+            {
+                if (lookup.BySlugWord.TryGetValue(word, out var matchedTopics))
+                {
+                    foreach (var topic in matchedTopics)
+                    {
+                        // Only add if the word meaningfully matches
+                        if (IsMeaningfulMatch(word, topic))
+                        {
+                            result.Add(topic.Name);
+                        }
+                    }
+                }
+            }
+        }
+
+        // REPLACE the original list, don't add to it
+        dto.Topics = result.ToList();
+    }
+
+    private bool IsMeaningfulMatch(string word, Topic topic)
+    {
+        // Don't match common short words
+        var commonWords = new[] { "new", "old", "big", "small", "good", "bad", "hot", "cold" };
+        if (commonWords.Contains(word))
+            return false;
+
+        // Don't match if the word is just a number
+        if (int.TryParse(word, out _))
+            return false;
+
+        return true;
+    }
 }

@@ -1,4 +1,5 @@
 ﻿@model PositiveNews.Web.Models.FeedIndexViewModel
+
 @{
     ViewData["Title"] = "Positive News Feed";
 }
@@ -34,7 +35,10 @@
 
                         <article-img image-tag="@article.ImageTag" index="@i"></article-img>
 
-                        <div class="d-flex gap-2 mb-2">
+                        <!-- Topics Section -->
+                        <partial name="_TopicsPartial" model="article.Topics" />
+
+                        <div class="d-flex gap-2 mb-2 mt-3">
                             <button class="btn btn-outline-secondary" onclick="toggleSummary('summary-@article.Id')">Show summary</button>
                             <a asp-action="ReadArticle" asp-route-id="@article.Id" class="btn btn-primary">Read article</a>
                         </div>

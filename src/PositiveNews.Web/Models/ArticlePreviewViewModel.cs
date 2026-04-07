@@ -10,5 +10,7 @@
         public DateTime PublishedAt { get; set; }
         public string? ImageTag { get; set; }
         public string? SummaryShort { get; set; }
+
+        public List<string> Topics { get; set; } = new();
     }
 }

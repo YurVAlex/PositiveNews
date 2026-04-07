@@ -1,13 +1,9 @@
 ﻿using PositiveNews.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml.Linq;
 
-namespace PositiveNews.Application.Interfaces
+namespace PositiveNews.Application.Interfaces;
+
+public interface IFeedItemCleaner
 {
-    public interface IFeedItemCleaner
-    {
-       void Clean(RssFeedItemDto dto);
-    }
+    void Clean(RssFeedItemDto dto);
+    void CleanTopics(RssFeedItemDto dto, TopicLookup lookup);
 }
