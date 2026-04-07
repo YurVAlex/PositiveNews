@@ -7,6 +7,6 @@ namespace PositiveNews.Application.Interfaces;
 
 public interface IImgTagExtractor
 {
-    public string? ExtractImgTag(XElement itemElement, string? contentClean);
+    public string? ExtractImgTag(XElement itemElement, string feedUrl, string? contentClean);
     
 }

@@ -24,7 +24,7 @@
       "**/PositiveNews.WebApi/**",
        "**/PositiveNews.Application/**",
         "**/PositiveNews.Domain/**",
-        "**/PositiveNews.Infrastructure/**",
+        "**/PositiveNews.Web/**",
       "**/logs/**",
       "**/bin/**",
       "**/obj/**",

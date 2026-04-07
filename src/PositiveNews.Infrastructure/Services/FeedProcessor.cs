@@ -68,7 +68,7 @@ public class FeedProcessor : IFeedProcessor
                     if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
                         continue;
 
-                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw);
+                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw, feedUrl);
 
                     if (!ContainsHeroImage(dtoItem.ContentRaw) &&
                         !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
@@ -116,6 +116,12 @@ public class FeedProcessor : IFeedProcessor
             Add("Space");
             Add("Technology");
             Add("Science");
+        }
+
+        if (feedUrl.Contains("thisiscolossal", StringComparison.OrdinalIgnoreCase) ||
+            feedUrl.Contains("designyoutrust", StringComparison.OrdinalIgnoreCase))
+        {
+            Add("Arts & Culture");
         }
 
         if (feedUrl.Contains("tinybuddha", StringComparison.OrdinalIgnoreCase))

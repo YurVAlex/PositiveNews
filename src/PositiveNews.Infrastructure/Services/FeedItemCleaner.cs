@@ -53,7 +53,6 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static readonly string[] RemoveNodePatterns =
     {
     "Learn more about this image",
-     "To learn more about",
     "Listen to this audio",
     "follow us on",
     "Donate link:",

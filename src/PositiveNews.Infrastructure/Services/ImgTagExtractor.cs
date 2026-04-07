@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Xml.Linq;
+using PositiveNews.Infrastructure.Constants;
 
 namespace PositiveNews.Infrastructure.Services;
 
@@ -21,7 +22,7 @@ public class ImgTagExtractor : IImgTagExtractor
     {
         _logger = logger;
     }
-    public string? ExtractImgTag(XElement itemElement, string contentClean)
+    public string? ExtractImgTag(XElement itemElement, string? contentClean, string feedUrl)
     {
         try
         {
@@ -50,9 +51,9 @@ public class ImgTagExtractor : IImgTagExtractor
             }
 
             // 3. Prefered <img> inside <contentClean> 
-                var imgFromEncoded = ExtractPreferedImgFromHtml(contentClean);
-                if (imgFromEncoded != null)
-                    return imgFromEncoded;
+            var imgFromEncoded = ExtractPreferedImgFromHtml(contentClean);
+            if (imgFromEncoded != null)
+                return imgFromEncoded;
 
             // 4. media:content (only reached if needed)
             var mediaContent = itemElement.Element(MediaNs + "content");
@@ -75,19 +76,19 @@ public class ImgTagExtractor : IImgTagExtractor
             }
 
             // 6. Eny <img> inside <contentClean> 
-                imgFromEncoded = ExtractEnyImgFromHtml(contentClean);
-                if (imgFromEncoded != null)
-                    return imgFromEncoded;
+            imgFromEncoded = ExtractEnyImgFromHtml(contentClean);
+            if (imgFromEncoded != null)
+                return imgFromEncoded;
 
-            _logger.LogWarning("No thumbnail image tag extracted for current article.");
-            return null;
+            _logger.LogDebug("No thumbnail image tag extracted for current article. Default will be assigned");
+            return AssignDefaultThumbnailImg(feedUrl);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error durring image tag extracting");
             return null;
         }
-        }
+    }
 
 
     private static string? ExtractImgFromHtml(string? html, string xpathQuery)
@@ -127,14 +128,11 @@ public class ImgTagExtractor : IImgTagExtractor
     }
 
     private static string? ExtractPreferedImgFromHtml(string? html)
-    => ExtractImgFromHtml(html, "//img[not(@slot) and @srcset]");
+    => ExtractImgFromHtml(html, "//img[@srcset and not(@class=\"img-fluid w-5 rounded mb-3\")]");
 
     private static string? ExtractEnyImgFromHtml(string? html)
         => ExtractImgFromHtml(html, "//img");
 
-    // ===================================================================
-    // CleanSrcsetForPreview - FIXED: properly handles commas inside URLs
-    // ===================================================================
     private static string? CleanSrcsetForPreview(string? srcset)
     {
         if (string.IsNullOrWhiteSpace(srcset))
@@ -194,9 +192,6 @@ public class ImgTagExtractor : IImgTagExtractor
             : null;
     }
 
-    // ===================================================================
-    // BuildImgTag - Simplified and safe for previews
-    // ===================================================================
     private static string? BuildImgTag(
         string? src = "",
         string? width = "",
@@ -303,6 +298,18 @@ public class ImgTagExtractor : IImgTagExtractor
 
         // fallback → largest available (if all smaller)
         return widths.Last();
+    }
+
+    private string? AssignDefaultThumbnailImg(string feedUrl)
+    {
+        return DefaultThumbnailTags.ThumbnailMap.FirstOrDefault(p => feedUrl.Contains(p.Key)).Value
+            ?? LogAndReturnNull();
+
+        string? LogAndReturnNull()
+        {
+            _logger.LogWarning("Error: No default thumbnail image tag assigned!");
+            return null;
+        }
     }
 }
 
