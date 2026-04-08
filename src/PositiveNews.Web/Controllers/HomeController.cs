@@ -18,19 +18,28 @@ namespace PositiveNews.Web.Controllers
             _context = context;
         }
 
-        // GET: /Home/Index?page=1
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, string? topic = null)
         {
-            // 1. Base query for active articles - OrderBy BEFORE any pagination operations
             var query = _context.ArticlesMetadata
                 .Include(a => a.Source)
                 .Include(a => a.ArticleTopics)
                     .ThenInclude(at => at.Topic)
                 .Where(a => a.IsActive)
-                .OrderByDescending(a => a.PublishedAt)  // OrderBy here, before Skip/Take
                 .AsNoTracking();
 
-            // 2. Pagination logic
+            // Priority sorting (NOT filtering)
+            if (!string.IsNullOrWhiteSpace(topic))
+            {
+                query = query
+                    .OrderByDescending(a => a.ArticleTopics
+                        .Any(at => at.Topic.Name == topic))
+                    .ThenByDescending(a => a.PublishedAt);
+            }
+            else
+            {
+                query = query.OrderByDescending(a => a.PublishedAt);
+            }
+
             var totalArticles = await query.CountAsync();
             var totalPages = (int)Math.Ceiling(totalArticles / (double)PageSize);
 
@@ -58,7 +67,8 @@ namespace PositiveNews.Web.Controllers
             {
                 Articles = articles,
                 CurrentPage = page,
-                TotalPages = totalPages
+                TotalPages = totalPages,
+                SelectedTopic = topic
             };
 
             return View(viewModel);
