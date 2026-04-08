@@ -4,6 +4,7 @@
     {
         public string Title { get; set; } = string.Empty;
         public string SourceName { get; set; } = string.Empty;
+        public string? SourceLogoUrl { get; set; }
         public string? Author { get; set; }
         public DateTime PublishedAt { get; set; }
         public string? ContentHtml { get; set; }

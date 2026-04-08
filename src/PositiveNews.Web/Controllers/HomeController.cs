@@ -82,6 +82,7 @@ namespace PositiveNews.Web.Controllers
             {
                 Title = article.Title,
                 SourceName = article.Source.Name,
+                SourceLogoUrl = article.Source.LogoUrl,
                 Author = article.Author,
                 PublishedAt = article.PublishedAt,
                 ContentHtml = article.Content?.ContentRaw
