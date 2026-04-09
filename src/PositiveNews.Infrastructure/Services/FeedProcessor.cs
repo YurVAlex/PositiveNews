@@ -13,18 +13,21 @@ public class FeedProcessor : IFeedProcessor
     private readonly IFeedItemParser _parser;
     private readonly IFeedItemCleaner _cleaner;
     private readonly IImgTagExtractor _imgTagExtractor;
+    private readonly IPositivityAnalyzer _analyzer;
 
     public FeedProcessor(IFeedItemValidator validator,
                          IFeedItemParser parser,
                          IFeedItemCleaner cleaner,
                          ILogger<FeedProcessor> loger,
-                         IImgTagExtractor imgTagExtractor)
+                         IImgTagExtractor imgTagExtractor,
+                         IPositivityAnalyzer analyzer)
     {
         _validator = validator;
         _parser = parser;
         _cleaner = cleaner;
         _imgTagExtractor = imgTagExtractor;
         _logger = loger;
+        _analyzer = analyzer;
     }
 
     public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, out int invalidCount)
@@ -75,6 +78,11 @@ public class FeedProcessor : IFeedProcessor
                     {
                         dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
                     }
+
+                    dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw) ??
+                                           _cleaner.StripInnerHtmlWords(dtoItem.Description);
+
+                    dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
 
                     dtoItems.Add(dtoItem);
                 }

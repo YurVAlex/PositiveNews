@@ -199,12 +199,16 @@ public class IngestionService : IIngestionService
             LanguageCode = source.DefaultLanguageCode,
             RegionCode = "Global",
             IsActive = true,
-            SummaryShort = dto.Description
+            SummaryShort = dto.Description,
+
+            PositivityScore = dto.PositivityScore,
+            AnalyzedAt = dto.PositivityScore.HasValue ? DateTime.UtcNow : null //TODO: delete that or left for further AI analysys in separate service
         };
 
         var articleContent = new ArticleContent
         {
             ContentRaw = dto.ContentRaw,
+            ContentClean = dto.ContentClean
         };
 
         articleMeta.Content = articleContent;

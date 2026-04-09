@@ -89,6 +89,18 @@ public class FeedItemCleaner : IFeedItemCleaner
         dto.Title = CleanTitle(dto.Title);
     }
 
+    public string? StripInnerHtmlWords(string htmlContent)
+    {
+        if (string.IsNullOrWhiteSpace(htmlContent))
+            return htmlContent; 
+
+        var doc = new HtmlDocument();
+        doc.LoadHtml(htmlContent);
+        var plainText = doc.DocumentNode.InnerText;
+
+        return plainText;
+    }
+
     private static string CleanContent(string rawContent)
     {
         var doc = LoadDocument(rawContent);
