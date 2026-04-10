@@ -102,6 +102,8 @@ public class IngestionService : IIngestionService
 
             var dtoItems = _feedProcessor.ProcessFeed(url, doc, topicLookup, out int invalidCount);
 
+            var skipCount = invalidCount;
+
             if (dtoItems.Count == 0)
             {
                 _logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
@@ -121,6 +123,7 @@ public class IngestionService : IIngestionService
                     if (await IsAlreadyExists(item, context, cancellationToken))
                     {
                         _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
+                        skipCount++;
                         continue;
                     }
 
@@ -140,8 +143,8 @@ public class IngestionService : IIngestionService
             await context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {InvalidCount} rejected.",
-                source.Name, newArticleCount, dtoItems.Count + invalidCount, invalidCount);
+                "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {skipCount} rejected.",
+                source.Name, newArticleCount, dtoItems.Count + invalidCount, skipCount);
         }
         catch (OperationCanceledException)
         {
@@ -166,21 +169,10 @@ public class IngestionService : IIngestionService
     private static async Task<bool> IsAlreadyExists(RssFeedItemDto dto, AppDbContext context,
                                                     CancellationToken cancellationToken)
     {
-        bool alreadyExists = false;
-
-        if (!string.IsNullOrWhiteSpace(dto.ExternalId))
-        {
-            alreadyExists = await context.ArticlesMetadata
-                .AnyAsync(a => a.ExternalId == dto.ExternalId, cancellationToken);
-        }
-
-        if (!alreadyExists && !string.IsNullOrWhiteSpace(dto.Link))
-        {
-            alreadyExists = await context.ArticlesMetadata
-                .AnyAsync(a => a.Url == dto.Link, cancellationToken);
-        }
-
-        return alreadyExists;
+        return await context.ArticlesMetadata.AnyAsync(a =>
+         a.ExternalId == dto.ExternalId ||
+         a.Url == dto.Link ||
+         a.Title == dto.Title, cancellationToken);
     }
 
     private static async Task SaveArticleWithTopicsAsync(Source source, RssFeedItemDto dto,
