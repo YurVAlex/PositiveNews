@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence;
 
-public class AppDbContext : DbContext
+public class AppDbContext : DbContext, IIngestionDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 

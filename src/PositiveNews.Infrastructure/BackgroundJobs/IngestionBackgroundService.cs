@@ -1,8 +1,10 @@
+using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Commands.Ingestion;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace PositiveNews.Infrastructure.BackgroundJobs;
 
@@ -19,7 +21,7 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     /// <summary>
     /// Initial delay before the first run so the application has time to fully start.
     /// </summary>
-    private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(3);
 
     public IngestionBackgroundService(   // Host Creates instances of IngestionBackgroundService when starts
         IServiceScopeFactory scopeFactory, // This service added to ASP .NET IoC by default. Needed for creation scope in singleton
@@ -28,6 +30,8 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+
+        // Can't inject MediatR in class constructor because they have different lifecycle
 
         // Read interval from appsettings.json
         var minutes = configuration.GetValue<int>("Ingestion:IntervalMinutes", 60);
@@ -41,19 +45,21 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     {
         _logger.LogInformation(
             "Ingestion Background Service started. Interval: {Interval}. Initial delay: {Delay}.",
-            _interval, InitialDelay);
+            _interval, _initialDelay);
 
         // Wait for the application to fully initialize before the first run.
-        await Task.Delay(InitialDelay, stoppingToken);
+        await Task.Delay(_initialDelay, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
         {
             try
             {
-                using var scope = _scopeFactory.CreateScope(); // Create a fresh scope for this cycle
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IIngestionService>();
+                // This wraps the entire ingestion cycle. It creates a safe boundary and trigger the main
+                // Command Handler without polluting the Singleton host.
+                using var scope = _scopeFactory.CreateScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                await ingestionService.RunIngestionCycleAsync(stoppingToken);       // ---=== EXECUTE INGESTION ===---
+                await mediator.Send(new RunIngestionCycleCommand(), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Persistence;
@@ -27,6 +28,8 @@ public static class DependencyInjection
                           sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
                       }));
 
+        services.AddScoped<IIngestionDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
         // HttpClient for RSS feed fetching.
         // Configured with a polite User-Agent and a reasonable timeout.
         services.AddHttpClient("RssFeedClient", client =>
@@ -43,7 +46,6 @@ public static class DependencyInjection
         services.AddScoped<IFeedItemParser, FeedItemParser>();
         services.AddScoped<IFeedProcessor, FeedProcessor>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
-        services.AddScoped<IIngestionService, IngestionService>();
         services.AddScoped<IImgTagExtractor, ImgTagExtractor>();
         services.AddScoped<IPositivityAnalyzer, KeyPhrasePositivityAnalyzer>();
 
