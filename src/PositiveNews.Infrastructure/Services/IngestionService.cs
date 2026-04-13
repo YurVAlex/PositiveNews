@@ -1,18 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Enums;
-using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Services;
 
-/// <summary>
-/// Iterates over all active sources, fetches their RSS feeds, 
-/// deduplicates against existing articles, and persists new ones.
-/// </summary>
 public class IngestionService : IIngestionService
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -38,38 +31,27 @@ public class IngestionService : IIngestionService
     {
         _logger.LogInformation("=== Ingestion cycle started. ===");
 
-        // Build TopicLookup once for this entire cycle
-        TopicLookup? topicLookup = null;
-        using (var scope = _scopeFactory.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var topics = await context.Topics.AsNoTracking().ToListAsync(cancellationToken);
-            topicLookup = TopicLookup.Build(topics);
-            _logger.LogInformation("Topic lookup built with {Count} topics.", topics.Count);
-        }
-
-        // Fetch the list of active sources
+        TopicLookup topicLookup;
         List<Source> activeSources;
+
+        // Scope 1: Fetch foundational data
         using (var scope = _scopeFactory.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            activeSources = await context.Sources
-                .Where(s => s.IsActive && s.FeedUrl != null)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+            var queries = scope.ServiceProvider.GetRequiredService<IIngestionQueries>();
+            topicLookup = await queries.GetTopicLookupAsync(cancellationToken);
+            activeSources = await queries.GetActiveSourcesAsync(cancellationToken);
         }
 
-        _logger.LogInformation("Found {Count} active sources with feed URLs.", activeSources.Count);
+        _logger.LogInformation("Found {Count} active sources. Topic lookup ready.", activeSources.Count);
 
         foreach (var source in activeSources)
         {
             if (cancellationToken.IsCancellationRequested) break;
 
-            await ProcessSourceAsync(source, topicLookup!, cancellationToken);
+            await ProcessSourceAsync(source, topicLookup, cancellationToken);
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                _logger.LogDebug("Waiting {Delay} before next source...", DelayBetweenSources);
                 await Task.Delay(DelayBetweenSources, cancellationToken);
             }
         }
@@ -81,36 +63,25 @@ public class IngestionService : IIngestionService
     {
         _logger.LogInformation("Processing source: {SourceName} ({FeedUrl})", source.Name, source.FeedUrl);
 
+        // Scope 2: Isolate the DbContext lifespan per source being processed
         using var scope = _scopeFactory.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var queries = scope.ServiceProvider.GetRequiredService<IIngestionQueries>();
+        var commands = scope.ServiceProvider.GetRequiredService<IIngestionCommands>();
 
-        var run = new IngestionRun
-        {
-            SourceId = source.Id,
-            StartedAt = DateTime.UtcNow,
-            Status = IngestionStatus.Running
-        };
-        context.IngestionRuns.Add(run);
-        await context.SaveChangesAsync(cancellationToken);
-
+        var run = await commands.StartRunAsync(source.Id, cancellationToken);
         int newArticleCount = 0;
         var url = source.FeedUrl!;
 
         try
         {
             var doc = await _feedReader.ReadFeedAsync(url, cancellationToken);
-
             var dtoItems = _feedProcessor.ProcessFeed(url, doc, topicLookup, out int invalidCount);
-
-            var skipCount = invalidCount;
+            int skipCount = invalidCount;
 
             if (dtoItems.Count == 0)
             {
                 _logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
-                run.Status = IngestionStatus.Partial;
-                run.ErrorMessage = "Feed returned zero items. The feed URL may be unavailable or empty.";
-                run.FinishedAt = DateTime.UtcNow;
-                await context.SaveChangesAsync(cancellationToken);
+                await commands.CompleteRunAsync(run, IngestionStatus.Partial, 0, "Feed returned zero items.", cancellationToken);
                 return;
             }
 
@@ -120,111 +91,34 @@ public class IngestionService : IIngestionService
 
                 try
                 {
-                    if (await IsAlreadyExists(item, context, cancellationToken))
+                    if (await queries.ArticleExistsAsync(item.ExternalId, item.Link, item.Title, cancellationToken))
                     {
                         _logger.LogDebug("Skipping duplicate: {Title}", item.Title);
                         skipCount++;
                         continue;
                     }
 
-                    await SaveArticleWithTopicsAsync(source, item, context, cancellationToken);
-
+                    await commands.SaveArticleWithTopicsAsync(source, item, cancellationToken);
                     newArticleCount++;
-                    _logger.LogInformation("Ingested new article: {Title}", item.Title);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "Error processing DTO for article: {ExternalId}", item.ExternalId);
                 }
             }
-            run.Status = IngestionStatus.Success;
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation(
-                "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {skipCount} rejected.",
-                source.Name, newArticleCount, dtoItems.Count + invalidCount, skipCount);
+            await commands.CompleteRunAsync(run, IngestionStatus.Success, newArticleCount, null, cancellationToken);
+            _logger.LogInformation("Source {SourceName}: ingested {NewCount} new articles. {skipCount} rejected.", source.Name, newArticleCount, skipCount);
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
-            run.Status = IngestionStatus.Partial;
-            run.ErrorMessage = "Operation was cancelled.";
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync(CancellationToken.None);
+            await commands.CompleteRunAsync(run, IngestionStatus.Partial, newArticleCount, "Operation was cancelled.", CancellationToken.None);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
-            run.Status = IngestionStatus.Failed;
-            run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await context.SaveChangesAsync(CancellationToken.None);
-        }
-    }
-
-    private static async Task<bool> IsAlreadyExists(RssFeedItemDto dto, AppDbContext context,
-                                                    CancellationToken cancellationToken)
-    {
-        return await context.ArticlesMetadata.AnyAsync(a =>
-         a.ExternalId == dto.ExternalId ||
-         a.Url == dto.Link ||
-         a.Title == dto.Title, cancellationToken);
-    }
-
-    private static async Task SaveArticleWithTopicsAsync(Source source, RssFeedItemDto dto,
-                                                         AppDbContext context, CancellationToken cancellationToken)
-    {
-        var articleMeta = new ArticleMetadata
-        {
-            SourceId = source.Id,
-            ExternalId = dto.ExternalId,
-            Title = dto.Title,
-            Author = dto.Author,
-            Url = dto.Link,
-            ImageTag = dto.ImageTag,
-            PublishedAt = dto.PublishedDate,
-            IngestedAt = DateTime.UtcNow,
-            LanguageCode = source.DefaultLanguageCode,
-            RegionCode = "Global",
-            IsActive = true,
-            SummaryShort = dto.Description,
-
-            PositivityScore = dto.PositivityScore,
-            AnalyzedAt = dto.PositivityScore.HasValue ? DateTime.UtcNow : null //TODO: delete that or left for further AI analysys in separate service
-        };
-
-        var articleContent = new ArticleContent
-        {
-            ContentRaw = dto.ContentRaw,
-            ContentClean = dto.ContentClean
-        };
-
-        articleMeta.Content = articleContent;
-
-        context.ArticlesMetadata.Add(articleMeta);
-
-        // Save to get the generated Id
-        await context.SaveChangesAsync(cancellationToken);
-
-        // Add topic associations
-        if (dto.Topics != null && dto.Topics.Any())
-        {
-            var topics = await context.Topics
-                .Where(t => dto.Topics.Contains(t.Name))
-                .ToListAsync(cancellationToken);
-
-            foreach (var topic in topics)
-            {
-                context.ArticleTopics.Add(new ArticleTopic
-                {
-                    ArticleId = articleMeta.Id,
-                    TopicId = topic.Id
-                });
-            }
+            await commands.CompleteRunAsync(run, IngestionStatus.Failed, newArticleCount, ex.Message, CancellationToken.None);
         }
     }
 }

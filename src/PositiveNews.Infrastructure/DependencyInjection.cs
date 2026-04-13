@@ -47,6 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IImgTagExtractor, ImgTagExtractor>();
         services.AddScoped<IPositivityAnalyzer, KeyPhrasePositivityAnalyzer>();
 
+        services.AddScoped<IIngestionQueries, IngestionDataLayer>();
+        services.AddScoped<IIngestionCommands, IngestionDataLayer>();
+
         // Background services
         services.AddHostedService<IngestionBackgroundService>();
 
