@@ -108,7 +108,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         var builder = new StringBuilder();
         var stopProcessing = false;
 
-        ProcessNodesRecursively(doc.DocumentNode, builder, ref stopProcessing);
+        ProcessNodesIterative(doc.DocumentNode, builder, ref stopProcessing);
 
         var cleaned = RemoveTrailingPostLinks(builder.ToString());
         return RemoveTildeAuthor(cleaned).Trim();  
@@ -121,63 +121,60 @@ public class FeedItemCleaner : IFeedItemCleaner
         return doc;
     }
 
-    private static void ProcessNodesRecursively(HtmlNode node, StringBuilder builder, ref bool stopProcessing)
+    private static void ProcessNodesIterative(HtmlNode root, StringBuilder builder, ref bool stopProcessing)
     {
-        foreach (var child in node.ChildNodes)
+        var stack = new Stack<HtmlNode>();
+        PushChildrenInReverse(root, stack);
+
+        while (stack.Count > 0)
         {
             if (stopProcessing)
                 return;
 
-            if (child.NodeType != HtmlNodeType.Element)
+            var node = stack.Pop();
+            if (node.NodeType != HtmlNodeType.Element)
                 continue;
 
-            // Check for stop-processing triggers first
-            if (ShouldStopProcessing(child))
+            if (ShouldStopProcessing(node))
             {
                 stopProcessing = true;
                 return;
             }
 
-            // Check if node should be skipped entirely
-            if (ShouldRemoveNode(child))
+            if (ShouldRemoveNode(node))
                 continue;
 
-            var tagName = child.Name.ToLowerInvariant();
+            var tagName = node.Name.ToLowerInvariant();
 
-            // Handle special div transformations
             if (tagName == "div")
             {
-                ProcessDiv(child, builder, ref stopProcessing);
+                ProcessDiv(node, builder, stack);
                 continue;
             }
 
-            // Handle anchor tags (check for YouTube links)
             if (tagName == "a")
             {
-                ProcessAnchor(child, builder, ref stopProcessing);
+                ProcessAnchor(node, builder, stack);
                 continue;
             }
 
-            // Handle lists with wp-block-list class
-            if ((tagName == "ul" || tagName == "ol") && HasClassContaining(child, "wp-block-list"))
+            if ((tagName == "ul" || tagName == "ol") && HasClassContaining(node, "wp-block-list"))
             {
-                ProcessList(child, builder);
+                ProcessList(node, builder);
                 continue;
             }
 
             if (AllowedTags.Contains(tagName))
             {
-                ProcessAllowedNode(child, tagName, builder, ref stopProcessing);
+                ProcessAllowedNode(node, tagName, builder);
+                continue;
             }
-            else
-            {
-                // Recursively process children of non-allowed tags
-                ProcessNodesRecursively(child, builder, ref stopProcessing);
-            }
+
+            PushChildrenInReverse(node, stack);
         }
     }
 
-    private static void ProcessDiv(HtmlNode node, StringBuilder builder, ref bool stopProcessing)
+    private static void ProcessDiv(HtmlNode node, StringBuilder builder, Stack<HtmlNode> stack)
     {
         // Check if div should be removed by class
         foreach (var pattern in RemoveDivClassPatterns)
@@ -198,10 +195,10 @@ public class FeedItemCleaner : IFeedItemCleaner
         }
 
         // Otherwise, process children of the div
-        ProcessNodesRecursively(node, builder, ref stopProcessing);
+        PushChildrenInReverse(node, stack);
     }
 
-    private static void ProcessAnchor(HtmlNode node, StringBuilder builder, ref bool stopProcessing)
+    private static void ProcessAnchor(HtmlNode node, StringBuilder builder, Stack<HtmlNode> stack)
     {
         var href = node.GetAttributeValue("href", "");
 
@@ -225,7 +222,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         }
 
         // Otherwise, process anchor normally (keep it, process children)
-        ProcessNodesRecursively(node, builder, ref stopProcessing);
+        PushChildrenInReverse(node, stack);
     }
 
     private static string CreateYouTubeEmbed(string videoId)
@@ -241,11 +238,12 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void ProcessList(HtmlNode node, StringBuilder builder)
     {
-        var cleanedNode = CleanAttributes(node);
-        builder.AppendLine(cleanedNode.OuterHtml);
+        RemoveUnsafeDescendants(node);
+        SanitizeAttributesInSubtree(node);
+        builder.AppendLine(node.OuterHtml);
     }
 
-    private static void ProcessAllowedNode(HtmlNode node, string tagName, StringBuilder builder, ref bool stopProcessing)
+    private static void ProcessAllowedNode(HtmlNode node, string tagName, StringBuilder builder)
     {
         switch (tagName)
         {
@@ -285,6 +283,8 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void ProcessParagraph(HtmlNode node, StringBuilder builder)
     {
+        RemoveUnsafeDescendants(node);
+
         // Check for YouTube iframes FIRST and extract them
         var iframes = node.SelectNodes(".//iframe");
         if (iframes != null)
@@ -324,18 +324,14 @@ public class FeedItemCleaner : IFeedItemCleaner
             {
                 var imgBuilder = new StringBuilder();
                 ProcessImage(img, imgBuilder);
-
-                // Replace original <img> with processed one
-                var newImgDoc = new HtmlDocument();
-                newImgDoc.LoadHtml(imgBuilder.ToString());
-                var newImg = newImgDoc.DocumentNode.FirstChild;
-                img.ParentNode.ReplaceChild(newImg, img);
             }
         }
 
-        // THEN clean paragraph
-        var cleanedNode = CleanAttributes(node);
-        builder.AppendLine(cleanedNode.OuterHtml);
+        // THEN clean paragraph in-place (without overriding media-specific classes)
+        SanitizeAttributesInSubtree(
+            node,
+            skipTags: new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "img", "video", "iframe" });
+        builder.AppendLine(node.OuterHtml);
     }
 
     private static void ProcessHeader(HtmlNode node, StringBuilder builder)
@@ -345,8 +341,9 @@ public class FeedItemCleaner : IFeedItemCleaner
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var cleanedNode = CleanAttributes(node);
-        builder.AppendLine(cleanedNode.OuterHtml);
+        RemoveUnsafeDescendants(node);
+        SanitizeAttributesInSubtree(node);
+        builder.AppendLine(node.OuterHtml);
     }
 
     private static void ProcessImage(HtmlNode node, StringBuilder builder)
@@ -358,30 +355,13 @@ public class FeedItemCleaner : IFeedItemCleaner
             classAttr.Contains("wp-smiley", StringComparison.OrdinalIgnoreCase) ||  // ← Add this for emoji
             classAttr.Contains("emoji", StringComparison.OrdinalIgnoreCase))
         {
-            // Remove unwanted attributes
-            var toRemove = node.Attributes
-                .Where(attr => AttributesToRemove.Contains(attr.Name))
-                .Select(attr => attr.Name)
-                .ToList();
-
-            foreach (var attrName in toRemove)
-                node.Attributes.Remove(attrName);
-
+            SanitizeElementAttributes(node, preserveClass: false);
             node.SetAttributeValue("class", "img-fluid w-5 rounded mb-3");
             builder.AppendLine(node.OuterHtml);
         }
         else
         {
-            // Remove unwanted attributes
-            var toRemove = node.Attributes
-                .Where(attr => AttributesToRemove.Contains(attr.Name))
-                .Select(attr => attr.Name)
-                .ToList();
-
-            foreach (var attrName in toRemove)
-                node.Attributes.Remove(attrName);
-
-            // Standard image styling
+            SanitizeElementAttributes(node, preserveClass: false);
             node.SetAttributeValue("class", "img-fluid w-100 rounded mb-3");
             builder.AppendLine(node.OuterHtml);
         }
@@ -389,21 +369,19 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static void ProcessVideo(HtmlNode node, StringBuilder builder)
     {
-        var cleanedNode = CleanAttributes(node);
+        RemoveUnsafeDescendants(node);
+        SanitizeAttributesInSubtree(node);
+        node.SetAttributeValue("class", "w-100 rounded mb-3");
+        node.SetAttributeValue("controls", "");
 
-        // Add Bootstrap responsive video classes
-        cleanedNode.SetAttributeValue("class", "w-100 rounded mb-3");
-        cleanedNode.SetAttributeValue("controls", "");
-
-        var sources = cleanedNode.SelectNodes(".//source");
+        var sources = node.SelectNodes(".//source");
         if (sources != null)
         {
             foreach (var source in sources)
-                CleanAttributesRecursively(source);
+                SanitizeElementAttributes(source, preserveClass: false);
         }
 
-        // Wrap in responsive container
-        var videoHtml = cleanedNode.OuterHtml;
+        var videoHtml = node.OuterHtml;
         builder.AppendLine($"<div class=\"ratio ratio-16x9 mb-3\">{videoHtml}</div>");
     }
 
@@ -420,62 +398,77 @@ public class FeedItemCleaner : IFeedItemCleaner
             return;
         }
 
-        // Generic iframe - wrap in responsive container
-        var cleanedNode = CleanAttributes(node);
-        cleanedNode.SetAttributeValue("class", "w-100");
-        builder.AppendLine($"<div class=\"ratio ratio-16x9 mb-3\">{cleanedNode.OuterHtml}</div>");
+        RemoveUnsafeDescendants(node);
+        SanitizeElementAttributes(node, preserveClass: false);
+        node.SetAttributeValue("class", "w-100");
+        builder.AppendLine($"<div class=\"ratio ratio-16x9 mb-3\">{node.OuterHtml}</div>");
     }
 
     private static void ProcessListItem(HtmlNode node, StringBuilder builder)
     {
-        var cleanedNode = CleanAttributes(node);
-        builder.AppendLine(cleanedNode.OuterHtml);
+        RemoveUnsafeDescendants(node);
+        SanitizeAttributesInSubtree(node);
+        builder.AppendLine(node.OuterHtml);
     }
 
-    private static HtmlNode CleanAttributes(HtmlNode original)
+    private static void PushChildrenInReverse(HtmlNode node, Stack<HtmlNode> stack)
     {
-        var clone = original.CloneNode(true);
-        CleanAttributesRecursively(clone);
-        return clone;
+        for (var i = node.ChildNodes.Count - 1; i >= 0; i--)
+        {
+            stack.Push(node.ChildNodes[i]);
+        }
     }
 
-    private static void CleanAttributesRecursively(HtmlNode node)
+    private static void RemoveUnsafeDescendants(HtmlNode node)
     {
-        if (node == null || node.Name.Equals("img", StringComparison.OrdinalIgnoreCase))
+        var disallowedTags = node.SelectNodes(".//script | .//style | .//noscript");
+        if (disallowedTags == null)
             return;
 
-        if (node.NodeType == HtmlNodeType.Element)
+        foreach (var tag in disallowedTags.ToList())
+            tag.Remove();
+    }
+
+    private static void SanitizeAttributesInSubtree(HtmlNode root, IReadOnlySet<string>? skipTags = null)
+    {
+        var stack = new Stack<HtmlNode>();
+        stack.Push(root);
+
+        while (stack.Count > 0)
         {
+            var node = stack.Pop();
 
-            // Remove script tags anywhere in the subtree
-            var scripts = node.SelectNodes(".//script");
-            if (scripts != null)
+            if (node.NodeType == HtmlNodeType.Element)
             {
-                foreach (var script in scripts.ToList())
-                    script.Remove();
+                var tagName = node.Name.ToLowerInvariant();
+                if (skipTags == null || !skipTags.Contains(tagName))
+                {
+                    SanitizeElementAttributes(node, preserveClass: false);
+                }
             }
 
-            // Remove other non-allowed tags from cloned content
-            var disallowedTags = node.SelectNodes(".//script | .//style | .//noscript");
-            if (disallowedTags != null)
+            for (var i = node.ChildNodes.Count - 1; i >= 0; i--)
             {
-                foreach (var tag in disallowedTags.ToList())
-                    tag.Remove();
+                stack.Push(node.ChildNodes[i]);
             }
-
-            // Remove unwanted attributes
-            var toRemove = node.Attributes
-                .Where(attr => AttributesToRemove.Contains(attr.Name))
-                .Select(attr => attr.Name)
-                .ToList();
-
-            foreach (var attrName in toRemove)
-                node.Attributes.Remove(attrName);
         }
+    }
 
-        foreach (var child in node.ChildNodes)
+    private static void SanitizeElementAttributes(HtmlNode node, bool preserveClass)
+    {
+        if (node.NodeType != HtmlNodeType.Element)
+            return;
+
+        var toRemove = node.Attributes
+            .Where(attr =>
+                (!preserveClass && AttributesToRemove.Contains(attr.Name)) ||
+                attr.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
+            .Select(attr => attr.Name)
+            .ToList();
+
+        foreach (var attrName in toRemove)
         {
-            CleanAttributesRecursively(child);
+            node.Attributes.Remove(attrName);
         }
     }
 
