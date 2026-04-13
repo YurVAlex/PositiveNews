@@ -30,77 +30,66 @@ public class FeedProcessor : IFeedProcessor
         _analyzer = analyzer;
     }
 
-    public IReadOnlyList<RssFeedItemDto> ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, out int invalidCount)
+    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, CancellationToken cancellationToken = default)
     {
         var dtoItems = new List<RssFeedItemDto>();
-        invalidCount = 0;
+        var invalidCount = 0;
 
-        try
+        _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
+
+        var feedItems = feed.Descendants("item").ToList();
+        _logger.LogInformation("Found {Count} items in RSS feed.", feedItems.Count);
+
+        foreach (var feedItem in feedItems)
         {
-            _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var feedItems = feed.Descendants("item").ToList();
-
-            if (feedItems is null)
+            try
             {
-                _logger.LogWarning("Feed at {FeedUrl} returned null after parsing.", feedUrl);
-                return dtoItems;
-            }
-            _logger.LogInformation("Found {Count} items in RSS feed.", feedItems.Count);
-
-            foreach (var feedItem in feedItems)
-            {
-                try
+                if (!_validator.IsValid(feedItem))
                 {
-                    if (!_validator.IsValid(feedItem))
-                    {
-                        _logger.LogWarning("Skipping invalid feed item.");
-                        invalidCount++;
-                        continue;
-                    }
-
-                    var dtoItem = _parser.Parse(feedItem);
-
-                    if (dtoItem.Topics == null)
-                        dtoItem.Topics = new List<string>();
-
-                    _cleaner.Clean(dtoItem);
-                    _cleaner.CleanTopics(dtoItem, lookup);
-                    EnrichTopics(feedUrl, dtoItem, lookup);
-
-                    if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
-                        continue;
-
-                    dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw, feedUrl);
-
-                    if (!ContainsHeroImage(dtoItem.ContentRaw) &&
-                        !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
-                    {
-                        dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
-                    }
-
-                    dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw) ??
-                                           _cleaner.StripInnerHtmlWords(dtoItem.Description);
-
-                    dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
-
-                    dtoItems.Add(dtoItem);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error parsing RSS feed item");
+                    _logger.LogWarning("Skipping invalid feed item.");
                     invalidCount++;
+                    continue;
                 }
 
-                _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
+                var dtoItem = _parser.Parse(feedItem);
+
+                if (dtoItem.Topics == null)
+                    dtoItem.Topics = new List<string>();
+
+                _cleaner.Clean(dtoItem);
+                _cleaner.CleanTopics(dtoItem, lookup);
+                EnrichTopics(feedUrl, dtoItem, lookup);
+
+                if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
+                    continue;
+
+                dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw, feedUrl);
+
+                if (!ContainsHeroImage(dtoItem.ContentRaw) &&
+                    !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
+                {
+                    dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
+                }
+
+                dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw) ??
+                                       _cleaner.StripInnerHtmlWords(dtoItem.Description);
+
+                dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
+
+                dtoItems.Add(dtoItem);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process RSS feed from {FeedUrl}", feedUrl);
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error parsing RSS feed item");
+                invalidCount++;
+            }
+
+            _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
         }
 
-        return dtoItems;
+        return new FeedProcessingResult(dtoItems, invalidCount);
     }
 
     private void EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)

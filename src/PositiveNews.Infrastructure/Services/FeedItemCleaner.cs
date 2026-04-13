@@ -46,7 +46,8 @@ public class FeedItemCleaner : IFeedItemCleaner
         "Members can also look for the following:",
         "What are you planning to play this weekend?",
         "in the comments below.",
-        "-end-"
+        "-end-",
+        "-fin-"
     };
 
     // Patterns that trigger removal of a single node

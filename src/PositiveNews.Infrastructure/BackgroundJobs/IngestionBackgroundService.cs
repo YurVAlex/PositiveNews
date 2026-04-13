@@ -50,33 +50,33 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
         // Wait for the application to fully initialize before the first run.
         await Task.Delay(_initialDelay, stoppingToken);
 
-        while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
             {
+
                 // This wraps the entire ingestion cycle. It creates a safe boundary and trigger the main
                 // Command Handler without polluting the Singleton host.
                 using var scope = _scopeFactory.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
                 await mediator.Send(new RunIngestionCycleCommand(), stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("Ingestion Background Service is stopping.");
-                break; // ← Exit loop on shutdown
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
-            }
 
-            // Wait for the configured interval before the next run.
-            if (!stoppingToken.IsCancellationRequested)
-            {
-                _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
-                await Task.Delay(_interval, stoppingToken);
+                // Wait for the configured interval before the next run.
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
+                    await Task.Delay(_interval, stoppingToken);
+                }
             }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Ingestion Background Service is stopping.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
         }
     }
 }

@@ -9,7 +9,7 @@ public class FeedItemValidator : IFeedItemValidator
 
     public bool IsValid(XElement itemElement) //TODO: Additional validation
     {
-       var fields = new[] { "title", "link", "description", ContentNs + "encoded" };
+        XName[] fields = ["title", "link", "description", ContentNs + "encoded"];
 
         if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
             return false;

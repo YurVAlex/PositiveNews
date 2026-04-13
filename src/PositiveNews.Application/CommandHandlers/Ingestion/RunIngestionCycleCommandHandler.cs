@@ -5,9 +5,6 @@ using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Ingestion;
 using PositiveNews.Application.Queries.Ingestion;
-using PositiveNews.Domain.Entities;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
-using static System.Net.WebRequestMethods;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
