@@ -1,36 +1,36 @@
 ﻿using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
-using PositiveNews.Infrastructure.Services;
 using PositiveNews.Application.Interfaces;
 using System.Xml.Linq;
 
+namespace PositiveNews.Infrastructure.Services;
+
 public class FeedItemParser : IFeedItemParser
 {
-    private readonly ILogger<FeedReader> _logger;
+    private readonly ILogger<FeedItemParser> _logger;
     
     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
 
-    public FeedItemParser(ILogger<FeedReader> logger, IImgTagExtractor imgTagextractor)
+    public FeedItemParser(ILogger<FeedItemParser> logger)
     {
         _logger = logger;
     }
+
     public RssFeedItemDto Parse(XElement itemElement)
     {
         return new RssFeedItemDto
         {
-            Title = itemElement.Element("title")!.Value,              // "!" is because validator guarantees it exists.
-            Link = itemElement.Element("link")!.Value,   
-            Description = itemElement.Element("description")!.Value,
-            ContentRaw = itemElement.Element(ContentNs + "encoded")!.Value,
-            Author = itemElement.Element(DcNs + "creator")?.Value,    
+            Title = itemElement.Element("title")?.Value?.Trim() ?? string.Empty,
+            Link = itemElement.Element("link")?.Value?.Trim() ?? string.Empty,
+            Description = itemElement.Element("description")?.Value?.Trim() ?? string.Empty,
+            ContentRaw = itemElement.Element(ContentNs + "encoded")?.Value?.Trim() ?? string.Empty,
+            Author = itemElement.Element(DcNs + "creator")?.Value?.Trim(),
             PublishedDate = ParseDate(itemElement),
             Topics = ExtractCategories(itemElement),
-            ExternalId = itemElement.Element("guid")?.Value           //TODO: Add cleaner/cutter and regex conductor before parsing. Like in methods bellow
+            ExternalId = itemElement.Element("guid")?.Value?.Trim()
         };
     }
-
-    
     private List<string> ExtractCategories(XElement itemElement)
     {
         var categories = itemElement
@@ -42,8 +42,9 @@ public class FeedItemParser : IFeedItemParser
 
         if (categories.Count == 0)
         {
-            categories = new List<string> { "Default" }; // NEW list, not shared
+            categories = ["Default"];
         }
+
         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));
         return categories;
     }

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using HtmlAgilityPack;
 using System.Xml.Linq;
 
 namespace PositiveNews.Application.Interfaces;
 
 public interface IImgTagExtractor
 {
-    public string? ExtractImgTag(XElement itemElement, string feedUrl, string? contentClean);
-    
+    string? ExtractImgTag(XElement itemElement, string feedUrl, HtmlNode? contentNode, HtmlNode? descriptionNode);
 }

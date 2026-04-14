@@ -12,17 +12,17 @@ using PositiveNews.Infrastructure.Constants;
 
 namespace PositiveNews.Infrastructure.Services;
 
-public class ImgTagExtractor : IImgTagExtractor
+public class PreviewImgTagExtractor : IImgTagExtractor
 {
     private readonly ILogger<FeedReader> _logger;
 
     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
 
-    public ImgTagExtractor(ILogger<FeedReader> logger)
+    public PreviewImgTagExtractor(ILogger<FeedReader> logger)
     {
         _logger = logger;
     }
-    public string? ExtractImgTag(XElement itemElement, string? contentClean, string feedUrl)
+    public string? ExtractImgTag(XElement itemElement, string feedUrl, HtmlNode? contentNode, HtmlNode? descriptionNode)
     {
         try
         {
@@ -41,17 +41,13 @@ public class ImgTagExtractor : IImgTagExtractor
                 );
             }
 
-            // 2. Prefered <img> inside <description>
-            var descriptionHtml = itemElement.Element("description")?.Value;
-            if (!string.IsNullOrWhiteSpace(descriptionHtml))
-            {
-                var imgFromDesc = ExtractPreferedImgFromHtml(descriptionHtml);
-                if (imgFromDesc != null)
-                    return imgFromDesc;
-            }
+            // 2. Preferred <img> inside <description>
+            var imgFromDesc = ExtractPreferredImgFromNode(descriptionNode);
+            if (imgFromDesc != null)
+                return imgFromDesc;
 
-            // 3. Prefered <img> inside <contentClean> 
-            var imgFromEncoded = ExtractPreferedImgFromHtml(contentClean);
+            // 3. Preferred <img> inside content
+            var imgFromEncoded = ExtractPreferredImgFromNode(contentNode);
             if (imgFromEncoded != null)
                 return imgFromEncoded;
 
@@ -67,16 +63,13 @@ public class ImgTagExtractor : IImgTagExtractor
                 );
             }
 
-            // 5. Eny <img> inside <description>
-            if (!string.IsNullOrWhiteSpace(descriptionHtml))
-            {
-                var imgFromDesc = ExtractEnyImgFromHtml(descriptionHtml);
-                if (imgFromDesc != null)
-                    return imgFromDesc;
-            }
+            // 5. Any <img> inside <description>
+            imgFromDesc = ExtractAnyImgFromNode(descriptionNode);
+            if (imgFromDesc != null)
+                return imgFromDesc;
 
-            // 6. Eny <img> inside <contentClean> 
-            imgFromEncoded = ExtractEnyImgFromHtml(contentClean);
+            // 6. Any <img> inside content
+            imgFromEncoded = ExtractAnyImgFromNode(contentNode);
             if (imgFromEncoded != null)
                 return imgFromEncoded;
 
@@ -85,21 +78,18 @@ public class ImgTagExtractor : IImgTagExtractor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error durring image tag extracting");
+            _logger.LogError(ex, "Error during image tag extraction");
             return null;
         }
     }
 
 
-    private static string? ExtractImgFromHtml(string? html, string xpathQuery)
+    private static string? ExtractImgFromNode(HtmlNode? rootNode, string xpathQuery)
     {
-        if (string.IsNullOrWhiteSpace(html))
+        if (rootNode == null)
             return null;
-
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
-
-        var images = doc.DocumentNode.SelectNodes(xpathQuery);
+        
+        var images = rootNode.SelectNodes(xpathQuery);
 
         var img = images
             ?.OrderBy(node =>
@@ -127,11 +117,11 @@ public class ImgTagExtractor : IImgTagExtractor
         );
     }
 
-    private static string? ExtractPreferedImgFromHtml(string? html)
-    => ExtractImgFromHtml(html, "//img[@srcset and not(@class=\"img-fluid w-5 rounded mb-3\")]");
+    private static string? ExtractPreferredImgFromNode(HtmlNode? rootNode)
+    => ExtractImgFromNode(rootNode, ".//img[@srcset and not(@class=\"img-fluid w-5 rounded mb-3\")]");
 
-    private static string? ExtractEnyImgFromHtml(string? html)
-        => ExtractImgFromHtml(html, "//img");
+    private static string? ExtractAnyImgFromNode(HtmlNode? rootNode)
+        => ExtractImgFromNode(rootNode, ".//img");
 
     private static string? CleanSrcsetForPreview(string? srcset)
     {

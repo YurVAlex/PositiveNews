@@ -6,11 +6,11 @@ namespace PositiveNews.Application.DTOs;
 /// </summary>
 public class RssFeedItemDto
 {
-    public required string Title { get; set; }
-    public required string Link { get; init; }
+    public string Title { get; set; } = string.Empty;
+    public string Link { get; init; } = string.Empty;
 
-    public required string ContentRaw { get; set; }
-    public required string Description { get; set; }
+    public string ContentRaw { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string? Author { get; init; }
     public string? ContentClean { get; set; }
 
@@ -19,6 +19,6 @@ public class RssFeedItemDto
     public string? ExternalId { get; init; }
     public string? ImageTag { get; set; }
 
-    public List<string>? Topics { get; set; }
+    public List<string> Topics { get; set; } = [];
     public decimal? PositivityScore { get; set; }
 }

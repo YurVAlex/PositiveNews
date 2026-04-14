@@ -1,5 +1,4 @@
-﻿using HtmlAgilityPack;
-using PositiveNews.Application.Interfaces;
+﻿using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Infrastructure.Services;
 
@@ -19,21 +18,13 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
         "devastating", "horrible", "fear", "hate", "violence"
     };
 
-    public decimal AnalyzeSentiment(string? htmlContent)
+    public decimal AnalyzeSentiment(string? plainTextContent)
     {
-        if (string.IsNullOrWhiteSpace(htmlContent))
+        if (string.IsNullOrWhiteSpace(plainTextContent))
             return 0.5000m; // Neutral default
 
-        // 1. Strip HTML tags to analyze purely text
-        var doc = new HtmlDocument();
-        doc.LoadHtml(htmlContent);
-        var plainText = doc.DocumentNode.InnerText; 
-
-        if (string.IsNullOrWhiteSpace(plainText))
-            return 0.5000m;
-
-        // 2. Split text into distinct words
-        var words = plainText.Split(new[] { ' ', '.', ',', ';', '!', '?', '\n', '\r', '"', '\'' },
+        // 1. Split text into distinct words
+        var words = plainTextContent.Split(new[] { ' ', '.', ',', ';', '!', '?', '\n', '\r', '"', '\'' },
                                StringSplitOptions.RemoveEmptyEntries);
 
         int posCount = 0;
@@ -50,7 +41,7 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
         if (totalScored == 0)
             return 0.5000m; // Neutral if no keywords matched
 
-        // 3. Calculate score between 0.0000 and 1.0000
+        // 2. Calculate score between 0.0000 and 1.0000
         decimal score = (decimal)posCount / totalScored;
 
         return Math.Round(score, 3);

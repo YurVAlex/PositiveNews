@@ -1,31 +1,27 @@
 ﻿using HtmlAgilityPack;
+using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Interfaces;
 using System.Net;
-using System.Xml.Linq;
+
+namespace PositiveNews.Infrastructure.Services;
 
 public class FeedItemValidator : IFeedItemValidator
 {
-    private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
-    private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
-
-    public bool IsValid(XElement itemElement) //TODO: Additional validation
+    public bool IsValid(RssFeedItemDto item, HtmlNode? contentNode) //TODO: Additional validation
     {
-        XName[] fields = ["title", "link", "description", ContentNs + "encoded"];
-
-        if (fields.Any(t => string.IsNullOrWhiteSpace(itemElement.Element(t)?.Value)))
+        if (string.IsNullOrWhiteSpace(item.Title) ||
+            string.IsNullOrWhiteSpace(item.Link) ||
+            string.IsNullOrWhiteSpace(item.Description) ||
+            string.IsNullOrWhiteSpace(item.ContentRaw))
             return false;
 
-        if (itemElement.Element(DcNs + "creator")?.Value == "tinybuddha")
+        if (item.Author == "tinybuddha")
             return false;
 
-        var html = itemElement.Element(ContentNs + "encoded")!.Value;
-
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
-
-        if (doc.DocumentNode == null ||
-            doc.DocumentNode.InnerHtml == null ||
-            string.IsNullOrWhiteSpace(doc.DocumentNode.InnerText) ||
-            (doc.DocumentNode.InnerText.Length < 25))
+        if (contentNode == null ||
+            contentNode.InnerHtml == null ||
+            string.IsNullOrWhiteSpace(contentNode.InnerText) ||
+            contentNode.InnerText.Length < 25)
         {
             return false;
         }

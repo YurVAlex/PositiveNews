@@ -46,7 +46,8 @@ public static class DependencyInjection
         services.AddScoped<IFeedItemParser, FeedItemParser>();
         services.AddScoped<IFeedProcessor, FeedProcessor>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
-        services.AddScoped<IImgTagExtractor, ImgTagExtractor>();
+        services.AddScoped<IFeedItemEnricher, FeedItemEnricher>();
+        services.AddScoped<IImgTagExtractor, PreviewImgTagExtractor>();
         services.AddScoped<IPositivityAnalyzer, KeyPhrasePositivityAnalyzer>();
 
         // Background services

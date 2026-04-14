@@ -12,25 +12,30 @@ public class FeedProcessor : IFeedProcessor
     private readonly IFeedItemValidator _validator;
     private readonly IFeedItemParser _parser;
     private readonly IFeedItemCleaner _cleaner;
+    private readonly IFeedItemEnricher _enricher;
     private readonly IImgTagExtractor _imgTagExtractor;
     private readonly IPositivityAnalyzer _analyzer;
 
-    public FeedProcessor(IFeedItemValidator validator,
-                         IFeedItemParser parser,
-                         IFeedItemCleaner cleaner,
-                         ILogger<FeedProcessor> loger,
-                         IImgTagExtractor imgTagExtractor,
-                         IPositivityAnalyzer analyzer)
+    public FeedProcessor(
+       IFeedItemValidator validator,
+       IFeedItemParser parser,
+       IFeedItemCleaner cleaner,
+       IFeedItemEnricher enricher,
+       ILogger<FeedProcessor> logger,
+       IImgTagExtractor imgTagExtractor,
+       IPositivityAnalyzer analyzer)
     {
         _validator = validator;
         _parser = parser;
         _cleaner = cleaner;
+        _enricher = enricher;
         _imgTagExtractor = imgTagExtractor;
-        _logger = loger;
+        _logger = logger;
         _analyzer = analyzer;
     }
 
-    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, CancellationToken cancellationToken = default)
+    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, 
+        CancellationToken cancellationToken = default)
     {
         var dtoItems = new List<RssFeedItemDto>();
         var invalidCount = 0;
@@ -46,37 +51,11 @@ public class FeedProcessor : IFeedProcessor
 
             try
             {
-                if (!_validator.IsValid(feedItem))
+                if (!TryProcessFeedItem(feedUrl, feedItem, lookup, out var dtoItem))
                 {
-                    _logger.LogWarning("Skipping invalid feed item.");
                     invalidCount++;
                     continue;
                 }
-
-                var dtoItem = _parser.Parse(feedItem);
-
-                if (dtoItem.Topics == null)
-                    dtoItem.Topics = new List<string>();
-
-                _cleaner.Clean(dtoItem);
-                _cleaner.CleanTopics(dtoItem, lookup);
-                EnrichTopics(feedUrl, dtoItem, lookup);
-
-                if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
-                    continue;
-
-                dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, dtoItem.ContentRaw, feedUrl);
-
-                if (!ContainsHeroImage(dtoItem.ContentRaw) &&
-                    !string.IsNullOrWhiteSpace(dtoItem.ImageTag))
-                {
-                    dtoItem.ContentRaw = string.Concat(dtoItem.ImageTag, dtoItem.ContentRaw);
-                }
-
-                dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw) ??
-                                       _cleaner.StripInnerHtmlWords(dtoItem.Description);
-
-                dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
 
                 dtoItems.Add(dtoItem);
             }
@@ -91,92 +70,45 @@ public class FeedProcessor : IFeedProcessor
 
         return new FeedProcessingResult(dtoItems, invalidCount);
     }
-
-    private void EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)
+    private bool TryProcessFeedItem(string feedUrl, XElement feedItem, TopicLookup lookup, out RssFeedItemDto dtoItem)
     {
-        dto.Topics ??= new List<string>();
+        dtoItem = _parser.Parse(feedItem);
 
-        var result = new HashSet<string>(dto.Topics, StringComparer.OrdinalIgnoreCase);
-
-        void Add(string name)
+        var rawContentNode = ParseHtmlNode(dtoItem.ContentRaw);
+        if (!_validator.IsValid(dtoItem, rawContentNode))
         {
-            if (lookup.ByName.ContainsKey(name))
-                result.Add(name);
-        }
-
-        // Source-specific rules
-        if (feedUrl.Contains("nvidia", StringComparison.OrdinalIgnoreCase))
-            Add("Technology");
-
-        if (feedUrl.Contains("nasa", StringComparison.OrdinalIgnoreCase))
-        {
-            Add("Space");
-            Add("Technology");
-            Add("Science");
-        }
-
-        if (feedUrl.Contains("thisiscolossal", StringComparison.OrdinalIgnoreCase) ||
-            feedUrl.Contains("designyoutrust", StringComparison.OrdinalIgnoreCase))
-        {
-            Add("Arts & Culture");
-        }
-
-        if (feedUrl.Contains("tinybuddha", StringComparison.OrdinalIgnoreCase))
-            Add("Psychology");
-
-        // Parent topic expansion using reverse lookup
-        var expandedTopics = new HashSet<string>(result, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var topicName in result.ToList())
-        {
-            if (!lookup.ByName.TryGetValue(topicName, out var topic))
-                continue;
-
-            var slugWords = topic.Slug
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(w => w.Trim());
-
-            foreach (var word in slugWords)
-            {
-                if (lookup.ByName.TryGetValue(word, out var related))
-                {
-                    result.Add(related.Name);
-                }
-            }
-        }
-
-        foreach (var expanded in expandedTopics)
-            result.Add(expanded);
-
-        if (result.Count == 0)
-            Add("Default");
-
-        dto.Topics = result.ToList();
-    }
-
-    private bool ContainsHeroImage(string html)
-    {
-        try
-        {
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-
-            var images = doc.DocumentNode.SelectNodes("//img");
-
-            if (images == null || images.Count == 0)
-                return false;
-
-            return images.Any(img =>
-            {
-                var classAttr = img.GetAttributeValue("class", "");
-                return classAttr.Contains("img-fluid", StringComparison.OrdinalIgnoreCase) &&
-                       classAttr.Contains("w-100", StringComparison.OrdinalIgnoreCase);
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error checking for fluid images in HTML content");
+            _logger.LogWarning("Skipping invalid feed item.");
             return false;
         }
+
+        _cleaner.Clean(dtoItem, lookup);
+
+        _enricher.EnrichTopics(feedUrl, dtoItem, lookup);
+
+        if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
+            return false;
+
+        var cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
+        var descriptionNode = ParseHtmlNode(dtoItem.Description);
+
+        dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
+        dtoItem.ContentRaw = _enricher.AddHeroImage(dtoItem.ContentRaw, dtoItem.ImageTag, cleanedContentNode);
+        cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
+
+        dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
+            ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
+        dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
+        return true;
     }
+
+    private static HtmlNode? ParseHtmlNode(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+            return null;
+
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+        return doc.DocumentNode;
+    }
+
 }

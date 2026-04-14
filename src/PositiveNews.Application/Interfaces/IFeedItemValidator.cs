@@ -1,6 +1,9 @@
-﻿using System.Xml.Linq;
+﻿using HtmlAgilityPack;
+using PositiveNews.Application.DTOs;
+
+namespace PositiveNews.Application.Interfaces;
 
 public interface IFeedItemValidator
 {
-    bool IsValid(XElement itemElement);
+    bool IsValid(RssFeedItemDto item, HtmlNode? contentNode);
 }

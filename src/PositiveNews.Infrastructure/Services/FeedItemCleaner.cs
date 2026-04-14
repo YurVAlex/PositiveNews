@@ -24,7 +24,9 @@ public class FeedItemCleaner : IFeedItemCleaner
     {
         "navigation-menu",
         "blocks-content-lists",
+        "nasa-blocks-article-intro",
         "hds-featured-file-list",
+        "listicle-layout-basic",
         "hds-audio-player-",
         "secondary-navigation",
         "comparison-slider-parent",
@@ -83,23 +85,27 @@ public class FeedItemCleaner : IFeedItemCleaner
     @"The post\s*<a[^>]*>.*?<\/a>\s*first appeared on\s*<a[^>]*>.*?<\/a>\.?",
     RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline);
 
-    public void Clean(RssFeedItemDto dto)
+    private static readonly Regex HtmlTagRegex = new(
+    @"<[^>]+>",
+    RegexOptions.Compiled);
+
+    public void Clean(RssFeedItemDto dto, TopicLookup lookup)
     {
         dto.Description = CleanDescription(dto.Description);
         dto.ContentRaw = CleanContent(dto.ContentRaw);  
         dto.Title = CleanTitle(dto.Title);
+        CleanTopics(dto, lookup);
     }
 
-    public string? StripInnerHtmlWords(string htmlContent)
+    public string? StripInnerHtmlWords(string? htmlContent, HtmlNode? htmlNode = null)
     {
+        if (htmlNode != null)
+            return htmlNode.InnerText;
+
         if (string.IsNullOrWhiteSpace(htmlContent))
-            return htmlContent; 
+            return htmlContent;
 
-        var doc = new HtmlDocument();
-        doc.LoadHtml(htmlContent);
-        var plainText = doc.DocumentNode.InnerText;
-
-        return plainText;
+        return LoadDocument(htmlContent).DocumentNode.InnerText;
     }
 
     private static string CleanContent(string rawContent)
@@ -576,13 +582,15 @@ public class FeedItemCleaner : IFeedItemCleaner
         // -------------------------------------------------------
         html = AppearedFirstOnRegex.Replace(html, "");
 
+        if (!ContainsHtmlMarkup(html))
+            return TrimAfterLastDot(html);
+
         // -------------------------------------------------------
         // 4. Parse HTML safely
         // -------------------------------------------------------
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
+        var doc = LoadDocument(html);
 
-        var paragraphs = doc.DocumentNode.SelectNodes("//p");
+        var paragraphs = doc.DocumentNode.SelectNodes(".//p");
 
         if (paragraphs == null || paragraphs.Count == 0)
             return TrimAfterLastDot(doc.DocumentNode.InnerText);
@@ -642,12 +650,12 @@ public class FeedItemCleaner : IFeedItemCleaner
         if (string.IsNullOrWhiteSpace(html))
             return html;
 
-        return Regex.Replace(
-            html,
-            @"<strong>\s*(?<left>[^~<]+?)\s*~\s*[^<]*\s*</strong>",
-            "<strong>${left}</strong>",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled
-        );
+        return StrongTildeRegex.Replace(html, "<strong>${left}</strong>");
+    }
+
+    private static bool ContainsHtmlMarkup(string input)
+    {
+        return HtmlTagRegex.IsMatch(input);
     }
 
     public void CleanTopics(RssFeedItemDto dto, TopicLookup lookup)
