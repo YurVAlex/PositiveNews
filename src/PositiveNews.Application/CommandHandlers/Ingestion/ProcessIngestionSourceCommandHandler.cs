@@ -7,6 +7,7 @@ using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Queries.Ingestion;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Enums;
+using System.Diagnostics;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
@@ -20,6 +21,7 @@ public sealed class ProcessIngestionSourceCommandHandler(
 {
     public async Task Handle(ProcessIngestionSourceCommand request, CancellationToken cancellationToken)
     {
+        var stopwatch = Stopwatch.StartNew();
         var source = request.Source;
         logger.LogInformation("Processing source: {SourceName} ({FeedUrl})", source.Name, source.FeedUrl);
 
@@ -124,6 +126,14 @@ public sealed class ProcessIngestionSourceCommandHandler(
             run.ItemsFetched = newArticleCount;
             run.FinishedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(CancellationToken.None);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            logger.LogInformation(
+                "Processing source {SourceName} finished in {ElapsedMs} ms.",
+                source.Name,
+                stopwatch.ElapsedMilliseconds);
         }
     }
 

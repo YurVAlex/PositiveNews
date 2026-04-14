@@ -81,23 +81,23 @@ public class FeedProcessor : IFeedProcessor
             return false;
         }
 
-        _cleaner.Clean(dtoItem, lookup);
-
-        _enricher.EnrichTopics(feedUrl, dtoItem, lookup);
+        dtoItem = _cleaner.Clean(dtoItem, lookup, rawContentNode);
 
         if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
             return false;
 
+        dtoItem = _enricher.EnrichTopics(feedUrl, dtoItem, lookup);
+
         var cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
         var descriptionNode = ParseHtmlNode(dtoItem.Description);
-
-        dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
-        dtoItem.ContentRaw = _enricher.AddHeroImage(dtoItem.ContentRaw, dtoItem.ImageTag, cleanedContentNode);
-        cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
 
         dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
             ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
         dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
+
+        dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
+        dtoItem.ContentRaw = _enricher.AddHeroImage(dtoItem.ContentRaw, dtoItem.ImageTag, cleanedContentNode);
+
         return true;
     }
 
@@ -110,5 +110,4 @@ public class FeedProcessor : IFeedProcessor
         doc.LoadHtml(html);
         return doc.DocumentNode;
     }
-
 }

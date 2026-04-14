@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using PositiveNews.Infrastructure.Constants;
 
@@ -17,6 +18,9 @@ public class PreviewImgTagExtractor : IImgTagExtractor
     private readonly ILogger<FeedReader> _logger;
 
     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
+    private static readonly Regex SrcsetCandidateRegex = new(
+        @"(?<url>\S+)(?:\s+(?<w>\d+)w)?",
+        RegexOptions.Compiled);
 
     public PreviewImgTagExtractor(ILogger<FeedReader> logger)
     {
@@ -129,14 +133,11 @@ public class PreviewImgTagExtractor : IImgTagExtractor
             return null;
 
         // Matches: URL + optional descriptor (e.g. "300w")
-        var matches = System.Text.RegularExpressions.Regex.Matches(
-            srcset,
-            @"(?<url>\S+)(?:\s+(?<w>\d+)w)?"
-        );
+        var matches = SrcsetCandidateRegex.Matches(srcset);
 
         var candidates = new List<(string url, int? width)>();
 
-        foreach (System.Text.RegularExpressions.Match match in matches)
+        foreach (Match match in matches)
         {
             var url = match.Groups["url"].Value;
             int? width = null;
@@ -235,14 +236,11 @@ public class PreviewImgTagExtractor : IImgTagExtractor
         if (string.IsNullOrWhiteSpace(srcset))
             return null;
 
-        var matches = System.Text.RegularExpressions.Regex.Matches(
-            srcset,
-            @"(?<url>\S+)(?:\s+(?<w>\d+)w)?"
-        );
+        var matches = SrcsetCandidateRegex.Matches(srcset);
 
         var candidates = new List<(string url, int width)>();
 
-        foreach (System.Text.RegularExpressions.Match match in matches)
+        foreach (Match match in matches)
         {
             if (!match.Groups["w"].Success)
                 continue;

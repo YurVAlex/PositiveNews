@@ -25,6 +25,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         "navigation-menu",
         "blocks-content-lists",
         "nasa-blocks-article-intro",
+        "nasa-blocks-article-hero-header",
         "hds-featured-file-list",
         "listicle-layout-basic",
         "hds-audio-player-",
@@ -89,12 +90,37 @@ public class FeedItemCleaner : IFeedItemCleaner
     @"<[^>]+>",
     RegexOptions.Compiled);
 
-    public void Clean(RssFeedItemDto dto, TopicLookup lookup)
+    private static readonly Regex RemoveTrailingPostLinksRegex = new(
+    @"<\/p>\s*The post\s*<a.*?<\/a>.*",
+    RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex AppearedFirstOnTextRegex = new(
+    @"appeared first on",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex OptimistDailyTextRegex = new(
+    @"BY THE OPTIMIST DAILY",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex StartsWithThePostRegex = new(
+    @"^The post ",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex ThePostSentenceRegex = new(
+    @"The post .*? first appeared on .*?\.",
+    RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex OptimistDailySentenceRegex = new(
+    @"BY THE OPTIMIST DAILY.*?(?=\.)",
+    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public RssFeedItemDto Clean(RssFeedItemDto dto, TopicLookup lookup, HtmlNode? rawContentNode)
     {
         dto.Description = CleanDescription(dto.Description);
-        dto.ContentRaw = CleanContent(dto.ContentRaw);  
+        dto.ContentRaw = CleanContent(dto.ContentRaw, rawContentNode);
         dto.Title = CleanTitle(dto.Title);
-        CleanTopics(dto, lookup);
+        dto.Topics = CleanTopics(dto.Topics, lookup);
+        return dto;
     }
 
     public string? StripInnerHtmlWords(string? htmlContent, HtmlNode? htmlNode = null)
@@ -108,23 +134,23 @@ public class FeedItemCleaner : IFeedItemCleaner
         return LoadDocument(htmlContent).DocumentNode.InnerText;
     }
 
-    private static string CleanContent(string rawContent)
-    {
-        var doc = LoadDocument(rawContent);
-        var builder = new StringBuilder();
-        var stopProcessing = false;
-
-        ProcessNodesIterative(doc.DocumentNode, builder, ref stopProcessing);
-
-        var cleaned = RemoveTrailingPostLinks(builder.ToString());
-        return RemoveTildeAuthor(cleaned).Trim();  
-    }
-
     private static HtmlDocument LoadDocument(string html)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
         return doc;
+    }
+
+    private static string CleanContent(string rawContent, HtmlNode? rawContentNode)
+    {
+        var rootNode = rawContentNode ?? LoadDocument(rawContent).DocumentNode;
+        var builder = new StringBuilder();
+        var stopProcessing = false;
+
+        ProcessNodesIterative(rootNode, builder, ref stopProcessing);
+
+        var cleaned = RemoveTrailingPostLinks(builder.ToString());
+        return RemoveTildeAuthor(cleaned).Trim();  
     }
 
     private static void ProcessNodesIterative(HtmlNode root, StringBuilder builder, ref bool stopProcessing)
@@ -550,11 +576,7 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     private static string RemoveTrailingPostLinks(string content)
     {
-        return Regex.Replace(
-            content,
-            @"<\/p>\s*The post\s*<a.*?<\/a>.*",
-            "",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        return RemoveTrailingPostLinksRegex.Replace(content, "");
     }
 
     private static string CleanDescription(string description)
@@ -599,25 +621,17 @@ public class FeedItemCleaner : IFeedItemCleaner
     .Select(p => HtmlEntity.DeEntitize(p.InnerText).Trim())
     .Where(t => !string.IsNullOrWhiteSpace(t))
     .Where(t =>
-        !Regex.IsMatch(t, @"appeared first on", RegexOptions.IgnoreCase) &&
-        !Regex.IsMatch(t, @"BY THE OPTIMIST DAILY", RegexOptions.IgnoreCase) &&
-        !Regex.IsMatch(t, @"^The post ", RegexOptions.IgnoreCase)
+        !AppearedFirstOnTextRegex.IsMatch(t) &&
+        !OptimistDailyTextRegex.IsMatch(t) &&
+        !StartsWithThePostRegex.IsMatch(t)
     );
 
         var result = string.Join(" ", texts);
 
         // Final safety cleanup (text-level)
-        result = Regex.Replace(
-            result,
-            @"The post .*? first appeared on .*?\.",
-            "",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        result = ThePostSentenceRegex.Replace(result, "");
 
-        result = Regex.Replace(
-            result,
-            @"BY THE OPTIMIST DAILY.*?(?=\.)",
-            "",
-            RegexOptions.IgnoreCase);
+        result = OptimistDailySentenceRegex.Replace(result, "");
 
         result = result.Length > 1999 ? result[..1999] : result;
 
@@ -658,17 +672,14 @@ public class FeedItemCleaner : IFeedItemCleaner
         return HtmlTagRegex.IsMatch(input);
     }
 
-    public void CleanTopics(RssFeedItemDto dto, TopicLookup lookup)
+    public List<string> CleanTopics(List<string> topics, TopicLookup lookup)
     {
-        if (dto.Topics == null || dto.Topics.Count == 0)
-        {
-            dto.Topics = new List<string>(); // Replace with empty list
-            return;
-        }
+        if (topics == null || topics.Count == 0)
+            return [];
 
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var raw in dto.Topics)
+        foreach (var raw in topics)
         {
             // Only split and match individual words, don't add the original raw string
             var words = raw
@@ -692,8 +703,7 @@ public class FeedItemCleaner : IFeedItemCleaner
             }
         }
 
-        // REPLACE the original list, don't add to it
-        dto.Topics = result.ToList();
+        return result.ToList();
     }
 
     private bool IsMeaningfulMatch(string word, Topic topic)

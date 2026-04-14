@@ -14,7 +14,7 @@ public class FeedItemEnricher : IFeedItemEnricher
         _logger = logger;
     }
 
-    public void EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)
+    public RssFeedItemDto EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)
     {
         var result = new HashSet<string>(dto.Topics, StringComparer.OrdinalIgnoreCase);
 
@@ -67,6 +67,7 @@ public class FeedItemEnricher : IFeedItemEnricher
             Add("Default");
 
         dto.Topics = result.ToList();
+        return dto;
     }
 
     public string AddHeroImage(string contentRaw, string? imageTag, HtmlNode? contentNode)
