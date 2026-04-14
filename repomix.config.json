@@ -22,6 +22,8 @@
       "**/Properties/**",
       "**/wwwroot/**",
       "**/PositiveNews.WebApi/**",
+      "**/PositiveNews.Domain/**",
+       "**/PositiveNews.Web/**",
       "**/logs/**",
       "**/bin/**",
       "**/obj/**",

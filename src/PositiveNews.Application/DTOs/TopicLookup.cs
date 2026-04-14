@@ -2,7 +2,7 @@
 
 namespace PositiveNews.Application.DTOs;
 
-public class TopicLookup
+public record TopicLookup
 {
     public Dictionary<string, Topic> ByName { get; set; } = [];
     public Dictionary<string, List<Topic>> BySlugWord { get; set; } = [];

@@ -53,7 +53,7 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                _logger.LogDebug("Cancellation requested. Waiting {Delay} before next source...", 
+                _logger.LogDebug("Waiting {Delay} before next source...", 
                     IngestionPipelineConstants.DelayBetweenSources);
                 await Task.Delay(IngestionPipelineConstants.DelayBetweenSources, cancellationToken);
             }

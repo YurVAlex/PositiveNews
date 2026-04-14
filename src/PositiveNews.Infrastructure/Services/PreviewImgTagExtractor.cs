@@ -15,14 +15,14 @@ namespace PositiveNews.Infrastructure.Services;
 
 public class PreviewImgTagExtractor : IImgTagExtractor
 {
-    private readonly ILogger<FeedReader> _logger;
+    private readonly ILogger<PreviewImgTagExtractor> _logger;
 
     private static readonly XNamespace MediaNs = "http://search.yahoo.com/mrss/";
     private static readonly Regex SrcsetCandidateRegex = new(
         @"(?<url>\S+)(?:\s+(?<w>\d+)w)?",
         RegexOptions.Compiled);
 
-    public PreviewImgTagExtractor(ILogger<FeedReader> logger)
+    public PreviewImgTagExtractor(ILogger<PreviewImgTagExtractor> logger)
     {
         _logger = logger;
     }

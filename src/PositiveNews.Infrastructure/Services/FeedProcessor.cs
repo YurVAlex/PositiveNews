@@ -42,10 +42,7 @@ public class FeedProcessor : IFeedProcessor
 
         _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
 
-        var feedItems = feed.Descendants("item").ToList();
-        _logger.LogInformation("Found {Count} items in RSS feed.", feedItems.Count);
-
-        foreach (var feedItem in feedItems)
+        foreach (var feedItem in feed.Descendants("item"))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -65,7 +62,7 @@ public class FeedProcessor : IFeedProcessor
                 invalidCount++;
             }
 
-            _logger.LogInformation("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
+            _logger.LogDebug("Feed item No.{Count} has been successfully processed.", dtoItems.Count);
         }
 
         return new FeedProcessingResult(dtoItems, invalidCount);
