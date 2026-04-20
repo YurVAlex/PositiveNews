@@ -9,7 +9,6 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        // 1. Bootstrap Serilog for startup logging
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .WriteTo.File(
@@ -21,11 +20,10 @@ public class Program
 
         try
         {
-            Log.Information("Starting PositiveNews Web MVC...");
+            Log.Information("Starting PositiveNews Web (API + SPA)...");
 
             var builder = WebApplication.CreateBuilder(args);
 
-            // 2. Configure Serilog for the Host
             builder.Host.UseSerilog((context, loggerConfig) =>
             {
                 loggerConfig
@@ -39,34 +37,47 @@ public class Program
                         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
             });
 
-            // 3. Register Clean Architecture Layers & MVC
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
-            // 4. Seed Database (Applies migrations and populates sources/topics)
             await DataSeeder.SeedAsync(app.Services);
 
-            // 5. Configure the HTTP request pipeline
-            if (!app.Environment.IsDevelopment())
+            if (app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Home/Error");
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                app.UseExceptionHandler(errorApp =>
+                {
+                    errorApp.Run(async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        context.Response.ContentType = "text/plain";
+                        await context.Response.WriteAsync("An unexpected error occurred.");
+                    });
+                });
                 app.UseHsts();
             }
 
             app.UseSerilogRequestLogging();
             app.UseHttpsRedirection();
-            app.UseStaticFiles(); // Required for MVC wwwroot assets
+
+            var defaultFiles = new DefaultFilesOptions();
+            defaultFiles.DefaultFileNames.Clear();
+            defaultFiles.DefaultFileNames.Add("index.html");
+            app.UseDefaultFiles(defaultFiles);
+            app.UseStaticFiles();
+
             app.UseRouting();
             app.UseAuthorization();
 
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapControllers();
+            app.MapFallbackToFile("index.html");
 
-            // 6. Run the application
             await app.RunAsync();
         }
         catch (Exception ex)

@@ -23,6 +23,7 @@ public class FeedItemCleaner : IFeedItemCleaner
     private static readonly string[] RemoveDivClassPatterns =
     {
         "navigation-menu",
+        "hds-featured-link-list",
         "blocks-content-lists",
         "nasa-blocks-article-intro",
         "nasa-blocks-article-hero-header",
