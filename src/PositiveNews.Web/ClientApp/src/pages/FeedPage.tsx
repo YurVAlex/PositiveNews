@@ -46,7 +46,7 @@ export function FeedPage() {
   }, [page, topic])
 
   const title =
-    topic == null || topic.length === 0 ? 'Latest Positive News' : `Topic: ${topic}`
+    topic == null || topic.length === 0 ? 'Latest News' : `Topic: ${topic}`
 
   const documentTitle =
     topic == null || topic.length === 0 ? 'Positive News Feed' : `Articles - ${topic}`
@@ -83,11 +83,11 @@ export function FeedPage() {
   }
 
   return (
-    <main role="main" className="pb-3 mt-4">
+    <main role="main" className="pb-2 mt-1">
       <div className="row justify-content-center">
         <div className="col-md-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>{title}</h2>
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <h3>{title}</h3>
             {topic ? (
               <Link to="/" className="btn btn-outline-secondary btn-sm">
                 ✕ Clear Filter

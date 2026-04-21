@@ -59,6 +59,8 @@ public class FeedItemCleaner : IFeedItemCleaner
     {
     "Learn more about this image",
     "Listen to this audio",
+    "Follow NVIDIA Workstation on",
+    "Plug in to NVIDIA AI PC on",
     "follow us on",
     "Donate link:",
     "The Optimist Daily is a project of the World Business Academy",

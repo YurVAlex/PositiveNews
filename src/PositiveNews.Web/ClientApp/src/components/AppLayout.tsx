@@ -5,7 +5,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <header>
-        <nav className="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav className="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-1">
           <div className="container-fluid">
             <Link className="navbar-brand" to="/">
               PositiveNews.Web
