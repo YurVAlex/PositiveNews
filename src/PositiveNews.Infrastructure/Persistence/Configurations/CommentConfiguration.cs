@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class CommentConfiguration : IEntityTypeConfiguration<Comment>
+internal sealed class CommentConfiguration : IEntityTypeConfiguration<Comment>
 {
     public void Configure(EntityTypeBuilder<Comment> builder)
     {
@@ -40,5 +40,10 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.HasIndex(c => new { c.ArticleId, c.CreatedAt })
                .HasFilter("[IsActive] = 1")
                .HasDatabaseName("IX_Comments_Article_Thread");
+
+        // Backing field navigation access for replies
+        builder.Navigation(c => c.Replies)
+               .HasField("_replies")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

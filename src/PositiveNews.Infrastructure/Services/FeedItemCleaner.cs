@@ -1,7 +1,6 @@
 ﻿using HtmlAgilityPack;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
-using PositiveNews.Domain.Entities;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -66,7 +65,8 @@ public class FeedItemCleaner : IFeedItemCleaner
     "The Optimist Daily is a project of the World Business Academy",
     "Subscribe to our",
     "Want to be part of the Optimism Movement?",
-    "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:"
+    "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:",
+    "&nbsp"
     };
 
     private static readonly Regex YoutubeRegex = new(
@@ -119,11 +119,13 @@ public class FeedItemCleaner : IFeedItemCleaner
 
     public RssFeedItemDto Clean(RssFeedItemDto dto, TopicLookup lookup, HtmlNode? rawContentNode)
     {
-        dto.Description = CleanDescription(dto.Description);
-        dto.ContentRaw = CleanContent(dto.ContentRaw, rawContentNode);
-        dto.Title = CleanTitle(dto.Title);
-        dto.Topics = CleanTopics(dto.Topics, lookup);
-        return dto;
+        return dto with
+        {
+            Description = CleanDescription(dto.Description),
+            ContentRaw = CleanContent(dto.ContentRaw, rawContentNode),
+            Title = CleanTitle(dto.Title),
+            Topics = CleanTopics(dto.Topics, lookup)
+        };
     }
 
     public string? StripInnerHtmlWords(string? htmlContent, HtmlNode? htmlNode = null)
@@ -675,7 +677,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         return HtmlTagRegex.IsMatch(input);
     }
 
-    public List<string> CleanTopics(List<string> topics, TopicLookup lookup)
+    public IReadOnlyList<string> CleanTopics(IReadOnlyList<string> topics, TopicLookup lookup)
     {
         if (topics == null || topics.Count == 0)
             return [];
@@ -709,7 +711,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         return result.ToList();
     }
 
-    private bool IsMeaningfulMatch(string word, Topic topic)
+    private bool IsMeaningfulMatch(string word, TopicSnapshot topic)
     {
         // Don't match common short words
         var commonWords = new[] { "new", "old", "big", "small", "good", "bad", "hot", "cold" };

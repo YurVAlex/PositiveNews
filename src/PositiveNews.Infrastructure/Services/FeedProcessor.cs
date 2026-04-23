@@ -1,4 +1,4 @@
-﻿using HtmlAgilityPack;
+using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
@@ -34,7 +34,7 @@ public class FeedProcessor : IFeedProcessor
         _analyzer = analyzer;
     }
 
-    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup, 
+    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup,
         CancellationToken cancellationToken = default)
     {
         var dtoItems = new List<RssFeedItemDto>();
@@ -67,6 +67,7 @@ public class FeedProcessor : IFeedProcessor
 
         return new FeedProcessingResult(dtoItems, invalidCount);
     }
+
     private bool TryProcessFeedItem(string feedUrl, XElement feedItem, TopicLookup lookup, out RssFeedItemDto dtoItem)
     {
         dtoItem = _parser.Parse(feedItem);
@@ -88,12 +89,20 @@ public class FeedProcessor : IFeedProcessor
         var cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
         var descriptionNode = ParseHtmlNode(dtoItem.Description);
 
-        dtoItem.ContentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
+        var contentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
             ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
-        dtoItem.PositivityScore = _analyzer.AnalyzeSentiment(dtoItem.ContentClean);
 
-        dtoItem.ImageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
-        dtoItem.ContentRaw = _enricher.AddHeroImage(dtoItem.ContentRaw, dtoItem.ImageTag, cleanedContentNode);
+        var positivityScore = _analyzer.AnalyzeSentiment(contentClean);
+        var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
+
+        dtoItem = dtoItem with
+        {
+            ContentClean = contentClean,
+            PositivityScore = positivityScore,
+            ImageTag = imageTag
+        };
+
+        dtoItem = _enricher.AddHeroImage(dtoItem, imageTag, cleanedContentNode);
 
         return true;
     }

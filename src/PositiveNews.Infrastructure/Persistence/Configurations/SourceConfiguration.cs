@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class SourceConfiguration : IEntityTypeConfiguration<Source>
+internal sealed class SourceConfiguration : IEntityTypeConfiguration<Source>
 {
     public void Configure(EntityTypeBuilder<Source> builder)
     {
@@ -21,6 +21,7 @@ public class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.Property(s => s.ApiEncryptedKey).HasColumnType("nvarchar(max)");
         builder.Property(s => s.TrustScore).HasColumnType("decimal(5,2)").HasDefaultValue(1.0m);
 
+        // Defense-in-depth check constraint
         builder.ToTable(t => t.HasCheckConstraint("CK_Sources_Trust", "[TrustScore] >= 0.00"));
 
         builder.Property(s => s.DefaultLanguageCode).HasMaxLength(10).HasDefaultValue("en");
@@ -31,5 +32,18 @@ public class SourceConfiguration : IEntityTypeConfiguration<Source>
                .WithMany()
                .HasForeignKey(s => s.ModeratedBy)
                .OnDelete(DeleteBehavior.NoAction);
+
+        // Backing field navigation access for collections
+        builder.Navigation(s => s.Articles)
+               .HasField("_articles")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(s => s.IngestionRuns)
+               .HasField("_ingestionRuns")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(s => s.UserSourceFilters)
+               .HasField("_userSourceFilters")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

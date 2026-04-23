@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleContent>
+internal sealed class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleContent>
 {
     public void Configure(EntityTypeBuilder<ArticleContent> builder)
     {

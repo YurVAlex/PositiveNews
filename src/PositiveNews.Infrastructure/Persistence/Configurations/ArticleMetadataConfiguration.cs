@@ -5,11 +5,11 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMetadata>
+internal sealed class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMetadata>
 {
     public void Configure(EntityTypeBuilder<ArticleMetadata> builder)
     {
-        builder.ToTable("ArticlesMetadata", SchemaNames.Catalog); 
+        builder.ToTable("ArticlesMetadata", SchemaNames.Catalog);
 
         builder.HasKey(a => a.Id);
         builder.Property(a => a.ExternalId).HasMaxLength(300);
@@ -26,7 +26,7 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
         builder.Property(a => a.IsActive).HasDefaultValue(true);
         builder.Property(a => a.SummaryShort).HasMaxLength(2000);
 
-        // Check constraint
+        // Check constraint kept as defense-in-depth alongside domain invariant
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Articles_Positivity", "[PositivityScore] BETWEEN 0.0000 AND 1.0000"));
 
@@ -61,5 +61,14 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
                .WithOne(c => c.Metadata)
                .HasForeignKey<ArticleContent>(c => c.Id)
                .OnDelete(DeleteBehavior.Cascade);
+
+        // Backing field navigation access for collections
+        builder.Navigation(a => a.ArticleTopics)
+               .HasField("_articleTopics")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(a => a.Comments)
+               .HasField("_comments")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

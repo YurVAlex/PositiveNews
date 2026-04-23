@@ -1,16 +1,20 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Abstractions.Persistence;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
+using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Ingestion;
 using PositiveNews.Domain.Entities;
+using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
 public sealed class PersistIngestedArticlesCommandHandler(
-    IIngestionDbContext db,
+    IArticleWriteRepository articleWriteRepository,
+    ITopicReadRepository topicReadRepository,
+    IIngestionUnitOfWork ingestionUnitOfWork,
     ILogger<PersistIngestedArticlesCommandHandler> logger)
     : IRequestHandler<PersistIngestedArticlesCommand, int>
 {
@@ -27,13 +31,47 @@ public sealed class PersistIngestedArticlesCommandHandler(
             var chunk = request.Items.Skip(i).Take(chunkSize).ToList();
             var pairs = new List<(ArticleMetadata Meta, RssFeedItemDto Dto)>();
 
+            var distinctTopicNames = chunk
+                .SelectMany(dto => dto.Topics ?? Enumerable.Empty<string>())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var topicIdsByName = await topicReadRepository.GetTopicIdsByNamesAsync(distinctTopicNames, cancellationToken);
+
             foreach (var dto in chunk)
             {
                 try
                 {
-                    var meta = CreateArticleMetadata(request.SourceId, request.DefaultLanguageCode, dto);
+                    var meta = ArticleMetadata.Create(
+                        sourceId: request.SourceId,
+                        title: dto.Title,
+                        url: dto.Link,
+                        externalId: dto.ExternalId,
+                        publishedAt: dto.PublishedDate,
+                        languageCode: request.DefaultLanguageCode,
+                        positivityScore: dto.PositivityScore,
+                        author: dto.Author,
+                        summaryShort: dto.Description,
+                        imageTag: dto.ImageTag);
+
+                    var content = ArticleContent.Create(dto.ContentRaw, dto.ContentClean);
+                    meta.AttachContent(content);
+
+                    if (dto.Topics != null)
+                    {
+                        foreach (var topicName in dto.Topics)
+                        {
+                            if (topicIdsByName.TryGetValue(topicName, out var topicId))
+                                meta.AddTopic(topicId);
+                        }
+                    }
+
                     pairs.Add((meta, dto));
-                    db.ArticlesMetadata.Add(meta);
+                    articleWriteRepository.Add(meta);
+                }
+                catch (DomainException ex)
+                {
+                    logger.LogWarning(ex, "Domain invariant violation building article entity for external id: {ExternalId}", dto.ExternalId);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -44,9 +82,7 @@ public sealed class PersistIngestedArticlesCommandHandler(
             if (pairs.Count == 0)
                 continue;
 
-            await db.SaveChangesAsync(cancellationToken);
-            await AppendArticleTopicsAsync(pairs, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
+            await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
 
             foreach (var (_, dto) in pairs)
                 logger.LogInformation("Ingested new article: {Title}", dto.Title);
@@ -55,80 +91,5 @@ public sealed class PersistIngestedArticlesCommandHandler(
         }
 
         return totalSaved;
-    }
-
-    private static ArticleMetadata CreateArticleMetadata(int sourceId, string defaultLanguageCode, RssFeedItemDto dto)
-    {
-        var articleMeta = new ArticleMetadata
-        {
-            SourceId = sourceId,
-            ExternalId = dto.ExternalId,
-            Title = dto.Title,
-            Author = dto.Author,
-            Url = dto.Link,
-            ImageTag = dto.ImageTag,
-            PublishedAt = dto.PublishedDate,
-            IngestedAt = DateTime.UtcNow,
-            LanguageCode = defaultLanguageCode,
-            RegionCode = "Global",
-            IsActive = true,
-            SummaryShort = dto.Description,
-            PositivityScore = dto.PositivityScore,
-            AnalyzedAt = dto.PositivityScore.HasValue ? DateTime.UtcNow : null
-        };
-
-        articleMeta.Content = new ArticleContent
-        {
-            ContentRaw = dto.ContentRaw,
-            ContentClean = dto.ContentClean
-        };
-
-        return articleMeta;
-    }
-
-    private async Task AppendArticleTopicsAsync(
-        IReadOnlyList<(ArticleMetadata Meta, RssFeedItemDto Dto)> pairs,
-        CancellationToken cancellationToken)
-    {
-        var names = pairs
-            .SelectMany(p => p.Dto.Topics ?? Enumerable.Empty<string>())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (names.Count == 0)
-            return;
-
-        var topicIdByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var nameChunk in names.Chunk(IngestionPipelineConstants.SqlInClauseChunkSize))
-        {
-            var arr = nameChunk.ToArray();
-            var rows = await db.Topics
-                .AsNoTracking()
-                .Where(t => arr.Contains(t.Name))
-                .Select(t => new { t.Id, t.Name })
-                .ToListAsync(cancellationToken);
-
-            foreach (var row in rows)
-                topicIdByName[row.Name] = row.Id;
-        }
-
-        foreach (var (meta, dto) in pairs)
-        {
-            if (dto.Topics == null || dto.Topics.Count == 0)
-                continue;
-
-            var seenTopicIds = new HashSet<int>();
-            foreach (var topicName in dto.Topics)
-            {
-                if (!topicIdByName.TryGetValue(topicName, out var topicId) || !seenTopicIds.Add(topicId))
-                    continue;
-
-                db.ArticleTopics.Add(new ArticleTopic
-                {
-                    ArticleId = meta.Id,
-                    TopicId = topicId
-                });
-            }
-        }
     }
 }

@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class UserTopicFilterConfiguration : IEntityTypeConfiguration<UserTopicFilter>
+internal sealed class UserTopicFilterConfiguration : IEntityTypeConfiguration<UserTopicFilter>
 {
     public void Configure(EntityTypeBuilder<UserTopicFilter> builder)
     {

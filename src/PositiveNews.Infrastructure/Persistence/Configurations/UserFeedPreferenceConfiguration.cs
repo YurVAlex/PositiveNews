@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class UserFeedPreferenceConfiguration : IEntityTypeConfiguration<UserFeedPreference>
+internal sealed class UserFeedPreferenceConfiguration : IEntityTypeConfiguration<UserFeedPreference>
 {
     public void Configure(EntityTypeBuilder<UserFeedPreference> builder)
     {

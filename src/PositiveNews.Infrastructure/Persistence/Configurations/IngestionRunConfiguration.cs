@@ -2,11 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
-using PositiveNews.Domain.Enums;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
+internal sealed class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
 {
     public void Configure(EntityTypeBuilder<IngestionRun> builder)
     {
@@ -14,7 +13,7 @@ public class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
 
         builder.HasKey(ir => ir.Id);
 
-        // Store enum as string for readability and to match the SQL CHECK constraint.
+        // Store enum as string for readability
         builder.Property(ir => ir.Status)
                .HasMaxLength(50)
                .HasConversion<string>();

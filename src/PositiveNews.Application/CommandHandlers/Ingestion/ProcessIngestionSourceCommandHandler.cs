@@ -1,18 +1,21 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Abstractions.Persistence;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
+using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Queries.Ingestion;
+using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Domain.Entities;
-using PositiveNews.Domain.Enums;
 using System.Diagnostics;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
 public sealed class ProcessIngestionSourceCommandHandler(
-    IIngestionDbContext db,
+    IIngestionRunRepository ingestionRunRepository,
+    IIngestionUnitOfWork ingestionUnitOfWork,
+    IArticleDeduplicator articleDeduplicator,
     IFeedReader feedReader,
     IFeedProcessor feedProcessor,
     IMediator mediator,
@@ -25,14 +28,9 @@ public sealed class ProcessIngestionSourceCommandHandler(
         var source = request.Source;
         logger.LogInformation("Processing source: {SourceName} ({FeedUrl})", source.Name, source.FeedUrl);
 
-        var run = new IngestionRun
-        {
-            SourceId = source.Id,
-            StartedAt = DateTime.UtcNow,
-            Status = IngestionStatus.Running
-        };
-        db.IngestionRuns.Add(run);
-        await db.SaveChangesAsync(cancellationToken);
+        var run = IngestionRun.Start(source.Id);
+        ingestionRunRepository.Add(run);
+        await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
 
         var newArticleCount = 0;
         var url = source.FeedUrl;
@@ -49,10 +47,8 @@ public sealed class ProcessIngestionSourceCommandHandler(
             if (dtoItems.Count == 0)
             {
                 logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
-                run.Status = IngestionStatus.Partial;
-                run.ErrorMessage = "Feed returned zero items. The feed URL may be unavailable or empty.";
-                run.FinishedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync(cancellationToken);
+                run.PartialComplete(0, "Feed returned zero items. The feed URL may be unavailable or empty.");
+                await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
                 return;
             }
 
@@ -72,14 +68,14 @@ public sealed class ProcessIngestionSourceCommandHandler(
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (existingKeys.Matches(item))
+                if (articleDeduplicator.MatchesExisting(existingKeys, item))
                 {
                     logger.LogDebug("Skipping duplicate: {Title}", item.Title);
                     skipCount++;
                     continue;
                 }
 
-                if (ConflictsWithPendingBatch(item, pendingExternalIds, pendingUrls, pendingTitles))
+                if (articleDeduplicator.ConflictsWithPending(item, pendingExternalIds, pendingUrls, pendingTitles))
                 {
                     logger.LogDebug("Skipping duplicate within feed: {Title}", item.Title);
                     skipCount++;
@@ -97,10 +93,8 @@ public sealed class ProcessIngestionSourceCommandHandler(
                 new PersistIngestedArticlesCommand(source.Id, source.DefaultLanguageCode, toPersist),
                 cancellationToken);
 
-            run.Status = IngestionStatus.Success;
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(cancellationToken);
+            run.Complete(newArticleCount);
+            await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation(
                 "Source {SourceName}: ingested {NewCount} new articles out of {TotalCount} feed items. {SkipCount} rejected.",
@@ -112,20 +106,14 @@ public sealed class ProcessIngestionSourceCommandHandler(
         catch (OperationCanceledException)
         {
             logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
-            run.Status = IngestionStatus.Partial;
-            run.ErrorMessage = "Operation was cancelled.";
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(CancellationToken.None);
+            run.PartialComplete(newArticleCount, "Operation was cancelled.");
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
-            run.Status = IngestionStatus.Failed;
-            run.ErrorMessage = ex.Message.Length > 4000 ? ex.Message[..4000] : ex.Message;
-            run.ItemsFetched = newArticleCount;
-            run.FinishedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(CancellationToken.None);
+            run.Fail(ex.Message, newArticleCount);
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
         }
         finally
         {
@@ -137,16 +125,4 @@ public sealed class ProcessIngestionSourceCommandHandler(
         }
     }
 
-    private static bool ConflictsWithPendingBatch(
-        RssFeedItemDto item,
-        HashSet<string> pendingExternalIds,
-        HashSet<string> pendingUrls,
-        HashSet<string> pendingTitles)
-    {
-        if (!string.IsNullOrEmpty(item.ExternalId) && pendingExternalIds.Contains(item.ExternalId))
-            return true;
-        if (pendingUrls.Contains(item.Link))
-            return true;
-        return pendingTitles.Contains(item.Title);
-    }
 }

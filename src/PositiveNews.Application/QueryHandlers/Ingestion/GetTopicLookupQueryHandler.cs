@@ -1,17 +1,19 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using PositiveNews.Application.Abstractions.Persistence;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Queries.Ingestion;
+using PositiveNews.Application.Services.Ingestion;
 
 namespace PositiveNews.Application.QueryHandlers.Ingestion;
 
-public sealed class GetTopicLookupQueryHandler(IIngestionDbContext db)
+public sealed class GetTopicLookupQueryHandler(
+    ITopicReadRepository topicReadRepository,
+    ITopicLookupBuilder topicLookupBuilder)
     : IRequestHandler<GetTopicLookupQuery, TopicLookup>
 {
     public async Task<TopicLookup> Handle(GetTopicLookupQuery request, CancellationToken cancellationToken)
     {
-        var topics = await db.Topics.AsNoTracking().ToListAsync(cancellationToken);
-        return TopicLookup.Build(topics);
+        var snapshots = await topicReadRepository.GetAllTopicSnapshotsAsync(cancellationToken);
+        return topicLookupBuilder.Build(snapshots);
     }
 }

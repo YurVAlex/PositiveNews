@@ -15,11 +15,6 @@ public class TopicEntry
 
     public Topic ToEntity()
     {
-        return new Topic
-        {
-            Name = Name,
-            Slug = Slug,
-            Description = Description
-        };
+        return Topic.Create(Name, Slug, Description);
     }
 }

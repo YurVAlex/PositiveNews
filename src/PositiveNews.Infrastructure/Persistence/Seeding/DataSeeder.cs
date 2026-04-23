@@ -36,9 +36,9 @@ public static class DataSeeder
 
         var roles = new List<Role>
         {
-            new() { Name = "Admin" },
-            new() { Name = "Moderator" },
-            new() { Name = "User" }
+            Role.Create("Admin"),
+            Role.Create("Moderator"),
+            Role.Create("User")
         };
 
         context.Roles.AddRange(roles);
@@ -52,7 +52,6 @@ public static class DataSeeder
 
         List<Topic> topics;
 
-        // ALWAYS try to load from configuration if provided
         if (configuration != null)
         {
             var topicConfig = configuration.GetSection("Topics").Get<TopicConfiguration>();
@@ -83,34 +82,34 @@ public static class DataSeeder
         logger.LogInformation("Loading topics from configuration.");
 
         return new List<Topic>
-    {
-        new() { Name = "Default", Slug = "default", Description = "Not categorized" },
-        new() { Name = "Technology", Slug = "technology,robotics,big tech,artificial intelligence,ai,software,innovations,hardware,internet", Description = "Tech innovations and digital trends" },
-        new() { Name = "Health", Slug = "health,wellness,medicine", Description = "Wellness, medicine, and health science" },
-        new() { Name = "Science", Slug = "science,research,energy", Description = "Scientific discoveries and research" },
-        new() { Name = "Environment", Slug = "environment,climate,ecology", Description = "Climate, ecology, and conservation" },
-        new() { Name = "Space", Slug = "space,nasa,solar system", Description = "Astronomy, space exploration, and NASA" },
-        new() { Name = "Travel", Slug = "travel,lifestyle", Description = "Destinations and adventure" },
-        new() { Name = "Animals", Slug = "animals,wildlife,pets,dogs,cats,birds", Description = "Wildlife and animal stories" },
-        new() { Name = "Inspiring", Slug = "inspiring,inspirations", Description = "Uplifting and motivational stories" },
-        new() { Name = "Arts & Culture", Slug = "arts,culture,murals,painting,illustration,illustrations,photography,portraits,surreal,anime,paintings,architectural,architecture,craft,creative,sculpture,woodworking,artist,books,design", Description = "Art, music, literature, and culture" },
-        new() { Name = "Education", Slug = "education,learning,teaching", Description = "Learning, teaching, and academic breakthroughs" },
-        new() { Name = "Business", Slug = "business,economy,startups,corporate,enterprise", Description = "Economy, startups, and corporate responsibility" },
-        new() { Name = "Sports", Slug = "sports", Description = "Sports news" },
-        new() { Name = "Gaming", Slug = "gaming", Description = "Gaming news" },
-        new() { Name = "Software", Slug = "software,cybersecurity,open source,data science", Description = "Software news" },
-        new() { Name = "Hardware", Slug = "GPU,RTX,GeForce", Description = "New hardware news" },
-        new() { Name = "Internet", Slug = "internet,omniverse,cloud", Description = "Internet news" },
-        new() { Name = "Evergreen", Slug = "evergreen", Description = "Content that never goes out of style" },
-        new() { Name = "Lifestyle", Slug = "lifestyle,nutrition,homelife,humor,human", Description = "Interests, opinions, behaviours, and behavioural orientations" },
-        new() { Name = "Trending", Slug = "trending", Description = "About what's trending" },
-        new() { Name = "Design", Slug = "design,style,fashion", Description = "About design, style and fashion" },
-        new() { Name = "Politics", Slug = "politics", Description = "Latest Political News" },
-        new() { Name = "Social", Slug = "social,community", Description = "Latest Social News" },
-        new() { Name = "Nature", Slug = "nature,animals,flowers,earth", Description = "About earth and nature" },
-        new() { Name = "Family", Slug = "family,divorce,parenting", Description = "About family relationships" },
-        new() { Name = "Psychology", Slug = "psychology,relationships,loneliness,family", Description = "Psychology, relationships and mental health" }
-    };
+        {
+            Topic.Create("Default", "default", "Not categorized"),
+            Topic.Create("Technology", "technology,robotics,big tech,artificial intelligence,ai,software,innovations,hardware,internet", "Tech innovations and digital trends"),
+            Topic.Create("Health", "health,wellness,medicine", "Wellness, medicine, and health science"),
+            Topic.Create("Science", "science,research,energy", "Scientific discoveries and research"),
+            Topic.Create("Environment", "environment,climate,ecology", "Climate, ecology, and conservation"),
+            Topic.Create("Space", "space,nasa,solar system", "Astronomy, space exploration, and NASA"),
+            Topic.Create("Travel", "travel,lifestyle", "Destinations and adventure"),
+            Topic.Create("Animals", "animals,wildlife,pets,dogs,cats,birds", "Wildlife and animal stories"),
+            Topic.Create("Inspiring", "inspiring,inspirations", "Uplifting and motivational stories"),
+            Topic.Create("Arts & Culture", "arts,culture,murals,painting,illustration,illustrations,photography,portraits,surreal,anime,paintings,architectural,architecture,craft,creative,sculpture,woodworking,artist,books,design", "Art, music, literature, and culture"),
+            Topic.Create("Education", "education,learning,teaching", "Learning, teaching, and academic breakthroughs"),
+            Topic.Create("Business", "business,economy,startups,corporate,enterprise", "Economy, startups, and corporate responsibility"),
+            Topic.Create("Sports", "sports", "Sports news"),
+            Topic.Create("Gaming", "gaming", "Gaming news"),
+            Topic.Create("Software", "software,cybersecurity,open source,data science", "Software news"),
+            Topic.Create("Hardware", "GPU,RTX,GeForce", "New hardware news"),
+            Topic.Create("Internet", "internet,omniverse,cloud", "Internet news"),
+            Topic.Create("Evergreen", "evergreen", "Content that never goes out of style"),
+            Topic.Create("Lifestyle", "lifestyle,nutrition,homelife,humor,human", "Interests, opinions, behaviours, and behavioural orientations"),
+            Topic.Create("Trending", "trending", "About what's trending"),
+            Topic.Create("Design", "design,style,fashion", "About design, style and fashion"),
+            Topic.Create("Politics", "politics", "Latest Political News"),
+            Topic.Create("Social", "social,community", "Latest Social News"),
+            Topic.Create("Nature", "nature,animals,flowers,earth", "About earth and nature"),
+            Topic.Create("Family", "family,divorce,parenting", "About family relationships"),
+            Topic.Create("Psychology", "psychology,relationships,loneliness,family", "Psychology, relationships and mental health")
+        };
     }
 
     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger)
@@ -119,66 +118,18 @@ public static class DataSeeder
 
         var sources = new List<Source>
         {
-            new()
-            {
-                Name = "NVIDIA Blog",
-                BaseUrl = "https://blogs.nvidia.com/",
-                FeedUrl = "https://blogs.nvidia.com/feed/",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en-US",
-                Description = "Latest news from NVIDIA.",
-                LogoUrl = "/Logos/Nvidia_logo.png"
-            },
-            new()
-            {
-                Name = "The Optimist Daily",
-                BaseUrl = "https://www.optimistdaily.com",
-                FeedUrl = "https://www.optimistdaily.com/feed/",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Making solutions the news.",
-                LogoUrl = "/Logos/Optimist_logo.png"
-            },
-            new()
-            {
-                Name = "NASA Breaking News",
-                BaseUrl = "https://www.nasa.gov",
-                FeedUrl = "https://www.nasa.gov/rss/dyn/breaking_news.rss",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Latest news from NASA.",
-                LogoUrl = "/Logos/NASA_logo.png"
-            },
-            new()
-            {
-                Name = "This Is Colossal News",
-                BaseUrl = "https://www.thisiscolossal.com",
-                FeedUrl = "https://www.thisiscolossal.com/feed",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Contemporary art and visual culture",
-                LogoUrl = "/Logos/Colossal_logo.png"
-            },
-            new()
-            {
-                Name = "Design You Trust",
-                BaseUrl = "https://designyoutrust.com",
-                FeedUrl = "https://designyoutrust.com/feed",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "A daily dose of architecture and street art",
-                LogoUrl = "/Logos/Design_logo.png"
-            },
-            new()
-            {
-                Name = "Tiny Buddha",
-                BaseUrl = "https://tinybuddha.com",
-                FeedUrl = "https://tinybuddha.com/feed",
-                TrustScore = 1.0m,
-                DefaultLanguageCode = "en",
-                Description = "Psychology, self-development and happiness",
-                LogoUrl = "/Logos/Buddha_logo.png"
-            }
+            Source.Create("NVIDIA Blog", "https://blogs.nvidia.com/", "https://blogs.nvidia.com/feed/",
+                "Latest news from NVIDIA.", "/Logos/Nvidia_logo.png", 1.0m, "en-US"),
+            Source.Create("The Optimist Daily", "https://www.optimistdaily.com", "https://www.optimistdaily.com/feed/",
+                "Making solutions the news.", "/Logos/Optimist_logo.png", 1.0m, "en"),
+            Source.Create("NASA Breaking News", "https://www.nasa.gov", "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+                "Latest news from NASA.", "/Logos/NASA_logo.png", 1.0m, "en"),
+            Source.Create("This Is Colossal News", "https://www.thisiscolossal.com", "https://www.thisiscolossal.com/feed",
+                "Contemporary art and visual culture", "/Logos/Colossal_logo.png", 1.0m, "en"),
+            Source.Create("Design You Trust", "https://designyoutrust.com", "https://designyoutrust.com/feed",
+                "A daily dose of architecture and street art", "/Logos/Design_logo.png", 1.0m, "en"),
+            Source.Create("Tiny Buddha", "https://tinybuddha.com", "https://tinybuddha.com/feed",
+                "Psychology, self-development and happiness", "/Logos/Buddha_logo.png", 1.0m, "en")
         };
 
         context.Sources.AddRange(sources);
@@ -190,22 +141,14 @@ public static class DataSeeder
     {
         if (await context.Users.AnyAsync()) return;
 
-        // Seed a system/admin user to own future moderation actions.
-        // In production, the password hash would come from a proper Identity hasher.
-        var adminUser = new User
-        {
-            Email = "admin@positivenews.local",
-            EmailConfirmed = true,
-            Name = "System Administrator",
-            PasswordHash = null, // Will be set via proper Auth flow later.
-            IsActive = true
-        };
+        var adminUser = User.Create("admin@positivenews.local", "System Administrator");
+        adminUser.ConfirmEmail();
 
         context.Users.Add(adminUser);
         await context.SaveChangesAsync();
 
         var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-        context.UserRoles.Add(new UserRole { UserId = adminUser.Id, RoleId = adminRole.Id });
+        context.UserRoles.Add(UserRole.Create(adminUser.Id, adminRole.Id));
         await context.SaveChangesAsync();
 
         logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);

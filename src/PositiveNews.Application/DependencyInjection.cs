@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using PositiveNews.Application.Services.Ingestion;
 
 namespace PositiveNews.Application;
 
@@ -12,6 +13,9 @@ public static class DependencyInjection
     {
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+
+        services.AddScoped<ITopicLookupBuilder, TopicLookupBuilder>();
+        services.AddScoped<IArticleDeduplicator, ArticleDeduplicator>();
 
         return services;
     }

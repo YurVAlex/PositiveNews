@@ -2,11 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
-using PositiveNews.Domain.Enums;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
+internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
     public void Configure(EntityTypeBuilder<AuditLog> builder)
     {

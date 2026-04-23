@@ -56,7 +56,7 @@ public class FeedItemEnricher : IFeedItemEnricher
             foreach (var word in slugWords)
             {
                 if (lookup.ByName.TryGetValue(word, out var related))
-                    result.Add(related.Name);
+                    expandedTopics.Add(related.Name);
             }
         }
 
@@ -66,20 +66,19 @@ public class FeedItemEnricher : IFeedItemEnricher
         if (result.Count == 0)
             Add("Default");
 
-        dto.Topics = result.ToList();
-        return dto;
+        return dto with { Topics = result.ToList() };
     }
 
-    public string AddHeroImage(string contentRaw, string? imageTag, HtmlNode? contentNode)
+    public RssFeedItemDto AddHeroImage(RssFeedItemDto dto, string? imageTag, HtmlNode? contentNode)
     {
-        if (string.IsNullOrWhiteSpace(contentRaw) ||
+        if (string.IsNullOrWhiteSpace(dto.ContentRaw) ||
             string.IsNullOrWhiteSpace(imageTag) ||
             ContainsHeroImage(contentNode))
         {
-            return contentRaw;
+            return dto;
         }
 
-        return string.Concat(imageTag, contentRaw);
+        return dto with { ContentRaw = string.Concat(imageTag, dto.ContentRaw) };
     }
 
     private bool ContainsHeroImage(HtmlNode? htmlNode)

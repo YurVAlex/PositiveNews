@@ -5,7 +5,7 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class UserConfiguration : IEntityTypeConfiguration<User>
+internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
@@ -26,5 +26,22 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
                .WithMany()
                .HasForeignKey(u => u.ModeratedBy)
                .OnDelete(DeleteBehavior.NoAction);
+
+        // Backing field navigation access for collections
+        builder.Navigation(u => u.UserRoles)
+               .HasField("_userRoles")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(u => u.SourceFilters)
+               .HasField("_sourceFilters")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(u => u.TopicFilters)
+               .HasField("_topicFilters")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(u => u.Comments)
+               .HasField("_comments")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

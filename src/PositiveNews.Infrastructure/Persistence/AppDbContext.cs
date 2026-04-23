@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence;
 
-public class AppDbContext : DbContext, IIngestionDbContext
+public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -32,9 +31,7 @@ public class AppDbContext : DbContext, IIngestionDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Applies all IEntityTypeConfiguration<T> from this assembly.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-
         base.OnModelCreating(modelBuilder);
     }
 }

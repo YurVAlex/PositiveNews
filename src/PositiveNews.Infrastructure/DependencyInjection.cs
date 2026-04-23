@@ -1,10 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PositiveNews.Application.Abstractions.Persistence;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
+using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
+using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Persistence;
+using PositiveNews.Infrastructure.Persistence.Repositories.Read;
+using PositiveNews.Infrastructure.Persistence.Repositories.Write;
+using PositiveNews.Infrastructure.Persistence.UnitOfWork;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure;
@@ -18,7 +23,6 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services, IConfiguration configuration)
     {
-        // EF Core with SQL Server
         var connectionString = ConnectionStringResolver.Resolve(configuration);
 
         services.AddDbContext<AppDbContext>(options =>
@@ -28,19 +32,27 @@ public static class DependencyInjection
                           sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
                       }));
 
-        services.AddScoped<IIngestionDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IArticleReadRepository, ArticleReadRepository>();
+        services.AddScoped<ITopicReadRepository, TopicReadRepository>();
+        services.AddScoped<ISourceReadRepository, SourceReadRepository>();
 
-        // HttpClient for RSS feed fetching.
-        // Configured with a polite User-Agent and a reasonable timeout.
+        services.AddScoped<IArticleWriteRepository, ArticleWriteRepository>();
+        services.AddScoped<IArticleTopicWriteRepository, ArticleTopicWriteRepository>();
+        services.AddScoped<ITopicWriteRepository, TopicWriteRepository>();
+        services.AddScoped<ISourceWriteRepository, SourceWriteRepository>();
+        services.AddScoped<IIngestionRunRepository, IngestionRunRepository>();
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IIngestionUnitOfWork, IngestionUnitOfWork>();
+
         services.AddHttpClient("RssFeedClient", client =>
-     {
-         client.Timeout = TimeSpan.FromSeconds(30);
-         client.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
-         client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
-     });
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(
+               "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
+        });
 
-        // Application services
         services.AddScoped<IFeedReader, FeedReader>();
         services.AddScoped<IFeedItemValidator, FeedItemValidator>();
         services.AddScoped<IFeedItemParser, FeedItemParser>();
@@ -50,7 +62,6 @@ public static class DependencyInjection
         services.AddScoped<IImgTagExtractor, PreviewImgTagExtractor>();
         services.AddScoped<IPositivityAnalyzer, KeyPhrasePositivityAnalyzer>();
 
-        // Background services
         services.AddHostedService<IngestionBackgroundService>();
 
         return services;
