@@ -66,7 +66,7 @@ public class FeedItemCleaner : IFeedItemCleaner
     "Subscribe to our",
     "Want to be part of the Optimism Movement?",
     "If you have questions, comments, feedback, suggestions, or just want to say hi, send a message to:",
-    "&nbsp"
+    //"&nbsp"
     };
 
     private static readonly Regex YoutubeRegex = new(
