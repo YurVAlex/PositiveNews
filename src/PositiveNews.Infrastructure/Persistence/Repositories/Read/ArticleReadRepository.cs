@@ -4,6 +4,7 @@ using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Ingestion;
+using PositiveNews.Application.Mapping;
 using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
@@ -17,9 +18,6 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
         var topic = string.IsNullOrWhiteSpace(filter.Topic) ? null : filter.Topic.Trim();
 
         var query = db.ArticlesMetadata
-            .Include(a => a.Source)
-            .Include(a => a.ArticleTopics)
-                .ThenInclude(at => at.Topic)
             .Where(a => a.IsActive)
             .AsNoTracking();
 
@@ -40,21 +38,7 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
         var articles = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new ArticleFeedItemDto
-            {
-                Id = a.Id,
-                SourceName = a.Source.Name,
-                SourceLogoUrl = a.Source.LogoUrl,
-                Title = a.Title,
-                Author = a.Author,
-                PublishedAt = a.PublishedAt,
-                ImageTag = a.ImageTag,
-                SummaryShort = a.SummaryShort ?? "No summary available.",
-                Topics = a.ArticleTopics
-                    .Where(at => at.Topic != null)
-                    .Select(at => at.Topic!.Name)
-                    .ToList()
-            })
+            .ProjectToArticleFeedItemDto()
             .ToListAsync(ct);
 
         return new ArticleFeedPageResult
@@ -78,16 +62,7 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
         if (article == null)
             return null;
 
-        return new ArticleDetailDto
-        {
-            Id = article.Id,
-            Title = article.Title,
-            SourceName = article.Source.Name,
-            SourceLogoUrl = article.Source.LogoUrl,
-            Author = article.Author,
-            PublishedAt = article.PublishedAt,
-            ContentHtml = article.Content?.ContentRaw
-        };
+        return article.ToArticleDetailDto();
     }
 
     public async Task<ExistingArticleKeys> FindExistingKeysAsync(

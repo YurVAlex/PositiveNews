@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Mapping;
 using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
@@ -21,7 +22,7 @@ internal sealed class TopicReadRepository(AppDbContext db) : ITopicReadRepositor
         return await db.Topics
             .AsNoTracking()
             .OrderBy(t => t.Name)
-            .Select(t => new TopicSnapshot(t.Id, t.Name, t.Slug, t.Description))
+            .ProjectToTopicSnapshot()
             .ToListAsync(ct);
     }
 

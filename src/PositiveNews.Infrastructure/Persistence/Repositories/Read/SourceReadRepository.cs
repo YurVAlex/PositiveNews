@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Mapping;
 using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
@@ -13,7 +14,7 @@ internal sealed class SourceReadRepository(AppDbContext db) : ISourceReadReposit
             .AsNoTracking()
             .Where(s => s.IsActive && s.FeedUrl != null)
             .OrderBy(s => s.Id)
-            .Select(s => new IngestionSourceSnapshot(s.Id, s.Name, s.FeedUrl!, s.DefaultLanguageCode))
+            .ProjectToIngestionSourceSnapshot()
             .ToListAsync(ct);
     }
 }

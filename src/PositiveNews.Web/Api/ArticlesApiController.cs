@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PositiveNews.Application.Queries.Articles;
-using PositiveNews.Application.DTOs.Articles;
+using PositiveNews.Web.Api.Mapping;
 using PositiveNews.Web.Api.Models;
 
 namespace PositiveNews.Web.Api;
@@ -18,7 +18,7 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(new GetArticleFeedQuery(page, topic), cancellationToken);
-        return Ok(MapFeed(result));
+        return Ok(result.ToArticleFeedResponse());
     }
 
     [HttpGet("{id:long}")]
@@ -32,43 +32,6 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
             return NotFound();
         }
 
-        return Ok(MapDetail(article));
-    }
-
-    private static ArticleFeedResponse MapFeed(ArticleFeedPageResult result)
-    {
-        return new ArticleFeedResponse
-        {
-            Articles = result.Articles.Select(a => new ArticlePreviewResponse
-            {
-                Id = a.Id,
-                SourceName = a.SourceName,
-                SourceLogoUrl = a.SourceLogoUrl,
-                Title = a.Title,
-                Author = a.Author,
-                PublishedAt = a.PublishedAt,
-                ImageTag = a.ImageTag,
-                SummaryShort = a.SummaryShort,
-                Topics = a.Topics.ToList()
-            }).ToList(),
-            CurrentPage = result.CurrentPage,
-            TotalPages = result.TotalPages,
-            PageSize = result.PageSize,
-            SelectedTopic = result.SelectedTopic
-        };
-    }
-
-    private static ArticleDetailResponse MapDetail(ArticleDetailDto dto)
-    {
-        return new ArticleDetailResponse
-        {
-            Id = dto.Id,
-            Title = dto.Title,
-            SourceName = dto.SourceName,
-            SourceLogoUrl = dto.SourceLogoUrl,
-            Author = dto.Author,
-            PublishedAt = dto.PublishedAt,
-            ContentHtml = dto.ContentHtml
-        };
+        return Ok(article.ToArticleDetailResponse());
     }
 }

@@ -6,6 +6,7 @@ using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Ingestion;
+using PositiveNews.Application.Mapping;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Exceptions;
 
@@ -42,17 +43,18 @@ public sealed class PersistIngestedArticlesCommandHandler(
             {
                 try
                 {
+                    var createArgs = dto.ToArticleMetadataCreateArgs(request.SourceId, request.DefaultLanguageCode);
                     var meta = ArticleMetadata.Create(
-                        sourceId: request.SourceId,
-                        title: dto.Title,
-                        url: dto.Link,
-                        externalId: dto.ExternalId,
-                        publishedAt: dto.PublishedDate,
-                        languageCode: request.DefaultLanguageCode,
-                        positivityScore: dto.PositivityScore,
-                        author: dto.Author,
-                        summaryShort: dto.Description,
-                        imageTag: dto.ImageTag);
+                        sourceId: createArgs.SourceId,
+                        title: createArgs.Title,
+                        url: createArgs.Url,
+                        externalId: createArgs.ExternalId,
+                        publishedAt: createArgs.PublishedAt,
+                        languageCode: createArgs.LanguageCode,
+                        positivityScore: createArgs.PositivityScore,
+                        author: createArgs.Author,
+                        summaryShort: createArgs.SummaryShort,
+                        imageTag: createArgs.ImageTag);
 
                     var content = ArticleContent.Create(dto.ContentRaw, dto.ContentClean);
                     meta.AttachContent(content);
