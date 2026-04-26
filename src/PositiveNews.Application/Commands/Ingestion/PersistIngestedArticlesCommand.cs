@@ -1,4 +1,5 @@
 using MediatR;
+using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs;
 
 namespace PositiveNews.Application.Commands.Ingestion;
@@ -9,4 +10,4 @@ namespace PositiveNews.Application.Commands.Ingestion;
 public sealed record PersistIngestedArticlesCommand(
     int SourceId,
     string DefaultLanguageCode,
-    IReadOnlyList<RssFeedItemDto> Items) : IRequest<int>;
+    IReadOnlyList<RssFeedItemDto> Items) : IRequest<Result<int>>;

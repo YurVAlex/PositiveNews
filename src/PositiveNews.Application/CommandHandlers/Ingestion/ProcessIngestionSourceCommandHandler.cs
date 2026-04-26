@@ -2,12 +2,14 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
+using PositiveNews.Application.Common;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Queries.Ingestion;
 using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Domain.Entities;
+using PositiveNews.Domain.Exceptions;
 using System.Diagnostics;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
@@ -20,9 +22,9 @@ public sealed class ProcessIngestionSourceCommandHandler(
     IFeedProcessor feedProcessor,
     IMediator mediator,
     ILogger<ProcessIngestionSourceCommandHandler> logger)
-    : IRequestHandler<ProcessIngestionSourceCommand>
+    : IRequestHandler<ProcessIngestionSourceCommand, Result<int>>
 {
-    public async Task Handle(ProcessIngestionSourceCommand request, CancellationToken cancellationToken)
+    public async Task<Result<int>> Handle(ProcessIngestionSourceCommand request, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
         var source = request.Source;
@@ -49,7 +51,7 @@ public sealed class ProcessIngestionSourceCommandHandler(
                 logger.LogWarning("Source {SourceName} returned zero feed items.", source.Name);
                 run.PartialComplete(0, "Feed returned zero items. The feed URL may be unavailable or empty.");
                 await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
-                return;
+                return Result<int>.Success(0);
             }
 
             var existingKeys = await mediator.Send(
@@ -89,10 +91,18 @@ public sealed class ProcessIngestionSourceCommandHandler(
                 toPersist.Add(item);
             }
 
-            newArticleCount = await mediator.Send(
+            var persistResult = await mediator.Send(
                 new PersistIngestedArticlesCommand(source.Id, source.DefaultLanguageCode, toPersist),
                 cancellationToken);
 
+            if (persistResult.IsFailure)
+            {
+                run.Fail(persistResult.Error.Message, newArticleCount);
+                await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
+                return Result<int>.Failure(persistResult.Error);
+            }
+
+            newArticleCount = persistResult.Value;
             run.Complete(newArticleCount);
             await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -102,18 +112,26 @@ public sealed class ProcessIngestionSourceCommandHandler(
                 newArticleCount,
                 dtoItems.Count + invalidCount,
                 skipCount);
+
+            return Result<int>.Success(newArticleCount);
+        }
+        catch (DomainException ex)
+        {
+            logger.LogWarning(ex, "Domain invariant violation while ingesting source {SourceName}.", source.Name);
+            run.Fail(ex.Message, newArticleCount);
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+            return Result<int>.Failure(
+                new Error(
+                    "Ingestion.DomainInvariantViolation",
+                    $"Domain invariant violation for source '{source.Name}': {ex.Message}",
+                    ErrorType.Conflict));
         }
         catch (OperationCanceledException)
         {
             logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
             run.PartialComplete(newArticleCount, "Operation was cancelled.");
             await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error ingesting source {SourceName}.", source.Name);
-            run.Fail(ex.Message, newArticleCount);
-            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+            throw;
         }
         finally
         {

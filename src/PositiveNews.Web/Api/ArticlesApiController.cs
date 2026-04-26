@@ -23,15 +23,15 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
 
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(ArticleDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ArticleDetailResponse>> GetById(long id, CancellationToken cancellationToken = default)
     {
-        var article = await mediator.Send(new GetArticleDetailQuery(id), cancellationToken);
-        if (article == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(article.ToArticleDetailResponse());
+        var result = await mediator.Send(new GetArticleDetailQuery(id), cancellationToken);
+        return result
+            .Map(article => article.ToArticleDetailResponse())
+            .ToActionResult(this);
     }
 }

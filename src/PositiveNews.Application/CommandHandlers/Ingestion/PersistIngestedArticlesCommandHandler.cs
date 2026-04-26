@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
+using PositiveNews.Application.Common;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Ingestion;
@@ -17,12 +18,12 @@ public sealed class PersistIngestedArticlesCommandHandler(
     ITopicReadRepository topicReadRepository,
     IIngestionUnitOfWork ingestionUnitOfWork,
     ILogger<PersistIngestedArticlesCommandHandler> logger)
-    : IRequestHandler<PersistIngestedArticlesCommand, int>
+    : IRequestHandler<PersistIngestedArticlesCommand, Result<int>>
 {
-    public async Task<int> Handle(PersistIngestedArticlesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<int>> Handle(PersistIngestedArticlesCommand request, CancellationToken cancellationToken)
     {
         if (request.Items.Count == 0)
-            return 0;
+            return Result<int>.Success(0);
 
         var totalSaved = 0;
         var chunkSize = IngestionPipelineConstants.ArticlePersistChunkSize;
@@ -73,11 +74,16 @@ public sealed class PersistIngestedArticlesCommandHandler(
                 }
                 catch (DomainException ex)
                 {
-                    logger.LogWarning(ex, "Domain invariant violation building article entity for external id: {ExternalId}", dto.ExternalId);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    logger.LogError(ex, "Error building article entity for external id: {ExternalId}", dto.ExternalId);
+                    logger.LogWarning(
+                        ex,
+                        "Domain invariant violation building article entity for external id: {ExternalId}",
+                        dto.ExternalId);
+
+                    return Result<int>.Failure(
+                        new Error(
+                            "Ingestion.DomainInvariantViolation",
+                            $"Domain invariant violation for article '{dto.ExternalId ?? dto.Title}': {ex.Message}",
+                            ErrorType.Conflict));
                 }
             }
 
@@ -92,6 +98,6 @@ public sealed class PersistIngestedArticlesCommandHandler(
             totalSaved += pairs.Count;
         }
 
-        return totalSaved;
+        return Result<int>.Success(totalSaved);
     }
 }

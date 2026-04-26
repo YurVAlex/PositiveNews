@@ -60,7 +60,14 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
                 using var scope = _scopeFactory.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                await mediator.Send(new RunIngestionCycleCommand(), stoppingToken);
+                var runResult = await mediator.Send(new RunIngestionCycleCommand(), stoppingToken);
+                if (runResult.IsFailure)
+                {
+                    _logger.LogWarning(
+                        "Ingestion cycle failed: {ErrorCode} - {ErrorMessage}",
+                        runResult.Error.Code,
+                        runResult.Error.Message);
+                }
 
                 // Wait for the configured interval before the next run.
                 if (!stoppingToken.IsCancellationRequested)
