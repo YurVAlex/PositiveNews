@@ -21,6 +21,7 @@ public class Source
     public string? ApiEncryptedKey { get; private set; }
     public decimal TrustScore { get; private set; } = 1.0m;
     public string DefaultLanguageCode { get; private set; } = "en";
+    public string? DefaultThumbnailHtml { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public bool IsActive { get; private set; } = true;
     public long? ModeratedBy { get; private set; }
@@ -38,7 +39,8 @@ public class Source
         string? description = null,
         string? logoUrl = null,
         decimal trustScore = 1.0m,
-        string defaultLanguageCode = "en")
+        string defaultLanguageCode = "en",
+        string? defaultThumbnailHtml = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidSourceStateException("Source name cannot be empty.");
@@ -56,6 +58,7 @@ public class Source
             LogoUrl = logoUrl?.Trim(),
             TrustScore = trustScore,
             DefaultLanguageCode = string.IsNullOrWhiteSpace(defaultLanguageCode) ? "en" : defaultLanguageCode.Trim(),
+            DefaultThumbnailHtml = defaultThumbnailHtml,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         };

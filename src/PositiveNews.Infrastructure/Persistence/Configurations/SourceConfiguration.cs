@@ -25,6 +25,7 @@ internal sealed class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.ToTable(t => t.HasCheckConstraint("CK_Sources_Trust", "[TrustScore] >= 0.00"));
 
         builder.Property(s => s.DefaultLanguageCode).HasMaxLength(10).HasDefaultValue("en");
+        builder.Property(s => s.DefaultThumbnailHtml).HasColumnType("nvarchar(max)");
         builder.Property(s => s.CreatedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(s => s.IsActive).HasDefaultValue(true);
 

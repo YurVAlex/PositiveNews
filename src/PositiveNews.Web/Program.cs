@@ -1,7 +1,7 @@
 using Serilog;
 using PositiveNews.Application;
 using PositiveNews.Infrastructure;
-using PositiveNews.Infrastructure.Persistence.Seeding;
+using PositiveNews.Infrastructure.Extensions;
 
 namespace PositiveNews.Web;
 
@@ -43,7 +43,7 @@ public class Program
 
             var app = builder.Build();
 
-            await DataSeeder.SeedAsync(app.Services);
+            await app.InitializeDatabase();
 
             if (app.Environment.IsDevelopment())
             {
