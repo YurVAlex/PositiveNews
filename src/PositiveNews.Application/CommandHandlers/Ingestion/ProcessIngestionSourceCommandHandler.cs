@@ -126,12 +126,23 @@ public sealed class ProcessIngestionSourceCommandHandler(
                     $"Domain invariant violation for source '{source.Name}': {ex.Message}",
                     ErrorType.Conflict));
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
-            run.PartialComplete(newArticleCount, "Operation was cancelled.");
+            if (cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning("Ingestion for {SourceName} was cancelled.", source.Name);
+                run.PartialComplete(newArticleCount, "Operation was cancelled.");
+                await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+                throw;
+            }
+
+            logger.LogWarning(
+                ex,
+                "Feed request for {SourceName} timed out or was interrupted. Skipping source and continuing.",
+                source.Name);
+            run.PartialComplete(newArticleCount, "Feed request timed out or was interrupted.");
             await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
-            throw;
+            return Result<int>.Success(newArticleCount);
         }
         finally
         {
