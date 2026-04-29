@@ -12,5 +12,6 @@ public sealed class ProcessIngestionSourceCommandValidator : AbstractValidator<P
         RuleFor(x => x.Source.FeedUrl).NotEmpty();
         RuleFor(x => x.Source.DefaultLanguageCode).NotEmpty();
         RuleFor(x => x.TopicLookup).NotNull();
+        RuleFor(x => x.IngestionSettings).NotNull();
     }
 }

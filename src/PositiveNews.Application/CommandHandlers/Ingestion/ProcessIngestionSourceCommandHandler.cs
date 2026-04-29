@@ -40,7 +40,8 @@ public sealed class ProcessIngestionSourceCommandHandler(
         try
         {
             var doc = await feedReader.ReadFeedAsync(url, cancellationToken);
-            var processingResult = feedProcessor.ProcessFeed(url, doc, request.TopicLookup, cancellationToken);
+            var processingResult = feedProcessor.ProcessFeed(
+                url, doc, request.TopicLookup, request.IngestionSettings, source, cancellationToken);
             var dtoItems = processingResult.Items;
             var invalidCount = processingResult.InvalidCount;
 

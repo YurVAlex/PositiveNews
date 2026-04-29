@@ -6,6 +6,7 @@ using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Infrastructure.BackgroundJobs;
+using PositiveNews.Infrastructure.Configuration;
 using PositiveNews.Infrastructure.Persistence;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;
 using PositiveNews.Infrastructure.Persistence.Repositories.Write;
@@ -52,6 +53,9 @@ public static class DependencyInjection
                "PositiveNews/1.0 (+https://github.com/positivenews; Academic Project)");
             client.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/xml, text/xml");
         });
+
+        services.Configure<IngestionSettingsConfig>(configuration.GetSection("IngestionSettings"));
+        services.AddSingleton<IIngestionSettingsProvider, IngestionSettingsProvider>();
 
         services.AddScoped<IFeedReader, FeedReader>();
         services.AddScoped<IFeedItemValidator, FeedItemValidator>();

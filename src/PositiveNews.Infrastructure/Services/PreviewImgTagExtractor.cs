@@ -1,15 +1,10 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
-using PositiveNews.Domain.Entities;
-using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using PositiveNews.Infrastructure.Constants;
 
 namespace PositiveNews.Infrastructure.Services;
 
@@ -26,11 +21,11 @@ public class PreviewImgTagExtractor : IImgTagExtractor
     {
         _logger = logger;
     }
-    public string? ExtractImgTag(XElement itemElement, string feedUrl, HtmlNode? contentNode, HtmlNode? descriptionNode)
+    public string? ExtractImgTag(XElement itemElement, string feedUrl, HtmlNode? contentNode,
+        HtmlNode? descriptionNode, string? defaultThumbnailHtml)
     {
         try
         {
-            // 1. media:thumbnail (direct child or nested inside media:content)
             var thumbnail =
                 itemElement.Element(MediaNs + "thumbnail") ??
                 itemElement.Element(MediaNs + "content")?.Element(MediaNs + "thumbnail");
@@ -45,17 +40,14 @@ public class PreviewImgTagExtractor : IImgTagExtractor
                 );
             }
 
-            // 2. Preferred <img> inside <description>
             var imgFromDesc = ExtractPreferredImgFromNode(descriptionNode);
             if (imgFromDesc != null)
                 return imgFromDesc;
 
-            // 3. Preferred <img> inside content
             var imgFromEncoded = ExtractPreferredImgFromNode(contentNode);
             if (imgFromEncoded != null)
                 return imgFromEncoded;
 
-            // 4. media:content (only reached if needed)
             var mediaContent = itemElement.Element(MediaNs + "content");
             if (mediaContent != null)
             {
@@ -67,18 +59,22 @@ public class PreviewImgTagExtractor : IImgTagExtractor
                 );
             }
 
-            // 5. Any <img> inside <description>
             imgFromDesc = ExtractAnyImgFromNode(descriptionNode);
             if (imgFromDesc != null)
                 return imgFromDesc;
 
-            // 6. Any <img> inside content
             imgFromEncoded = ExtractAnyImgFromNode(contentNode);
             if (imgFromEncoded != null)
                 return imgFromEncoded;
 
-            _logger.LogDebug("No thumbnail image tag extracted for current article. Default will be assigned");
-            return AssignDefaultThumbnailImg(feedUrl);
+            if (!string.IsNullOrWhiteSpace(defaultThumbnailHtml))
+            {
+                _logger.LogDebug("No thumbnail extracted; using default from source configuration.");
+                return defaultThumbnailHtml;
+            }
+
+            _logger.LogWarning("No thumbnail image tag extracted and no default configured.");
+            return null;
         }
         catch (Exception ex)
         {
@@ -288,16 +284,5 @@ public class PreviewImgTagExtractor : IImgTagExtractor
         return widths.Last();
     }
 
-    private string? AssignDefaultThumbnailImg(string feedUrl)
-    {
-        return DefaultThumbnailTags.ThumbnailMap.FirstOrDefault(p => feedUrl.Contains(p.Key)).Value
-            ?? LogAndReturnNull();
-
-        string? LogAndReturnNull()
-        {
-            _logger.LogWarning("Error: No default thumbnail image tag assigned!");
-            return null;
-        }
-    }
 }
 

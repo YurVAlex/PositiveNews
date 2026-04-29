@@ -34,7 +34,9 @@ public class FeedProcessor : IFeedProcessor
         _analyzer = analyzer;
     }
 
-    public FeedProcessingResult ProcessFeed(string feedUrl, XDocument feed, TopicLookup lookup,
+    public FeedProcessingResult ProcessFeed(
+        string feedUrl, XDocument feed, TopicLookup lookup,
+        IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
         CancellationToken cancellationToken = default)
     {
         var dtoItems = new List<RssFeedItemDto>();
@@ -48,7 +50,7 @@ public class FeedProcessor : IFeedProcessor
 
             try
             {
-                if (!TryProcessFeedItem(feedUrl, feedItem, lookup, out var dtoItem))
+                if (!TryProcessFeedItem(feedUrl, feedItem, lookup, settings, source, out var dtoItem))
                 {
                     invalidCount++;
                     continue;
@@ -68,7 +70,10 @@ public class FeedProcessor : IFeedProcessor
         return new FeedProcessingResult(dtoItems, invalidCount);
     }
 
-    private bool TryProcessFeedItem(string feedUrl, XElement feedItem, TopicLookup lookup, out RssFeedItemDto dtoItem)
+    private bool TryProcessFeedItem(
+        string feedUrl, XElement feedItem, TopicLookup lookup,
+        IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
+        out RssFeedItemDto dtoItem)
     {
         dtoItem = _parser.Parse(feedItem);
 
@@ -84,7 +89,7 @@ public class FeedProcessor : IFeedProcessor
         if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
             return false;
 
-        dtoItem = _enricher.EnrichTopics(feedUrl, dtoItem, lookup);
+        dtoItem = _enricher.EnrichTopics(feedUrl, dtoItem, lookup, settings);
 
         var cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
         var descriptionNode = ParseHtmlNode(dtoItem.Description);
@@ -92,8 +97,9 @@ public class FeedProcessor : IFeedProcessor
         var contentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
             ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
 
-        var positivityScore = _analyzer.AnalyzeSentiment(contentClean);
-        var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, cleanedContentNode, descriptionNode);
+        var positivityScore = _analyzer.AnalyzeSentiment(contentClean, settings.Common);
+        var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, contentNode: cleanedContentNode,
+            descriptionNode: descriptionNode, defaultThumbnailHtml: source.DefaultThumbnailHtml);
 
         dtoItem = dtoItem with
         {

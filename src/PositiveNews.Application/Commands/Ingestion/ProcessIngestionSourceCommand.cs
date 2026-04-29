@@ -6,4 +6,5 @@ namespace PositiveNews.Application.Commands.Ingestion;
 
 public sealed record ProcessIngestionSourceCommand(
     IngestionSourceSnapshot Source,
-    TopicLookup TopicLookup) : IRequest<Result<int>>;
+    TopicLookup TopicLookup,
+    IngestionSettingsSnapshot IngestionSettings) : IRequest<Result<int>>;

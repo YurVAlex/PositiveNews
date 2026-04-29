@@ -31,12 +31,14 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
 
             TopicLookup topicLookup;
             IReadOnlyList<IngestionSourceSnapshot> activeSources;
+            IngestionSettingsSnapshot ingestionSettings;
 
-        // This scope fetches the topics and active sources. Once it fetches them, it closes.
-        // This ensures the database connection used for this quick read is released immediately
             using (var initialScope = _scopeFactory.CreateScope())
             {
                 var mediator = initialScope.ServiceProvider.GetRequiredService<IMediator>();
+
+                ingestionSettings = await mediator.Send(new RefreshIngestionSettingsCommand(), cancellationToken);
+
                 topicLookup = await mediator.Send(new GetTopicLookupQuery(), cancellationToken);
                 _logger.LogInformation("Topic lookup built with {Count} topics.", topicLookup.ByName.Count);
                 activeSources = await mediator.Send(new GetActiveIngestionSourcesQuery(), cancellationToken);
@@ -49,12 +51,10 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-            // Get a brand - new, clean database connection for each news site.
-            // If one fails, the others may succeed, and memory is cleared after each loop.
                 using var sourceScope = _scopeFactory.CreateScope();
                 var mediator = sourceScope.ServiceProvider.GetRequiredService<IMediator>();
                 var processResult = await mediator.Send(
-                    new ProcessIngestionSourceCommand(source, topicLookup),
+                    new ProcessIngestionSourceCommand(source, topicLookup, ingestionSettings),
                     cancellationToken);
 
                 if (processResult.IsFailure)

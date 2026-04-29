@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using PositiveNews.Application.DTOs;
 
 namespace PositiveNews.Application.Interfaces;
 
 public interface IPositivityAnalyzer
 {
-    /// <summary>
-    /// Analyzes the sentiment of a plain text string.
-    /// Returns a decimal between 0.0000 and 1.0000.
-    /// </summary>
-    decimal AnalyzeSentiment(string? plainTextContent);
+    decimal AnalyzeSentiment(string? plainTextContent, CommonIngestionRules rules);
 }

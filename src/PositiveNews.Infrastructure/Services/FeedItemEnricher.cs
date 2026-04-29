@@ -14,7 +14,8 @@ public class FeedItemEnricher : IFeedItemEnricher
         _logger = logger;
     }
 
-    public RssFeedItemDto EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup)
+    public RssFeedItemDto EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup,
+        IngestionSettingsSnapshot settings)
     {
         var result = new HashSet<string>(dto.Topics, StringComparer.OrdinalIgnoreCase);
 
@@ -24,24 +25,14 @@ public class FeedItemEnricher : IFeedItemEnricher
                 result.Add(name);
         }
 
-        if (feedUrl.Contains("nvidia", StringComparison.OrdinalIgnoreCase))
-            Add("Technology");
-
-        if (feedUrl.Contains("nasa", StringComparison.OrdinalIgnoreCase))
+        foreach (var rule in settings.Sources.Values)
         {
-            Add("Space");
-            Add("Technology");
-            Add("Science");
+            if (feedUrl.Contains(rule.UrlContains, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var topicName in rule.DefaultTopics)
+                    Add(topicName);
+            }
         }
-
-        if (feedUrl.Contains("thisiscolossal", StringComparison.OrdinalIgnoreCase) ||
-            feedUrl.Contains("designyoutrust", StringComparison.OrdinalIgnoreCase))
-        {
-            Add("Arts & Culture");
-        }
-
-        if (feedUrl.Contains("tinybuddha", StringComparison.OrdinalIgnoreCase))
-            Add("Psychology");
 
         var expandedTopics = new HashSet<string>(result, StringComparer.OrdinalIgnoreCase);
         foreach (var topicName in result.ToList())
