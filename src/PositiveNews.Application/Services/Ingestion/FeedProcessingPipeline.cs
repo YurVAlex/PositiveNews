@@ -4,11 +4,11 @@ using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using System.Xml.Linq;
 
-namespace PositiveNews.Infrastructure.Services;
+namespace PositiveNews.Application.Services.Ingestion;
 
-public class FeedProcessor : IFeedProcessor
+public class FeedProcessingPipeline : IFeedProcessor
 {
-    private readonly ILogger<FeedProcessor> _logger;
+    private readonly ILogger<FeedProcessingPipeline> _logger;
     private readonly IFeedItemValidator _validator;
     private readonly IFeedItemParser _parser;
     private readonly IFeedItemCleaner _cleaner;
@@ -16,12 +16,12 @@ public class FeedProcessor : IFeedProcessor
     private readonly IImgTagExtractor _imgTagExtractor;
     private readonly IPositivityAnalyzer _analyzer;
 
-    public FeedProcessor(
+    public FeedProcessingPipeline(
        IFeedItemValidator validator,
        IFeedItemParser parser,
        IFeedItemCleaner cleaner,
        IFeedItemEnricher enricher,
-       ILogger<FeedProcessor> logger,
+       ILogger<FeedProcessingPipeline> logger,
        IImgTagExtractor imgTagExtractor,
        IPositivityAnalyzer analyzer)
     {
@@ -84,7 +84,7 @@ public class FeedProcessor : IFeedProcessor
             return false;
         }
 
-        dtoItem = _cleaner.Clean(dtoItem, lookup, rawContentNode);
+        dtoItem = _cleaner.Clean(dtoItem, lookup, settings.Common, rawContentNode);
 
         if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
             return false;

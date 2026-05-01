@@ -5,6 +5,7 @@ using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Configuration;
 using PositiveNews.Infrastructure.Persistence;
@@ -60,11 +61,16 @@ public static class DependencyInjection
         services.AddScoped<IFeedReader, FeedReader>();
         services.AddScoped<IFeedItemValidator, FeedItemValidator>();
         services.AddScoped<IFeedItemParser, FeedItemParser>();
-        services.AddScoped<IFeedProcessor, FeedProcessor>();
+        services.AddScoped<IFeedProcessor, FeedProcessingPipeline>();
         services.AddScoped<IFeedItemCleaner, FeedItemCleaner>();
         services.AddScoped<IFeedItemEnricher, FeedItemEnricher>();
         services.AddScoped<IImgTagExtractor, PreviewImgTagExtractor>();
         services.AddScoped<IPositivityAnalyzer, KeyPhrasePositivityAnalyzer>();
+
+        services.AddScoped<IHtmlSanitizer, HtmlSanitizer>();
+        services.AddScoped<IMediaEmbedder, MediaEmbedder>();
+        services.AddScoped<ITextNormalizer, TextNormalizer>();
+        services.AddScoped<ITopicNormalizer, TopicNormalizer>();
 
         services.AddHostedService<IngestionBackgroundService>();
 
