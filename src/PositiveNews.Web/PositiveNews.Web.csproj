@@ -21,6 +21,7 @@
 	
   <ItemGroup>
     <Folder Include="logs\" />
+    <Folder Include="wwwroot\assets\" />
     <Folder Include="wwwroot\Defaults\" />
   </ItemGroup>
 

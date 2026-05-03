@@ -10,5 +10,7 @@ public sealed class ArticlePreviewResponse
     public DateTime PublishedAt { get; init; }
     public string? ImageTag { get; init; }
     public string SummaryShort { get; init; } = string.Empty;
+    public string Url { get; init; } = string.Empty;
+    public decimal? PositivityScore { get; init; }
     public IReadOnlyList<string> Topics { get; init; } = Array.Empty<string>();
 }

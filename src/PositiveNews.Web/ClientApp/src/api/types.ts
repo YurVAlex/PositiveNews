@@ -7,6 +7,8 @@ export type ArticlePreviewResponse = {
   publishedAt: string
   imageTag: string | null
   summaryShort: string
+  url: string
+  positivityScore: number | null
   topics: string[]
 }
 
