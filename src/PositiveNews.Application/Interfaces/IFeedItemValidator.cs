@@ -5,5 +5,5 @@ namespace PositiveNews.Application.Interfaces;
 
 public interface IFeedItemValidator
 {
-    bool IsValid(RssFeedItemDto item, HtmlNode? contentNode);
+    bool IsValid(RssFeedItemDto item, FeedItemValidationRules rules, HtmlNode? contentNode);
 }

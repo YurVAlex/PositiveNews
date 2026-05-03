@@ -15,10 +15,9 @@ public sealed class RefreshIngestionSettingsCommandHandler(
         RefreshIngestionSettingsCommand request, CancellationToken cancellationToken)
     {
         var snapshot = settingsProvider.GetCurrentSettings();
-        logger.LogInformation(
-            "Ingestion settings refreshed: {CommonWordCount} positive words, {SourceCount} source rules.",
-            snapshot.Common.PositiveWords.Count,
-            snapshot.Sources.Count);
+
+        logger.LogInformation("Ingestion settings refreshed.");
+
         return Task.FromResult(snapshot);
     }
 }

@@ -7,7 +7,6 @@ using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Queries.Ingestion;
-using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Exceptions;
 using System.Diagnostics;

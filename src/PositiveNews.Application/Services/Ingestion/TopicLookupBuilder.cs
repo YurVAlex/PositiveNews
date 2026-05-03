@@ -1,4 +1,5 @@
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Application.Services.Ingestion;
 

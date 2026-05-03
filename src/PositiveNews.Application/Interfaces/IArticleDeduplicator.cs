@@ -1,6 +1,6 @@
 using PositiveNews.Application.DTOs;
 
-namespace PositiveNews.Application.Services.Ingestion;
+namespace PositiveNews.Application.Interfaces;
 
 public interface IArticleDeduplicator
 {

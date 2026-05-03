@@ -5,6 +5,6 @@ namespace PositiveNews.Application.Interfaces;
 
 public interface IHtmlSanitizer
 {
-    string SanitizeContent(HtmlNode rootNode, CommonIngestionRules rules);
+    string SanitizeContent(HtmlNode rootNode, CleanerRules rules);
     string? StripToPlainText(string? htmlContent, HtmlNode? htmlNode = null);
 }

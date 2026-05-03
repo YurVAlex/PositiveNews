@@ -78,13 +78,13 @@ public class FeedProcessingPipeline : IFeedProcessor
         dtoItem = _parser.Parse(feedItem);
 
         var rawContentNode = ParseHtmlNode(dtoItem.ContentRaw);
-        if (!_validator.IsValid(dtoItem, rawContentNode))
+        if (!_validator.IsValid(dtoItem, settings.FeedItemValidationRules, rawContentNode))
         {
             _logger.LogWarning("Skipping invalid feed item.");
             return false;
         }
 
-        dtoItem = _cleaner.Clean(dtoItem, lookup, settings.Common, rawContentNode);
+        dtoItem = _cleaner.Clean(dtoItem, lookup, settings.CleanerRules, rawContentNode);
 
         if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
             return false;
@@ -97,7 +97,7 @@ public class FeedProcessingPipeline : IFeedProcessor
         var contentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
             ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
 
-        var positivityScore = _analyzer.AnalyzeSentiment(contentClean, settings.Common);
+        var positivityScore = _analyzer.AnalyzeSentiment(contentClean, settings.PositivityAnalizerKeyPhrases);
         var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, contentNode: cleanedContentNode,
             descriptionNode: descriptionNode, defaultThumbnailHtml: source.DefaultThumbnailHtml);
 

@@ -14,7 +14,7 @@ public class HtmlSanitizer : IHtmlSanitizer
         _mediaEmbedder = mediaEmbedder;
     }
 
-    public string SanitizeContent(HtmlNode rootNode, CommonIngestionRules rules)
+    public string SanitizeContent(HtmlNode rootNode, CleanerRules rules)
     {
         var builder = new StringBuilder();
         var stopProcessing = false;
@@ -38,7 +38,7 @@ public class HtmlSanitizer : IHtmlSanitizer
     }
 
     private void ProcessNodesIterative(
-        HtmlNode root, StringBuilder builder, CommonIngestionRules rules, ref bool stopProcessing)
+        HtmlNode root, StringBuilder builder, CleanerRules rules, ref bool stopProcessing)
     {
         var stack = new Stack<HtmlNode>();
         PushChildrenInReverse(root, stack);
@@ -112,7 +112,7 @@ public class HtmlSanitizer : IHtmlSanitizer
         PushChildrenInReverse(node, stack);
     }
 
-    private void ProcessAllowedNode(HtmlNode node, string tagName, StringBuilder builder, CommonIngestionRules rules)
+    private void ProcessAllowedNode(HtmlNode node, string tagName, StringBuilder builder, CleanerRules rules)
     {
         switch (tagName)
         {
@@ -144,7 +144,7 @@ public class HtmlSanitizer : IHtmlSanitizer
         }
     }
 
-    private void ProcessParagraph(HtmlNode node, StringBuilder builder, CommonIngestionRules rules)
+    private void ProcessParagraph(HtmlNode node, StringBuilder builder, CleanerRules rules)
     {
         RemoveUnsafeDescendants(node);
 

@@ -16,21 +16,26 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
 
     public IngestionSettingsSnapshot GetCurrentSettings()
     {
-        var common = new CommonIngestionRules(
-            PositiveWords: new HashSet<string>(_config.Common.PositiveWords, StringComparer.OrdinalIgnoreCase),
-            NegativeWords: new HashSet<string>(_config.Common.NegativeWords, StringComparer.OrdinalIgnoreCase),
-            StopProcessingPatterns: _config.Common.StopProcessingPatterns,
-            RemoveNodePatterns: _config.Common.RemoveNodePatterns,
-            RemoveDivClassPatterns: _config.Common.RemoveDivClassPatterns,
-            ShouldRemoveParagraphPatterns: _config.Common.ShouldRemoveParagraphPatterns,
-            AllowedTags: new HashSet<string>(_config.Common.AllowedTags, StringComparer.OrdinalIgnoreCase),
-            AttributesToRemove: new HashSet<string>(_config.Common.AttributesToRemove, StringComparer.OrdinalIgnoreCase));
+        var positivity = new PositivityAnalizerKeyPhrases(
+            PositiveWords: new HashSet<string>(_config.Common.PositivityAnalizerKeyPhrases.PositiveWords, StringComparer.OrdinalIgnoreCase),
+            NegativeWords: new HashSet<string>(_config.Common.PositivityAnalizerKeyPhrases.NegativeWords, StringComparer.OrdinalIgnoreCase));
+
+        var cleaner = new CleanerRules(
+            StopProcessingPatterns: _config.Common.CleanerRules.StopProcessingPatterns,
+            RemoveNodePatterns: _config.Common.CleanerRules.RemoveNodePatterns,
+            RemoveDivClassPatterns: _config.Common.CleanerRules.RemoveDivClassPatterns,
+            ShouldRemoveParagraphPatterns: _config.Common.CleanerRules.ShouldRemoveParagraphPatterns,
+            AllowedTags: new HashSet<string>(_config.Common.CleanerRules.AllowedTags, StringComparer.OrdinalIgnoreCase),
+            AttributesToRemove: new HashSet<string>(_config.Common.CleanerRules.AttributesToRemove, StringComparer.OrdinalIgnoreCase));
+
+        var validation = new FeedItemValidationRules(
+            InvalidAuthors: new HashSet<string>(_config.Common.FeedItemValidationRules.InvalidAuthors, StringComparer.OrdinalIgnoreCase));
 
         var sources = _config.Sources.ToDictionary(
             kvp => kvp.Key,
             kvp => new SourceIngestionRules(kvp.Value.UrlContains, kvp.Value.DefaultTopics),
             StringComparer.OrdinalIgnoreCase);
 
-        return new IngestionSettingsSnapshot(common, sources);
+        return new IngestionSettingsSnapshot(positivity, cleaner, validation, sources);
     }
 }

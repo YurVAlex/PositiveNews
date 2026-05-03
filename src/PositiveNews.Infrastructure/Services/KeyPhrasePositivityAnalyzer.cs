@@ -5,7 +5,7 @@ namespace PositiveNews.Infrastructure.Services;
 
 public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
 {
-    public decimal AnalyzeSentiment(string? plainTextContent, CommonIngestionRules rules)
+    public decimal AnalyzeSentiment(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases)
     {
         if (string.IsNullOrWhiteSpace(plainTextContent))
             return 0.5000m;
@@ -19,8 +19,8 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
 
         foreach (var word in words)
         {
-            if (rules.PositiveWords.Contains(word)) posCount++;
-            if (rules.NegativeWords.Contains(word)) negCount++;
+            if (keyPhrases.PositiveWords.Contains(word)) posCount++;
+            if (keyPhrases.NegativeWords.Contains(word)) negCount++;
         }
 
         int totalScored = posCount + negCount;

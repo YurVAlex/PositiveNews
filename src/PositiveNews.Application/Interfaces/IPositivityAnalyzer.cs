@@ -4,5 +4,5 @@ namespace PositiveNews.Application.Interfaces;
 
 public interface IPositivityAnalyzer
 {
-    decimal AnalyzeSentiment(string? plainTextContent, CommonIngestionRules rules);
+    decimal AnalyzeSentiment(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases);
 }

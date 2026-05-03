@@ -1,4 +1,4 @@
-namespace PositiveNews.Application.Services.Ingestion;
+namespace PositiveNews.Application.Interfaces;
 
 using PositiveNews.Application.DTOs;
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using PositiveNews.Application.Common.Behaviors;
+using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Services.Ingestion;
 
 namespace PositiveNews.Application;

@@ -1,13 +1,12 @@
 ﻿using HtmlAgilityPack;
 using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
-using System.Net;
 
 namespace PositiveNews.Infrastructure.Services;
 
 public class FeedItemValidator : IFeedItemValidator
 {
-    public bool IsValid(RssFeedItemDto item, HtmlNode? contentNode) //TODO: Additional validation
+    public bool IsValid(RssFeedItemDto item, FeedItemValidationRules rules, HtmlNode? contentNode) //TODO: Additional validation
     {
         if (string.IsNullOrWhiteSpace(item.Title) ||
             string.IsNullOrWhiteSpace(item.Link) ||
@@ -15,7 +14,8 @@ public class FeedItemValidator : IFeedItemValidator
             string.IsNullOrWhiteSpace(item.ContentRaw))
             return false;
 
-        if (item.Author == "tinybuddha")
+        if (!string.IsNullOrWhiteSpace(item.Author) &&
+            rules.InvalidAuthors.Contains(item.Author))
             return false;
 
         if (contentNode == null ||

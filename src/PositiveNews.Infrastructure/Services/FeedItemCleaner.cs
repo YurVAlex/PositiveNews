@@ -20,7 +20,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         _topicNormalizer = topicNormalizer;
     }
 
-    public RssFeedItemDto Clean(RssFeedItemDto dto, TopicLookup lookup, CommonIngestionRules rules, HtmlNode? rawContentNode)
+    public RssFeedItemDto Clean(RssFeedItemDto dto, TopicLookup lookup, CleanerRules rules, HtmlNode? rawContentNode)
     {
         return dto with
         {
@@ -41,7 +41,7 @@ public class FeedItemCleaner : IFeedItemCleaner
         return _htmlSanitizer.StripToPlainText(htmlContent, htmlNode);
     }
 
-    private string CleanContent(string rawContent, HtmlNode? rawContentNode, CommonIngestionRules rules)
+    private string CleanContent(string rawContent, HtmlNode? rawContentNode, CleanerRules rules)
     {
         var rootNode = rawContentNode ?? LoadDocument(rawContent).DocumentNode;
         var sanitized = _htmlSanitizer.SanitizeContent(rootNode, rules);
