@@ -30,7 +30,7 @@ type ArticleCardProps = {
     selectedTopic: string | null | undefined
 }
 
-export function ArticleCard({ article, index, selectedTopic }: ArticleCardProps) {
+export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUrl }: ArticleCardProps) {
     const [summaryOpen, setSummaryOpen] = useState(false)
     const hasPreviewImage = Boolean(article.imageTag?.trim())
     const positivityLabel = formatPositivityScore(article.positivityScore)
