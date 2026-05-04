@@ -17,6 +17,22 @@ public class PositivityAnalizerKeyPhrasesConfig
 {
     public List<string> PositiveWords { get; set; } = [];
     public List<string> NegativeWords { get; set; } = [];
+    public List<string> PositivePhrases { get; set; } = [];
+    public List<string> NegativePhrases { get; set; } = [];
+    public List<string> NegationWords { get; set; } = [];
+    public List<string> IntensifierWords { get; set; } = [];
+
+    /// <summary>How many prior tokens can flip polarity (odd count of negation cues = flip).</summary>
+    public int NegationLookbackTokens { get; set; } = 4;
+
+    /// <summary>How many prior tokens may stack intensifiers.</summary>
+    public int IntensifierLookbackTokens { get; set; } = 2;
+
+    /// <summary>Each intensifier in range multiplies weight by this factor (compounded).</summary>
+    public double IntensifierMultiplier { get; set; } = 1.35;
+
+    /// <summary>Absolute weight for each phrase hit vs. 1.0 per word hit.</summary>
+    public double PhrasePolarityWeight { get; set; } = 2.0;
 }
 
 public class CleanerRulesConfig

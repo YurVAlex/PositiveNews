@@ -12,7 +12,16 @@ function formatPublishedAt(iso: string) {
 function formatPositivityScore(score: number | null): string | null {
     if (score == null || Number.isNaN(score)) return null
     const pct = Math.round(score * 100)
-    return `${pct}%`
+    return `${pct}% Positivity`
+}
+
+/** Red below 0.49; yellow from 0.49 through 0.51; green above 0.51 */
+function positivityBadgeClassName(score: number): string {
+    const base =
+        'ms-auto text-nowrap small fw-semibold border rounded px-2 py-1'
+    if (score < 0.49) return `${base} text-danger border-danger-subtle bg-danger-subtle`
+    if (score <= 0.51) return `${base} text-dark border-warning-subtle bg-warning-subtle`
+    return `${base} text-success border-success-subtle bg-success-subtle`
 }
 
 type ArticleCardProps = {
@@ -25,6 +34,10 @@ export function ArticleCard({ article, index, selectedTopic }: ArticleCardProps)
     const [summaryOpen, setSummaryOpen] = useState(false)
     const hasPreviewImage = Boolean(article.imageTag?.trim())
     const positivityLabel = formatPositivityScore(article.positivityScore)
+    const positivityBadgeClasses =
+        article.positivityScore != null && !Number.isNaN(article.positivityScore)
+            ? positivityBadgeClassName(article.positivityScore)
+            : ''
     const originUrl = article.url?.trim() ?? ''
 
     return (
@@ -45,7 +58,7 @@ export function ArticleCard({ article, index, selectedTopic }: ArticleCardProps)
                         <span className="fw-bold text-muted fs-5 pt-2">{article.sourceName}</span>
                         {positivityLabel ? (
                             <span
-                                className="ms-auto text-nowrap small fw-semibold text-success border border-success-subtle rounded px-2 py-1 bg-success-subtle"
+                                className={positivityBadgeClasses}
                                 title="Positivity score"
                             >
                                 {positivityLabel}

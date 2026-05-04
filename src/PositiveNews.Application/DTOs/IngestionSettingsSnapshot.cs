@@ -8,7 +8,15 @@ public sealed record IngestionSettingsSnapshot(
 
 public sealed record PositivityAnalizerKeyPhrases(
     IReadOnlySet<string> PositiveWords,
-    IReadOnlySet<string> NegativeWords);
+    IReadOnlySet<string> NegativeWords,
+    IReadOnlySet<string> PositivePhrases,
+    IReadOnlySet<string> NegativePhrases,
+    IReadOnlySet<string> NegationWords,
+    IReadOnlySet<string> IntensifierWords,
+    int NegationLookbackTokens,
+    int IntensifierLookbackTokens,
+    decimal IntensifierMultiplier,
+    decimal PhrasePolarityWeight);
 
 public sealed record CleanerRules(
     IReadOnlyList<string> StopProcessingPatterns,

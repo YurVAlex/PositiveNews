@@ -7,6 +7,19 @@ namespace PositiveNews.Infrastructure.Services;
 
 public class IngestionSettingsProvider : IIngestionSettingsProvider
 {
+    private static HashSet<string> NormalizePhraseSet(IEnumerable<string> phrases)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in phrases)
+        {
+            var normalized = string.Join(' ', p.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            if (normalized.Length > 0)
+                set.Add(normalized);
+        }
+
+        return set;
+    }
+
     private readonly IngestionSettingsConfig _config; //TODO Add public method for changing config via admin panel
 
     public IngestionSettingsProvider(IOptions<IngestionSettingsConfig> options)
@@ -16,9 +29,18 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
 
     public IngestionSettingsSnapshot GetCurrentSettings()
     {
+        var pa = _config.Common.PositivityAnalizerKeyPhrases;
         var positivity = new PositivityAnalizerKeyPhrases(
-            PositiveWords: new HashSet<string>(_config.Common.PositivityAnalizerKeyPhrases.PositiveWords, StringComparer.OrdinalIgnoreCase),
-            NegativeWords: new HashSet<string>(_config.Common.PositivityAnalizerKeyPhrases.NegativeWords, StringComparer.OrdinalIgnoreCase));
+            PositiveWords: new HashSet<string>(pa.PositiveWords, StringComparer.OrdinalIgnoreCase),
+            NegativeWords: new HashSet<string>(pa.NegativeWords, StringComparer.OrdinalIgnoreCase),
+            PositivePhrases: NormalizePhraseSet(pa.PositivePhrases),
+            NegativePhrases: NormalizePhraseSet(pa.NegativePhrases),
+            NegationWords: new HashSet<string>(pa.NegationWords, StringComparer.OrdinalIgnoreCase),
+            IntensifierWords: new HashSet<string>(pa.IntensifierWords, StringComparer.OrdinalIgnoreCase),
+            NegationLookbackTokens: Math.Clamp(pa.NegationLookbackTokens, 1, 12),
+            IntensifierLookbackTokens: Math.Clamp(pa.IntensifierLookbackTokens, 1, 8),
+            IntensifierMultiplier: (decimal)Math.Clamp(pa.IntensifierMultiplier, 1.0, 3.0),
+            PhrasePolarityWeight: (decimal)Math.Clamp(pa.PhrasePolarityWeight, 0.5, 10.0));
 
         var cleaner = new CleanerRules(
             StopProcessingPatterns: _config.Common.CleanerRules.StopProcessingPatterns,
