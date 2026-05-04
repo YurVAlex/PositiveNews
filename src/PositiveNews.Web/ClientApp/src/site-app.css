@@ -48,14 +48,18 @@ body {
     align-items: stretch;
 }
 
-    .article-card-layout:not(.article-card-layout--no-image) {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-            'hdr'
-            'title'
-            'image'
-            'body';
-    }
+.article-card-body:last-of-type {
+    margin-top: auto;
+}
+
+.article-card-layout:not(.article-card-layout--no-image) {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+        'hdr'
+        'title'
+        'image'
+        'body';
+}
 
 .article-card-layout--no-image {
     grid-template-columns: 1fr;
@@ -120,6 +124,7 @@ body {
         display: flex;
         align-items: center; /* vertical center */
     }
+
     .
     .article-card-body {
         display: flex;

@@ -6,6 +6,7 @@ using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Ingestion;
 using PositiveNews.Application.Mapping;
 using PositiveNews.Infrastructure.Persistence;
+using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 
@@ -15,21 +16,27 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
     {
         var page = Math.Max(1, filter.Page);
         var pageSize = Math.Clamp(filter.PageSize, 1, 100);
-        var topic = string.IsNullOrWhiteSpace(filter.Topic) ? null : filter.Topic.Trim();
+        var topics = (filter.Topics ?? Array.Empty<string>())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var topicNamesLower = topics.Select(t => t.ToLowerInvariant()).ToList();
 
         var query = db.ArticlesMetadata
             .Where(a => a.IsActive)
             .AsNoTracking();
 
-        if (topic != null)
+        if (topicNamesLower.Count > 0)
         {
-            query = query
-                .OrderByDescending(a => a.ArticleTopics.Any(at => at.Topic!.Name == topic))
-                .ThenByDescending(a => a.PublishedAt);
+            var matchedTopicFirst = query.OrderByDescending(a => a.ArticleTopics.Any(at =>
+                at.Topic != null && topicNamesLower.Contains(at.Topic.Name.ToLower())));
+            query = ApplySecondarySort(matchedTopicFirst, filter.SortBy);
         }
         else
         {
-            query = query.OrderByDescending(a => a.PublishedAt);
+            query = ApplyPrimarySort(query, filter.SortBy);
         }
 
         var totalArticles = await query.CountAsync(ct);
@@ -47,8 +54,30 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
             CurrentPage = page,
             TotalPages = totalPages,
             PageSize = pageSize,
-            SelectedTopic = topic
+            SelectedTopics = topics
         };
+    }
+
+    private static IQueryable<ArticleMetadata> ApplyPrimarySort(
+        IQueryable<ArticleMetadata> query,
+        ArticleFeedSortBy sortBy)
+    {
+        return sortBy == ArticleFeedSortBy.PositivityScore
+            ? query
+                .OrderByDescending(a => a.PositivityScore != null)
+                .ThenByDescending(a => a.PositivityScore ?? 0m)
+            : query.OrderByDescending(a => a.PublishedAt);
+    }
+
+    private static IOrderedQueryable<ArticleMetadata> ApplySecondarySort(
+        IOrderedQueryable<ArticleMetadata> query,
+        ArticleFeedSortBy sortBy)
+    {
+        return sortBy == ArticleFeedSortBy.PositivityScore
+            ? query
+                .ThenByDescending(a => a.PositivityScore != null)
+                .ThenByDescending(a => a.PositivityScore ?? 0m)
+            : query.ThenByDescending(a => a.PublishedAt);
     }
 
     public async Task<ArticleDetailDto?> GetDetailAsync(long id, CancellationToken ct)

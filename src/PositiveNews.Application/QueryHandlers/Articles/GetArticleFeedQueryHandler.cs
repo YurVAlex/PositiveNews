@@ -11,7 +11,11 @@ public sealed class GetArticleFeedQueryHandler(IArticleReadRepository articleRea
 {
     public Task<ArticleFeedPageResult> Handle(GetArticleFeedQuery request, CancellationToken cancellationToken)
     {
-        var filter = new ArticleFeedFilter(request.Page, request.PageSize, request.Topic);
+        var filter = new ArticleFeedFilter(
+            request.Page,
+            request.PageSize,
+            request.Topics ?? Array.Empty<string>(),
+            request.SortBy);
         return articleReadRepository.GetFeedPageAsync(filter, cancellationToken);
     }
 }

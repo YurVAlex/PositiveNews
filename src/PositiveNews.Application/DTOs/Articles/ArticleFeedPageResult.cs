@@ -6,5 +6,5 @@ public sealed class ArticleFeedPageResult
     public int CurrentPage { get; init; }
     public int TotalPages { get; init; }
     public int PageSize { get; init; }
-    public string? SelectedTopic { get; init; }
+    public IReadOnlyList<string> SelectedTopics { get; init; } = Array.Empty<string>();
 }

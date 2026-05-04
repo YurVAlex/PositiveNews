@@ -6,11 +6,24 @@ function apiUrl(path: string) {
   return `${apiBase}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
-export async function fetchArticleFeed(page: number, topic: string | null): Promise<ArticleFeedResponse> {
+export type FeedSortParam = 'date' | 'positivity'
+
+export async function fetchArticleFeed(
+  page: number,
+  topics: string[],
+  sort: FeedSortParam = 'date',
+): Promise<ArticleFeedResponse> {
   const params = new URLSearchParams()
   params.set('page', String(page))
-  if (topic) {
-    params.set('topic', topic)
+  for (const t of topics) {
+    const trimmed = t.trim()
+    if (trimmed.length > 0) {
+      params.append('topic', trimmed)
+    }
+  }
+
+  if (sort === 'positivity') {
+    params.set('sort', 'positivity')
   }
 
   const res = await fetch(apiUrl(`/api/articles/feed?${params.toString()}`), {

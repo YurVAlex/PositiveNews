@@ -27,7 +27,8 @@ function positivityBadgeClassName(score: number): string {
 type ArticleCardProps = {
     article: ArticlePreviewResponse
     index: number
-    selectedTopic: string | null | undefined
+    selectedTopics: string[]
+    buildTopicToggleUrl: (topic: string) => string
 }
 
 export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUrl }: ArticleCardProps) {
@@ -81,7 +82,11 @@ export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUr
                 ) : null}
 
                 <div className="article-card-body card-body pt-0 border-0">
-                    <ArticleTopicLinks topics={article.topics} selectedTopic={selectedTopic} />
+                    <ArticleTopicLinks
+                        topics={article.topics}
+                        selectedTopics={selectedTopics}
+                        buildTopicToggleUrl={buildTopicToggleUrl}
+                    />
 
                     <div className="d-flex flex-wrap gap-2 mt-2 align-items-center">
                         <button type="button" className="btn btn-outline-secondary" onClick={() => setSummaryOpen((o) => !o)}>

@@ -17,7 +17,8 @@ export type ArticleFeedResponse = {
   currentPage: number
   totalPages: number
   pageSize: number
-  selectedTopic: string | null
+  /** Topics echoed from the request (trimmed, deduplicated); used for ordering only. */
+  selectedTopics: string[]
 }
 
 export type ArticleDetailResponse = {
