@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { fetchArticleFeed, type FeedSortParam } from '../api/articles-api'
 import type { ArticleFeedResponse } from '../api/types'
 import { ArticleCard } from '../components/ArticleCard'
+import { useAuth } from '../auth/AuthProvider'
 
 function parsePage(raw: string | null) {
   const n = Number(raw ?? '1')
@@ -32,6 +33,7 @@ function parseSort(raw: string | null): FeedSortParam {
 }
 
 export function FeedPage() {
+  const { token } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = useMemo(() => parsePage(searchParams.get('page')), [searchParams])
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
@@ -46,7 +48,7 @@ export function FeedPage() {
 
     ;(async () => {
       try {
-        const res = await fetchArticleFeed(page, topics, sortMode)
+        const res = await fetchArticleFeed(page, topics, sortMode, token)
         if (!cancelled) {
           setData(res)
         }
@@ -60,7 +62,7 @@ export function FeedPage() {
     return () => {
       cancelled = true
     }
-  }, [page, topics, sortMode])
+  }, [page, topics, sortMode, token])
 
   const buildTopicToggleUrl = useCallback(
     (topicName: string) => {

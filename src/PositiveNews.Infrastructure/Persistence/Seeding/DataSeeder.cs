@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -88,18 +89,38 @@ public static class DataSeeder
 
     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
     {
-        if (await context.Users.AnyAsync()) return;
+        var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+        if (adminRole is null)
+        {
+            logger.LogWarning("Admin role is missing. Cannot seed admin user.");
+            return;
+        }
 
-        var adminUser = User.Create("admin@positivenews.local", "System Administrator");
-        adminUser.ConfirmEmail();
+        var adminEmail = "admin@positivenews.local";
+        var adminUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
+        if (adminUser is null)
+        {
+            adminUser = User.Create(adminEmail, "First Administrator");
+            adminUser.ConfirmEmail();
+            context.Users.Add(adminUser);
+            await context.SaveChangesAsync();
+        }
 
-        context.Users.Add(adminUser);
-        await context.SaveChangesAsync();
+        if (string.IsNullOrWhiteSpace(adminUser.PasswordHash))
+        {
+            adminUser.SetPasswordHash(new PasswordHasher<User>().HashPassword(adminUser, "Admin123!"));
+            await context.SaveChangesAsync();
+            logger.LogInformation("Set default password for admin user '{Email}'.", adminUser.Email);
+        }
 
-        var adminRole = await context.Roles.FirstAsync(r => r.Name == "Admin");
-        context.UserRoles.Add(UserRole.Create(adminUser.Id, adminRole.Id));
-        await context.SaveChangesAsync();
+        var hasAdminRole = await context.UserRoles
+            .AnyAsync(ur => ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
+        if (!hasAdminRole)
+        {
+            context.UserRoles.Add(UserRole.Create(adminUser.Id, adminRole.Id));
+            await context.SaveChangesAsync();
+        }
 
-        logger.LogInformation("Seeded admin user '{Email}' with Admin role.", adminUser.Email);
+        logger.LogInformation("Ensured admin user '{Email}' has Admin role.", adminUser.Email);
     }
 }

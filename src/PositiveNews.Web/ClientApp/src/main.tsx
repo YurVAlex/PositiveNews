@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import './site-app.css'
 import { App } from './App'
+import { AuthProvider } from './auth/AuthProvider'
 
 const el = document.getElementById('root')
 if (!el) {
@@ -13,8 +14,10 @@ if (!el) {
 
 createRoot(el).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>,
 )

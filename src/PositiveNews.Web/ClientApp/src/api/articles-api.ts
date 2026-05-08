@@ -1,10 +1,5 @@
 import type { ArticleDetailResponse, ArticleFeedResponse } from './types'
-
-const apiBase = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
-
-function apiUrl(path: string) {
-  return `${apiBase}${path.startsWith('/') ? '' : '/'}${path}`
-}
+import { apiUrl, authTokenHeader } from './http'
 
 export type FeedSortParam = 'date' | 'positivity'
 
@@ -12,6 +7,7 @@ export async function fetchArticleFeed(
   page: number,
   topics: string[],
   sort: FeedSortParam = 'date',
+  token: string | null = null,
 ): Promise<ArticleFeedResponse> {
   const params = new URLSearchParams()
   params.set('page', String(page))
@@ -27,7 +23,7 @@ export async function fetchArticleFeed(
   }
 
   const res = await fetch(apiUrl(`/api/articles/feed?${params.toString()}`), {
-    headers: { Accept: 'application/json' },
+    headers: authTokenHeader(token),
   })
 
   if (!res.ok) {
@@ -37,9 +33,9 @@ export async function fetchArticleFeed(
   return res.json() as Promise<ArticleFeedResponse>
 }
 
-export async function fetchArticleDetail(id: number): Promise<ArticleDetailResponse | null> {
+export async function fetchArticleDetail(id: number, token: string | null = null): Promise<ArticleDetailResponse | null> {
   const res = await fetch(apiUrl(`/api/articles/${id}`), {
-    headers: { Accept: 'application/json' },
+    headers: authTokenHeader(token),
   })
 
   if (res.status === 404) {

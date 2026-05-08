@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchArticleDetail } from '../api/articles-api'
 import type { ArticleDetailResponse } from '../api/types'
+import { useAuth } from '../auth/AuthProvider'
 
 function formatDetailDate(iso: string) {
   const d = new Date(iso)
@@ -9,6 +10,7 @@ function formatDetailDate(iso: string) {
 }
 
 export function ArticleDetailPage() {
+  const { token } = useAuth()
   const { id } = useParams()
   const numericId = Number(id)
 
@@ -26,7 +28,7 @@ export function ArticleDetailPage() {
 
     ;(async () => {
       try {
-        const res = await fetchArticleDetail(numericId)
+        const res = await fetchArticleDetail(numericId, token)
         if (!cancelled) {
           setArticle(res)
         }
@@ -41,7 +43,7 @@ export function ArticleDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [numericId])
+  }, [numericId, token])
 
   useEffect(() => {
     if (article?.title) {

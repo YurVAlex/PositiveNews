@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useAuth } from '../auth/AuthProvider'
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const { isAuthenticated, user, logout } = useAuth()
+
   return (
     <>
       <header>
@@ -34,6 +37,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </Link>
                 </li>
               </ul>
+              <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                {isAuthenticated ? (
+                  <>
+                    <span className="text-muted fs-6">Hello, {user?.name ?? 'User'}</span>
+                    <button type="button" className="btn btn-sm btn-outline-secondary" onClick={logout}>
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link className="btn btn-sm btn-primary" to="/login">
+                    Login
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </nav>

@@ -30,3 +30,16 @@ export type ArticleDetailResponse = {
   publishedAt: string
   contentHtml: string | null
 }
+
+export type UserProfileResponse = {
+  id: number
+  email: string
+  name: string
+  roles: string[]
+}
+
+export type AuthResponse = {
+  accessToken: string
+  expiresAtUtc: string
+  user: UserProfileResponse
+}
