@@ -43,9 +43,7 @@ public sealed class RegisterUserCommandHandler(
         user.RecordSuccessfulLogin();
 
         userWriteRepository.Add(user);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        userRoleWriteRepository.Add(UserRole.Create(user.Id, userRole.Id));
+        userRoleWriteRepository.Add(UserRole.Create(userRole.Id, user));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var roles = new[] { userRole.Name };

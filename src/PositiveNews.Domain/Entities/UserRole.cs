@@ -16,4 +16,9 @@ public class UserRole
     {
         return new UserRole { UserId = userId, RoleId = roleId };
     }
+
+    public static UserRole Create(int roleId, User user)
+    {
+        return new UserRole { User = user, RoleId = roleId };
+    }
 }
