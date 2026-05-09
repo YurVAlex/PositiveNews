@@ -16,10 +16,10 @@ public static class ResultExtensions
         {
             Title = result.Error.Code,
             Detail = result.Error.Message,
-            Status = ToHttpStatusCode(result.Error.Type)
+            Status = MapFailureErrorTypeToStatusCode(result.Error.Type)
         })
         {
-            StatusCode = ToHttpStatusCode(result.Error.Type)
+            StatusCode = MapFailureErrorTypeToStatusCode(result.Error.Type)
         };
     }
 
@@ -34,18 +34,22 @@ public static class ResultExtensions
         {
             Title = result.Error.Code,
             Detail = result.Error.Message,
-            Status = ToHttpStatusCode(result.Error.Type)
+            Status = MapFailureErrorTypeToStatusCode(result.Error.Type)
         })
         {
-            StatusCode = ToHttpStatusCode(result.Error.Type)
+            StatusCode = MapFailureErrorTypeToStatusCode(result.Error.Type)
         };
     }
 
-    private static int ToHttpStatusCode(ErrorType type) => type switch
+    private static int MapFailureErrorTypeToStatusCode(ErrorType type) => type switch
     {
+        ErrorType.None => throw new InvalidOperationException(
+            "ErrorType.None is only used for successful results; it must not be mapped to an HTTP error status."),
+        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
         ErrorType.NotFound => StatusCodes.Status404NotFound,
         ErrorType.Validation => StatusCodes.Status400BadRequest,
         ErrorType.Conflict => StatusCodes.Status409Conflict,
+        ErrorType.Unexpected => StatusCodes.Status500InternalServerError,
         _ => StatusCodes.Status500InternalServerError
     };
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
+using PositiveNews.Application.Abstractions.Security;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Infrastructure.BackgroundJobs;
@@ -12,6 +13,7 @@ using PositiveNews.Infrastructure.Persistence;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;
 using PositiveNews.Infrastructure.Persistence.Repositories.Write;
 using PositiveNews.Infrastructure.Persistence.UnitOfWork;
+using PositiveNews.Infrastructure.Security;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure;
@@ -37,15 +39,22 @@ public static class DependencyInjection
         services.AddScoped<IArticleReadRepository, ArticleReadRepository>();
         services.AddScoped<ITopicReadRepository, TopicReadRepository>();
         services.AddScoped<ISourceReadRepository, SourceReadRepository>();
+        services.AddScoped<IUserReadRepository, UserReadRepository>();
+        services.AddScoped<IRoleReadRepository, RoleReadRepository>();
 
         services.AddScoped<IArticleWriteRepository, ArticleWriteRepository>();
         services.AddScoped<IArticleTopicWriteRepository, ArticleTopicWriteRepository>();
         services.AddScoped<ITopicWriteRepository, TopicWriteRepository>();
         services.AddScoped<ISourceWriteRepository, SourceWriteRepository>();
         services.AddScoped<IIngestionRunRepository, IngestionRunRepository>();
+        services.AddScoped<IUserWriteRepository, UserWriteRepository>();
+        services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IIngestionUnitOfWork, IngestionUnitOfWork>();
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 
         services.AddHttpClient("RssFeedClient", client =>
         {

@@ -4,16 +4,12 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using PositiveNews.Application.Abstractions.Security;
 using PositiveNews.Domain.Entities;
 
-namespace PositiveNews.Web.Security;
+namespace PositiveNews.Infrastructure.Security;
 
-public interface IJwtTokenService
-{
-    string CreateAccessToken(User user, IReadOnlyCollection<string> roles);
-}
-
-public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtTokenService
+internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
 {
     private readonly JwtOptions _options = jwtOptions.Value;
 
@@ -34,16 +30,18 @@ public sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtToken
 
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
-        var expiresAt = issuedAt.AddMinutes(_options.AccessTokenMinutes);
 
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,
             audience: _options.Audience,
             claims: claims,
             notBefore: issuedAt,
-            expires: expiresAt,
+            expires: issuedAt.AddMinutes(_options.AccessTokenMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public DateTime GetAccessTokenExpiryUtc()
+        => DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
 }

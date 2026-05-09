@@ -2,7 +2,9 @@ namespace PositiveNews.Application.Common;
 
 public enum ErrorType
 {
+    None,
     Validation,
+    Unauthorized,
     NotFound,
     Conflict,
     Unexpected
@@ -10,7 +12,7 @@ public enum ErrorType
 
 public sealed record Error(string Code, string Message, ErrorType Type)
 {
-    public static readonly Error None = new(string.Empty, string.Empty, ErrorType.Unexpected);
+    public static readonly Error None = new(string.Empty, string.Empty, ErrorType.None);
 }
 
 public class Result

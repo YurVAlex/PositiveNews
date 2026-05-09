@@ -1,4 +1,4 @@
-namespace PositiveNews.Web.Security;
+namespace PositiveNews.Infrastructure.Security;
 
 public sealed class JwtOptions
 {

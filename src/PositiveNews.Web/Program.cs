@@ -5,7 +5,7 @@ using Serilog;
 using PositiveNews.Application;
 using PositiveNews.Infrastructure;
 using PositiveNews.Infrastructure.Extensions;
-using PositiveNews.Web.Security;
+using PositiveNews.Infrastructure.Security;
 
 namespace PositiveNews.Web;
 
@@ -44,8 +44,6 @@ public class Program
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
             builder.Services.AddControllers();
-            builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
-            builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
             var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
                 ?? throw new InvalidOperationException("JWT configuration section is missing.");

@@ -40,7 +40,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
                 {isAuthenticated ? (
                   <>
-                    <span className="text-muted fs-6">Hello, {user?.name ?? 'User'}</span>
+                    <span className="text-muted fs-6">{user?.name ?? 'User'}</span>
                     <button type="button" className="btn btn-sm btn-outline-secondary" onClick={logout}>
                       Logout
                     </button>
