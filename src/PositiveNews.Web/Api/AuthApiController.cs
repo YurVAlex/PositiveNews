@@ -46,7 +46,15 @@ public sealed class AuthApiController(IMediator mediator) : ControllerBase
         var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!long.TryParse(userIdValue, out var userId))
         {
-            return Unauthorized();
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized",
+                Detail = "Invalid or missing user identifier in the security context.",
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1"
+            };
+            ProblemDetailsTraceExtensions.EnrichWithTrace(HttpContext, problemDetails);
+            return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
         }
 
         var result = await mediator.Send(new GetCurrentUserQuery(userId), cancellationToken);

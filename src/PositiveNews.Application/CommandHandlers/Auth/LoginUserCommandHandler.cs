@@ -18,10 +18,15 @@ public sealed class LoginUserCommandHandler(
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var user = await userReadRepository.FindByEmailWithRolesAsync(normalizedEmail, cancellationToken);
-        if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash))
+        if (user is null || string.IsNullOrWhiteSpace(user.PasswordHash))
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidCredentials", "Invalid email or password. Is the user blocked?", ErrorType.Unauthorized));
+                new Error("Auth.InvalidCredentials", "Invalid email or password.", ErrorType.Unauthorized));
+        }
+        if (!user.IsActive)
+        {
+            return Result<AuthResultModel>.Failure(
+                new Error("Auth.InvalidCredentials", "The user blocked.", ErrorType.Unauthorized));
         }
 
         if (!passwordHasherService.VerifyPassword(user, user.PasswordHash, request.Password))

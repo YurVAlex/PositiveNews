@@ -12,14 +12,16 @@ public static class ResultExtensions
             return controller.Ok(result.Value);
         }
 
-        return new ObjectResult(new ProblemDetails
+        var problemDetails = new ProblemDetails
         {
             Title = result.Error.Code,
             Detail = result.Error.Message,
             Status = MapFailureErrorTypeToStatusCode(result.Error.Type)
-        })
+        };
+        ProblemDetailsTraceExtensions.EnrichWithTrace(controller.HttpContext, problemDetails);
+        return new ObjectResult(problemDetails)
         {
-            StatusCode = MapFailureErrorTypeToStatusCode(result.Error.Type)
+            StatusCode = problemDetails.Status
         };
     }
 
@@ -30,14 +32,16 @@ public static class ResultExtensions
             return controller.Ok();
         }
 
-        return new ObjectResult(new ProblemDetails
+        var problemDetails = new ProblemDetails
         {
             Title = result.Error.Code,
             Detail = result.Error.Message,
             Status = MapFailureErrorTypeToStatusCode(result.Error.Type)
-        })
+        };
+        ProblemDetailsTraceExtensions.EnrichWithTrace(controller.HttpContext, problemDetails);
+        return new ObjectResult(problemDetails)
         {
-            StatusCode = MapFailureErrorTypeToStatusCode(result.Error.Type)
+            StatusCode = problemDetails.Status
         };
     }
 

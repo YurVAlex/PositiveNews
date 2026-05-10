@@ -6,6 +6,7 @@ using PositiveNews.Application;
 using PositiveNews.Infrastructure;
 using PositiveNews.Infrastructure.Extensions;
 using PositiveNews.Infrastructure.Security;
+using PositiveNews.Web.Api.ExceptionHandling;
 
 namespace PositiveNews.Web;
 
@@ -43,6 +44,8 @@ public class Program
 
             builder.Services.AddApplicationServices();
             builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.AddProblemDetails();
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddControllers();
 
             var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -78,15 +81,7 @@ public class Program
             }
             else
             {
-                app.UseExceptionHandler(errorApp =>
-                {
-                    errorApp.Run(async context =>
-                    {
-                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                        context.Response.ContentType = "text/plain";
-                        await context.Response.WriteAsync("An unexpected error occurred.");
-                    });
-                });
+                app.UseExceptionHandler();
                 app.UseHsts();
             }
 
