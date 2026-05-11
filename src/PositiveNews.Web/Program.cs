@@ -75,13 +75,10 @@ public class Program
 
             await app.InitializeDatabase();
 
-            if (app.Environment.IsDevelopment())
+            app.UseExceptionHandler();
+
+            if (!app.Environment.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseExceptionHandler();
                 app.UseHsts();
             }
 
