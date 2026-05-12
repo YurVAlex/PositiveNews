@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="Comment"/>.
+/// </summary>
 internal sealed class CommentConfiguration : IEntityTypeConfiguration<Comment>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Comment> builder)
     {
         builder.ToTable("Comments", SchemaNames.Community);

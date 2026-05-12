@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="Source"/>.
+/// </summary>
 internal sealed class SourceConfiguration : IEntityTypeConfiguration<Source>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Source> builder)
     {
         builder.ToTable("Sources", SchemaNames.Catalog);

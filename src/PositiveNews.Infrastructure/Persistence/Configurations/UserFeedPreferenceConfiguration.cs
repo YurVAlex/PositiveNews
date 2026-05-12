@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="UserFeedPreference"/>.
+/// </summary>
 internal sealed class UserFeedPreferenceConfiguration : IEntityTypeConfiguration<UserFeedPreference>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<UserFeedPreference> builder)
     {
         builder.ToTable("UserFeedPreferences", SchemaNames.Identity);

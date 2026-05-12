@@ -7,10 +7,14 @@ namespace PositiveNews.Domain.ValueObjects;
 /// </summary>
 public sealed record PositivityScore
 {
+    /// <summary>Rounded to four decimal places.</summary>
     public decimal Value { get; }
 
     private PositivityScore(decimal value) => Value = value;
 
+    /// <summary>
+    /// Validates range, rounds to four decimals, and wraps the value.
+    /// </summary>
     public static PositivityScore Create(decimal value)
     {
         if (value < 0m || value > 1m)
@@ -19,7 +23,9 @@ public sealed record PositivityScore
         return new PositivityScore(Math.Round(value, 4));
     }
 
+    /// <summary>Implicit conversion to decimal.</summary>
     public static implicit operator decimal(PositivityScore v) => v.Value;
 
+    /// <inheritdoc />
     public override string ToString() => Value.ToString("F4");
 }

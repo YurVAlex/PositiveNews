@@ -5,6 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Normalizes titles, summaries, and article HTML by trimming boilerplate and enforcing length limits.
+/// </summary>
 public class TextNormalizer : ITextNormalizer
 {
     private static readonly Regex StrongTildeRegex = new(
@@ -51,12 +54,14 @@ public class TextNormalizer : ITextNormalizer
         @"BY THE OPTIMIST DAILY.*?(?=\.)",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    /// <inheritdoc />
     public string NormalizeContent(string htmlContent)
     {
         var cleaned = RemoveTrailingPostLinksRegex.Replace(htmlContent, "");
         return RemoveTildeAuthor(cleaned).Trim();
     }
 
+    /// <inheritdoc />
     public string NormalizeDescription(string description)
     {
         if (string.IsNullOrWhiteSpace(description))
@@ -97,6 +102,7 @@ public class TextNormalizer : ITextNormalizer
         return TrimAfterLastDot(result);
     }
 
+    /// <inheritdoc />
     public string NormalizeTitle(string title)
     {
         return title.Length > 500 ? title[..500] : title;

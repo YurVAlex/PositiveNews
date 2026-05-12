@@ -8,6 +8,9 @@ using System.Xml.Linq;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Builds a responsive <c>img</c> tag for card previews from Media RSS, HTML content, or configured defaults.
+/// </summary>
 public class PreviewImgTagExtractor : IImgTagExtractor
 {
     private readonly ILogger<PreviewImgTagExtractor> _logger;
@@ -17,10 +20,16 @@ public class PreviewImgTagExtractor : IImgTagExtractor
         @"(?<url>\S+)(?:\s+(?<w>\d+)w)?",
         RegexOptions.Compiled);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PreviewImgTagExtractor"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for extraction diagnostics.</param>
     public PreviewImgTagExtractor(ILogger<PreviewImgTagExtractor> logger)
     {
         _logger = logger;
     }
+
+    /// <inheritdoc />
     public string? ExtractImgTag(XElement itemElement, string feedUrl, HtmlNode? contentNode,
         HtmlNode? descriptionNode, string? defaultThumbnailHtml)
     {

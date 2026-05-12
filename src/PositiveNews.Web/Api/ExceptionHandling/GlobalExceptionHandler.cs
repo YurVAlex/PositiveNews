@@ -6,11 +6,26 @@ using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Web.Api.ExceptionHandling;
 
+/// <summary>
+/// Central exception handler that converts validation, domain, and unexpected errors into RFC 7807 responses.
+/// </summary>
+/// <param name="problemDetailsService">Writes standardized problem details to the HTTP response.</param>
+/// <param name="environment">Used to decide whether to expose exception messages in development.</param>
+/// <param name="logger">Logs unhandled exceptions.</param>
 public sealed class GlobalExceptionHandler(
     IProblemDetailsService problemDetailsService,
     IHostEnvironment environment,
     ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>
+    /// Attempts to handle the given exception and write an appropriate problem details response.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="exception">The exception thrown during request processing.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>
+    /// <see langword="true"/> if the exception was handled and the response was written; otherwise <see langword="false"/>.
+    /// </returns>
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -24,6 +39,12 @@ public sealed class GlobalExceptionHandler(
         };
     }
 
+    /// <summary>
+    /// Emits a 400 validation problem details payload grouped by property name.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="exception">The FluentValidation aggregate exception.</param>
+    /// <returns>Always <see langword="true"/> after writing the response.</returns>
     private async Task<bool> WriteValidationAsync(
         HttpContext httpContext,
         ValidationException exception)
@@ -53,6 +74,12 @@ public sealed class GlobalExceptionHandler(
         return true;
     }
 
+    /// <summary>
+    /// Emits a 400 problem details response for domain rule violations.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="exception">The domain exception carrying a user-safe message.</param>
+    /// <returns>Always <see langword="true"/> after writing the response.</returns>
     private async Task<bool> WriteDomainAsync(
         HttpContext httpContext,
         DomainException exception)
@@ -77,6 +104,12 @@ public sealed class GlobalExceptionHandler(
         return true;
     }
 
+    /// <summary>
+    /// Emits a 500 problem details response and logs the unexpected exception.
+    /// </summary>
+    /// <param name="httpContext">The current HTTP context.</param>
+    /// <param name="exception">The unhandled exception.</param>
+    /// <returns>Always <see langword="true"/> after writing the response.</returns>
     private async Task<bool> WriteUnexpectedAsync(
         HttpContext httpContext,
         Exception exception)

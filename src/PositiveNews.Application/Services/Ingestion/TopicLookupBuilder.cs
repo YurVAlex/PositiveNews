@@ -3,8 +3,16 @@ using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Application.Services.Ingestion;
 
+/// <summary>
+/// Builds slug-word indexes and parent links used during topic normalization.
+/// </summary>
 internal sealed class TopicLookupBuilder : ITopicLookupBuilder
 {
+    /// <summary>
+    /// Indexes topics by canonical name, slug tokens, and inferred parent relationships.
+    /// </summary>
+    /// <param name="topics">All topics returned from persistence.</param>
+    /// <returns>Immutable lookup shared across one ingestion cycle.</returns>
     public TopicLookup Build(IReadOnlyList<TopicSnapshot> topics)
     {
         var byName = new Dictionary<string, TopicSnapshot>(StringComparer.OrdinalIgnoreCase);

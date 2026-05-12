@@ -13,6 +13,13 @@ using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
+/// <summary>
+/// Maps RSS DTOs to domain entities in bounded chunks, resolves topic IDs, and persists via the ingestion unit of work.
+/// </summary>
+/// <param name="articleWriteRepository">Stages article aggregates.</param>
+/// <param name="topicReadRepository">Resolves topic names to identifiers.</param>
+/// <param name="ingestionUnitOfWork">Commits ingestion-scoped changes.</param>
+/// <param name="logger">Structured logging for successes and domain violations.</param>
 public sealed class PersistIngestedArticlesCommandHandler(
     IArticleWriteRepository articleWriteRepository,
     ITopicReadRepository topicReadRepository,
@@ -20,6 +27,12 @@ public sealed class PersistIngestedArticlesCommandHandler(
     ILogger<PersistIngestedArticlesCommandHandler> logger)
     : IRequestHandler<PersistIngestedArticlesCommand, Result<int>>
 {
+    /// <summary>
+    /// Builds <see cref="ArticleMetadata"/> rows from DTOs, attaches content and topics, saves in chunks, and returns count saved.
+    /// </summary>
+    /// <param name="request">Source id, language code, and items to persist.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Number of articles persisted or a failure when domain rules are violated.</returns>
     public async Task<Result<int>> Handle(PersistIngestedArticlesCommand request, CancellationToken cancellationToken)
     {
         if (request.Items.Count == 0)

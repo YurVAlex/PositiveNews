@@ -2,8 +2,14 @@ using FluentValidation;
 
 namespace PositiveNews.Application.Commands.Ingestion;
 
+/// <summary>
+/// Ensures the source snapshot and nested fields are present and valid identifiers are positive.
+/// </summary>
 public sealed class ProcessIngestionSourceCommandValidator : AbstractValidator<ProcessIngestionSourceCommand>
 {
+    /// <summary>
+    /// Initializes validation rules for <see cref="ProcessIngestionSourceCommand"/>.
+    /// </summary>
     public ProcessIngestionSourceCommandValidator()
     {
         RuleFor(x => x.Source).NotNull();

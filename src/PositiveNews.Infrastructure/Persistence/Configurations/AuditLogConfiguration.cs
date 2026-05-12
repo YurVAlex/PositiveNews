@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="AuditLog"/>.
+/// </summary>
 internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<AuditLog> builder)
     {
         builder.ToTable("AuditLogs", SchemaNames.Admin);

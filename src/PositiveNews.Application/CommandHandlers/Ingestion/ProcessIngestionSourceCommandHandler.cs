@@ -13,6 +13,16 @@ using System.Diagnostics;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
+/// <summary>
+/// Orchestrates a single RSS poll: audit run, fetch feed, process items, dedupe, persist new articles, and finalize run status.
+/// </summary>
+/// <param name="ingestionRunRepository">Records ingestion run lifecycle rows.</param>
+/// <param name="ingestionUnitOfWork">Commits ingestion-specific persistence.</param>
+/// <param name="articleDeduplicator">Skips duplicates against DB and within-batch collisions.</param>
+/// <param name="feedReader">Downloads RSS XML.</param>
+/// <param name="feedProcessor">Parses and enriches feed items.</param>
+/// <param name="mediator">Dispatches nested queries/commands for keys and persistence.</param>
+/// <param name="logger">Structured logging for progress and failures.</param>
 public sealed class ProcessIngestionSourceCommandHandler(
     IIngestionRunRepository ingestionRunRepository,
     IIngestionUnitOfWork ingestionUnitOfWork,
@@ -23,6 +33,12 @@ public sealed class ProcessIngestionSourceCommandHandler(
     ILogger<ProcessIngestionSourceCommandHandler> logger)
     : IRequestHandler<ProcessIngestionSourceCommand, Result<int>>
 {
+    /// <summary>
+    /// Runs the full pipeline for one source and returns how many new articles were saved (or failure details).
+    /// </summary>
+    /// <param name="request">Source snapshot plus shared lookup and settings.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Count of newly persisted articles or an application error.</returns>
     public async Task<Result<int>> Handle(ProcessIngestionSourceCommand request, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();

@@ -10,6 +10,7 @@ using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Configuration;
 using PositiveNews.Infrastructure.Persistence;
+using PositiveNews.Infrastructure.Persistence.Connection;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;
 using PositiveNews.Infrastructure.Persistence.Repositories.Write;
 using PositiveNews.Infrastructure.Persistence.UnitOfWork;
@@ -24,8 +25,15 @@ namespace PositiveNews.Infrastructure;
 /// </summary>
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Registers EF Core, repositories, unit-of-work, security, ingestion services, HTTP clients, and the ingestion background job.
+    /// </summary>
+    /// <param name="services">The application's service collection.</param>
+    /// <param name="configuration">Application configuration (connection strings, JWT, ingestion, etc.).</param>
+    /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
     public static IServiceCollection AddInfrastructureServices(
-        this IServiceCollection services, IConfiguration configuration)
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         var connectionString = ConnectionStringResolver.Resolve(configuration);
 

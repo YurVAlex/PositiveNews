@@ -4,9 +4,13 @@ using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Validates that a parsed RSS item has required fields, acceptable author, and sufficiently rich HTML body text.
+/// </summary>
 public class FeedItemValidator : IFeedItemValidator
 {
-    public bool IsValid(RssFeedItemDto item, FeedItemValidationRules rules, HtmlNode? contentNode) //TODO: Additional validation
+    /// <inheritdoc />
+    public bool IsValid(RssFeedItemDto item, FeedItemValidationRules rules, HtmlNode? contentNode)
     {
         if (string.IsNullOrWhiteSpace(item.Title) ||
             string.IsNullOrWhiteSpace(item.Link) ||

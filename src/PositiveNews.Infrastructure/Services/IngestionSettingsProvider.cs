@@ -5,6 +5,9 @@ using PositiveNews.Infrastructure.Configuration;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Materializes <see cref="IngestionSettingsConfig"/> into immutable snapshots used during ingestion.
+/// </summary>
 public class IngestionSettingsProvider : IIngestionSettingsProvider
 {
     private static HashSet<string> NormalizePhraseSet(IEnumerable<string> phrases)
@@ -20,13 +23,18 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
         return set;
     }
 
-    private readonly IngestionSettingsConfig _config; //TODO Add public method for changing config via admin panel
+    private readonly IngestionSettingsConfig _config;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IngestionSettingsProvider"/> class.
+    /// </summary>
+    /// <param name="options">Bound <c>IngestionSettings</c> configuration.</param>
     public IngestionSettingsProvider(IOptions<IngestionSettingsConfig> options)
     {
         _config = options.Value;
     }
 
+    /// <inheritdoc />
     public IngestionSettingsSnapshot GetCurrentSettings()
     {
         var pa = _config.Common.PositivityAnalizerKeyPhrases;

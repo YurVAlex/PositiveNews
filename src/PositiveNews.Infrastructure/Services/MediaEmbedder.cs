@@ -5,12 +5,16 @@ using System.Text.RegularExpressions;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Rewrites anchors, images, video, and iframe nodes into Bootstrap-friendly markup and YouTube embeds when applicable.
+/// </summary>
 public class MediaEmbedder : IMediaEmbedder
 {
     private static readonly Regex YoutubeRegex = new(
         @"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    /// <inheritdoc />
     public bool TryEmbed(HtmlNode node, StringBuilder builder)
     {
         var tagName = node.Name.ToLowerInvariant();
@@ -23,6 +27,7 @@ public class MediaEmbedder : IMediaEmbedder
         };
     }
 
+    /// <inheritdoc />
     public void EmbedImage(HtmlNode imgNode, StringBuilder builder)
     {
         var classAttr = imgNode.GetAttributeValue("class", "");
@@ -42,6 +47,7 @@ public class MediaEmbedder : IMediaEmbedder
         builder.AppendLine(imgNode.OuterHtml);
     }
 
+    /// <inheritdoc />
     public void EmbedVideo(HtmlNode videoNode, StringBuilder builder)
     {
         RemoveUnsafeDescendants(videoNode);
@@ -59,6 +65,7 @@ public class MediaEmbedder : IMediaEmbedder
         builder.AppendLine($"<div class=\"ratio ratio-16x9 mb-3\">{videoNode.OuterHtml}</div>");
     }
 
+    /// <inheritdoc />
     public void EmbedIframe(HtmlNode iframeNode, StringBuilder builder)
     {
         var src = iframeNode.GetAttributeValue("src", "");
@@ -76,6 +83,7 @@ public class MediaEmbedder : IMediaEmbedder
         builder.AppendLine($"<div class=\"ratio ratio-16x9 mb-3\">{iframeNode.OuterHtml}</div>");
     }
 
+    /// <inheritdoc />
     public string CreateYouTubeEmbed(string videoId)
     {
         return $@"<div class=""ratio ratio-16x9 mb-3"">

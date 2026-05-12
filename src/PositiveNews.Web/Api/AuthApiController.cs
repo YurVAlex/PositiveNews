@@ -9,10 +9,20 @@ using PositiveNews.Web.Api.Models;
 
 namespace PositiveNews.Web.Api;
 
+/// <summary>
+/// HTTP API for user registration, authentication, and current-user profile access.
+/// </summary>
+/// <param name="mediator">MediatR pipeline for auth commands and queries.</param>
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthApiController(IMediator mediator) : ControllerBase
 {
+    /// <summary>
+    /// Registers a new user account and returns JWT credentials when successful.
+    /// </summary>
+    /// <param name="request">Registration payload (email, display name, password).</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Authentication tokens and profile, or a validation or conflict problem response.</returns>
     [HttpPost("register")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -25,6 +35,12 @@ public sealed class AuthApiController(IMediator mediator) : ControllerBase
             .ToActionResult(this);
     }
 
+    /// <summary>
+    /// Authenticates a user and returns JWT credentials.
+    /// </summary>
+    /// <param name="request">Login credentials (email and password).</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Authentication tokens and profile, or an error problem response.</returns>
     [HttpPost("login")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -37,6 +53,11 @@ public sealed class AuthApiController(IMediator mediator) : ControllerBase
             .ToActionResult(this);
     }
 
+    /// <summary>
+    /// Returns the profile for the currently authenticated user.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The user profile, or unauthorized when the security context is invalid.</returns>
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]

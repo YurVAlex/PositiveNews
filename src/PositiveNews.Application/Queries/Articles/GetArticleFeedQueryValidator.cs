@@ -1,10 +1,15 @@
 using FluentValidation;
-using PositiveNews.Application.Abstractions.Persistence.Models;
 
 namespace PositiveNews.Application.Queries.Articles;
 
+/// <summary>
+/// Ensures page and page size are in range, sort enum is defined, and at most 30 topics each ≤120 characters when provided.
+/// </summary>
 public sealed class GetArticleFeedQueryValidator : AbstractValidator<GetArticleFeedQuery>
 {
+    /// <summary>
+    /// Initializes validation rules for <see cref="GetArticleFeedQuery"/>.
+    /// </summary>
     public GetArticleFeedQueryValidator()
     {
         RuleFor(x => x.Page).GreaterThan(0);

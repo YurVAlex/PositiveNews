@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="ArticleTopic"/>.
+/// </summary>
 internal sealed class ArticleTopicConfiguration : IEntityTypeConfiguration<ArticleTopic>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<ArticleTopic> builder)
     {
         builder.ToTable("ArticleTopics", SchemaNames.Catalog);

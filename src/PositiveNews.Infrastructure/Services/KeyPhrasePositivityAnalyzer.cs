@@ -36,6 +36,7 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
         (new Regex(@"(?i)\bdoesn't\b", RegexOptions.Compiled), "does not"),
     ];
 
+    /// <inheritdoc />
     public decimal AnalyzeSentiment(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases)
     {
         if (string.IsNullOrWhiteSpace(plainTextContent))

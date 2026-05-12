@@ -10,11 +10,19 @@ using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
+/// <summary>
+/// Executes the multi-source ingestion cycle with isolated scopes per source and configurable delays between sources.
+/// </summary>
 public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngestionCycleCommand, Result>
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RunIngestionCycleCommandHandler> _logger;
 
+    /// <summary>
+    /// Initializes the handler with scope creation and logging dependencies.
+    /// </summary>
+    /// <param name="scopeFactory">Creates scoped mediators for each processing stage.</param>
+    /// <param name="logger">Logs cycle milestones.</param>
     public RunIngestionCycleCommandHandler(
         IServiceScopeFactory scopeFactory,
         ILogger<RunIngestionCycleCommandHandler> logger)
@@ -23,6 +31,12 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
         _logger = logger;
     }
 
+    /// <summary>
+    /// Refreshes settings, builds topic lookup, loads active sources, processes each source sequentially, and stops on hard failures.
+    /// </summary>
+    /// <param name="request">Marker command.</param>
+    /// <param name="cancellationToken">Cancellation token observed between sources.</param>
+    /// <returns>Success when every source completes without fatal errors.</returns>
     public async Task<Result> Handle(RunIngestionCycleCommand request, CancellationToken cancellationToken)
     {
         try

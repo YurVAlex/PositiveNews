@@ -2,12 +2,18 @@ using FluentValidation;
 
 namespace PositiveNews.Application.Commands.Auth;
 
+/// <summary>
+/// Validates email format and length; display name length and allowed characters; password length (8–128) with uppercase, lowercase, digit, and special character requirements.
+/// </summary>
 public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
 {
     private const int MaxEmailLength = 300;
     private const int MinNameLength = 2;
     private const int MaxNameLength = 100;
 
+    /// <summary>
+    /// Initializes validation rules for <see cref="RegisterUserCommand"/>.
+    /// </summary>
     public RegisterUserCommandValidator()
     {
         RuleFor(x => x.Email)
@@ -32,9 +38,15 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
             .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character.");
     }
 
+    /// <summary>
+    /// Validates email format using data annotations.
+    /// </summary>
     private static bool IsValidEmail(string email)
         => !string.IsNullOrWhiteSpace(email) && new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email);
 
+    /// <summary>
+    /// Restricts display names to letters, numbers, spaces, and a small punctuation set.
+    /// </summary>
     private static bool IsAllowedName(string name)
         => System.Text.RegularExpressions.Regex.IsMatch(name, "^[\\p{L}\\p{N} .,'-]+$");
 }

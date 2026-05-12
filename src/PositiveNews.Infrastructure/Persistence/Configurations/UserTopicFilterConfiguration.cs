@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="UserTopicFilter"/>.
+/// </summary>
 internal sealed class UserTopicFilterConfiguration : IEntityTypeConfiguration<UserTopicFilter>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<UserTopicFilter> builder)
     {
         builder.ToTable("UserTopicFilters", SchemaNames.Identity);

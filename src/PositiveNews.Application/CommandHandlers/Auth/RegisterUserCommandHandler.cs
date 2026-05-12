@@ -10,6 +10,16 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Application.CommandHandlers.Auth;
 
+/// <summary>
+/// Registers a new account with the default User role and returns an authenticated session.
+/// </summary>
+/// <param name="userReadRepository">Checks email uniqueness.</param>
+/// <param name="userWriteRepository">Persists new users.</param>
+/// <param name="userRoleWriteRepository">Assigns roles to users.</param>
+/// <param name="roleReadRepository">Loads the default role entity.</param>
+/// <param name="passwordHasherService">Hashes passwords for storage.</param>
+/// <param name="tokenService">Issues JWT access tokens.</param>
+/// <param name="unitOfWork">Commits the transactional registration.</param>
 public sealed class RegisterUserCommandHandler(
     IUserReadRepository userReadRepository,
     IUserWriteRepository userWriteRepository,
@@ -19,6 +29,12 @@ public sealed class RegisterUserCommandHandler(
     ITokenService tokenService,
     IUnitOfWork unitOfWork) : IRequestHandler<RegisterUserCommand, Result<AuthResultModel>>
 {
+    /// <summary>
+    /// Creates the user, assigns the default role, hashes the password, and returns tokens plus profile on success.
+    /// </summary>
+    /// <param name="request">Registration payload.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Authentication bundle or a typed application error.</returns>
     public async Task<Result<AuthResultModel>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();

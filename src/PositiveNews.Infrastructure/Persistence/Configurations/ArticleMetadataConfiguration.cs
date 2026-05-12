@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="ArticleMetadata"/>.
+/// </summary>
 internal sealed class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMetadata>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<ArticleMetadata> builder)
     {
         builder.ToTable("ArticlesMetadata", SchemaNames.Catalog);

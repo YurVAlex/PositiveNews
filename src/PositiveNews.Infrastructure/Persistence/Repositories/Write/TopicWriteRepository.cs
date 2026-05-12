@@ -4,7 +4,9 @@ using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Write;
 
+/// <inheritdoc />
 internal sealed class TopicWriteRepository(AppDbContext db) : ITopicWriteRepository
 {
+    /// <inheritdoc />
     public void Add(Topic topic) => db.Topics.Add(topic);
 }

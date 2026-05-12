@@ -10,8 +10,10 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 
+/// <inheritdoc />
 internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepository
 {
+    /// <inheritdoc />
     public async Task<ArticleFeedPageResult> GetFeedPageAsync(ArticleFeedFilter filter, CancellationToken ct)
     {
         var page = Math.Max(1, filter.Page);
@@ -80,6 +82,7 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
             : query.ThenByDescending(a => a.PublishedAt);
     }
 
+    /// <inheritdoc />
     public async Task<ArticleDetailDto?> GetDetailAsync(long id, CancellationToken ct)
     {
         var article = await db.ArticlesMetadata
@@ -94,6 +97,7 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
         return article.ToArticleDetailDto();
     }
 
+    /// <inheritdoc />
     public async Task<ExistingArticleKeys> FindExistingKeysAsync(
         IReadOnlyCollection<string?> externalIds,
         IReadOnlyCollection<string> urls,

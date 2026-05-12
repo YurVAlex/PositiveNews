@@ -7,10 +7,14 @@ namespace PositiveNews.Domain.ValueObjects;
 /// </summary>
 public sealed record LanguageCode
 {
+    /// <summary>BCP 47 or ISO-style tag.</summary>
     public string Value { get; }
 
     private LanguageCode(string value) => Value = value;
 
+    /// <summary>
+    /// Validates length and returns a trimmed language tag.
+    /// </summary>
     public static LanguageCode Create(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -23,9 +27,12 @@ public sealed record LanguageCode
         return new LanguageCode(trimmed);
     }
 
+    /// <summary>Placeholder representing an undetermined language.</summary>
     public static LanguageCode Und => new("und");
 
+    /// <summary>Implicit conversion to string.</summary>
     public static implicit operator string(LanguageCode v) => v.Value;
 
+    /// <inheritdoc />
     public override string ToString() => Value;
 }

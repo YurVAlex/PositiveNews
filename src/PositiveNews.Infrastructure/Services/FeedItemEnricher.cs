@@ -5,15 +5,23 @@ using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Augments RSS items with default topics from ingestion rules and prepends hero image markup when missing.
+/// </summary>
 public class FeedItemEnricher : IFeedItemEnricher
 {
     private readonly ILogger<FeedItemEnricher> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FeedItemEnricher"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for enrichment warnings.</param>
     public FeedItemEnricher(ILogger<FeedItemEnricher> logger)
     {
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public RssFeedItemDto EnrichTopics(string feedUrl, RssFeedItemDto dto, TopicLookup lookup,
         IngestionSettingsSnapshot settings)
     {
@@ -60,6 +68,7 @@ public class FeedItemEnricher : IFeedItemEnricher
         return dto with { Topics = result.ToList() };
     }
 
+    /// <inheritdoc />
     public RssFeedItemDto AddHeroImage(RssFeedItemDto dto, string? imageTag, HtmlNode? contentNode)
     {
         if (string.IsNullOrWhiteSpace(dto.ContentRaw) ||

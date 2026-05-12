@@ -4,6 +4,13 @@ using PositiveNews.Application.DTOs.Articles;
 
 namespace PositiveNews.Application.Queries.Articles;
 
+/// <summary>
+/// Requests one page of articles for the public feed with optional topic filters and sort order.
+/// </summary>
+/// <param name="Page">One-based page index.</param>
+/// <param name="Topics">Optional topic names filter (null means no filter).</param>
+/// <param name="PageSize">Items per page.</param>
+/// <param name="SortBy">Primary sort column.</param>
 public sealed record GetArticleFeedQuery(
         int Page = 1,
         IReadOnlyList<string>? Topics = null,

@@ -7,10 +7,14 @@ namespace PositiveNews.Domain.ValueObjects;
 /// </summary>
 public sealed record ArticleUrl
 {
+    /// <summary>Trimmed absolute URI string.</summary>
     public string Value { get; }
 
     private ArticleUrl(string value) => Value = value;
 
+    /// <summary>
+    /// Validates non-empty input and ensures it parses as an absolute URI.
+    /// </summary>
     public static ArticleUrl Create(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -22,7 +26,9 @@ public sealed record ArticleUrl
         return new ArticleUrl(value.Trim());
     }
 
+    /// <summary>Implicit conversion to string.</summary>
     public static implicit operator string(ArticleUrl v) => v.Value;
 
+    /// <inheritdoc />
     public override string ToString() => Value;
 }

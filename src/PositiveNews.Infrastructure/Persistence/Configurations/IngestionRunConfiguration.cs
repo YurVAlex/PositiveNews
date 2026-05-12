@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="IngestionRun"/>.
+/// </summary>
 internal sealed class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<IngestionRun> builder)
     {
         builder.ToTable("IngestionRuns", SchemaNames.Catalog);

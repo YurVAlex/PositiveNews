@@ -15,6 +15,11 @@ namespace PositiveNews.Infrastructure.Persistence.Seeding;
 /// </summary>
 public static class DataSeeder
 {
+    /// <summary>
+    /// Applies EF migrations and seeds roles, topics, sources, and the default admin user when configured.
+    /// </summary>
+    /// <param name="serviceProvider">Root DI provider used to resolve <see cref="AppDbContext"/> and configuration.</param>
+    /// <returns>A task representing the asynchronous seed operation.</returns>
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();

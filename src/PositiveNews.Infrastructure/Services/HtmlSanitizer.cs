@@ -5,15 +5,23 @@ using System.Text;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Iteratively walks HTML nodes to produce sanitized article HTML using configurable cleaner rules and media embedding.
+/// </summary>
 public class HtmlSanitizer : IHtmlSanitizer
 {
     private readonly IMediaEmbedder _mediaEmbedder;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HtmlSanitizer"/> class.
+    /// </summary>
+    /// <param name="mediaEmbedder">Embeds images, video, and external players where applicable.</param>
     public HtmlSanitizer(IMediaEmbedder mediaEmbedder)
     {
         _mediaEmbedder = mediaEmbedder;
     }
 
+    /// <inheritdoc />
     public string SanitizeContent(HtmlNode rootNode, CleanerRules rules)
     {
         var builder = new StringBuilder();
@@ -24,6 +32,7 @@ public class HtmlSanitizer : IHtmlSanitizer
         return builder.ToString();
     }
 
+    /// <inheritdoc />
     public string? StripToPlainText(string? htmlContent, HtmlNode? htmlNode = null)
     {
         if (htmlNode != null)

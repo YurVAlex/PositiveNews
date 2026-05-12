@@ -9,10 +9,14 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Security;
 
+/// <summary>
+/// Issues JWT access tokens using symmetric HMAC-SHA256 credentials from <see cref="JwtOptions"/>.
+/// </summary>
 internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
 {
     private readonly JwtOptions _options = jwtOptions.Value;
 
+    /// <inheritdoc />
     public string CreateAccessToken(User user, IReadOnlyCollection<string> roles)
     {
         var issuedAt = DateTime.UtcNow;
@@ -42,6 +46,7 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenS
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    /// <inheritdoc />
     public DateTime GetAccessTokenExpiryUtc()
         => DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
 }

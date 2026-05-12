@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="Role"/>.
+/// </summary>
 internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Role> builder)
     {
         builder.ToTable("Roles", SchemaNames.Identity);

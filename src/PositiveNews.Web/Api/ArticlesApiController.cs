@@ -7,10 +7,19 @@ using PositiveNews.Web.Api.Models;
 
 namespace PositiveNews.Web.Api;
 
+/// <summary>
+/// HTTP API for browsing article feeds and retrieving article details.
+/// </summary>
+/// <param name="mediator">MediatR pipeline for article queries.</param>
 [ApiController]
 [Route("api/articles")]
 public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
 {
+    /// <summary>
+    /// Maps the optional sort query string to a feed sort strategy.
+    /// </summary>
+    /// <param name="sort">Raw sort query value (e.g. <c>positivity</c>).</param>
+    /// <returns>Sort by positivity score when requested; otherwise by publication time.</returns>
     private static ArticleFeedSortBy MapSortQuery(string? sort)
     {
         return string.Equals(sort, "positivity", StringComparison.OrdinalIgnoreCase)
@@ -18,6 +27,14 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
             : ArticleFeedSortBy.PublishedAt;
     }
 
+    /// <summary>
+    /// Returns a paginated feed of articles with optional topic filters and sort order.
+    /// </summary>
+    /// <param name="page">1-based page index.</param>
+    /// <param name="topic">Optional topic filters (repeatable query parameter).</param>
+    /// <param name="sort">Optional sort mode (e.g. positivity).</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Paged article previews and metadata.</returns>
     [HttpGet("feed")]
     [ProducesResponseType(typeof(ArticleFeedResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<ArticleFeedResponse>> GetFeed(
@@ -32,6 +49,12 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
         return Ok(result.ToArticleFeedResponse());
     }
 
+    /// <summary>
+    /// Returns full detail for a single article by identifier.
+    /// </summary>
+    /// <param name="id">Article primary key.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Article detail, or a problem response when the article cannot be loaded.</returns>
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(ArticleDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

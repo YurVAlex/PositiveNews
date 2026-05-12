@@ -5,6 +5,9 @@ using System.Xml.Linq;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Parses a single RSS <c>item</c> element into <see cref="RssFeedItemDto"/> (title, link, content:encoded, categories, etc.).
+/// </summary>
 public class FeedItemParser : IFeedItemParser
 {
     private readonly ILogger<FeedItemParser> _logger;
@@ -12,11 +15,20 @@ public class FeedItemParser : IFeedItemParser
     private static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
     private static readonly XNamespace ContentNs = "http://purl.org/rss/1.0/modules/content/";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FeedItemParser"/> class.
+    /// </summary>
+    /// <param name="logger">Logger for parse diagnostics.</param>
     public FeedItemParser(ILogger<FeedItemParser> logger)
     {
         _logger = logger;
     }
 
+    /// <summary>
+    /// Maps RSS fields from <paramref name="itemElement"/> into a DTO.
+    /// </summary>
+    /// <param name="itemElement">The XML <c>item</c> node.</param>
+    /// <returns>A populated feed item DTO.</returns>
     public RssFeedItemDto Parse(XElement itemElement)
     {
         return new RssFeedItemDto

@@ -6,6 +6,9 @@ using System.Xml.Linq;
 
 namespace PositiveNews.Application.Services.Ingestion;
 
+/// <summary>
+/// Default RSS processing pipeline: parse, validate, clean, enrich topics, score positivity, and extract imagery.
+/// </summary>
 public class FeedProcessingPipeline : IFeedProcessor
 {
     private readonly ILogger<FeedProcessingPipeline> _logger;
@@ -16,6 +19,16 @@ public class FeedProcessingPipeline : IFeedProcessor
     private readonly IImgTagExtractor _imgTagExtractor;
     private readonly IPositivityAnalyzer _analyzer;
 
+    /// <summary>
+    /// Initializes pipeline stages used for each RSS item.
+    /// </summary>
+    /// <param name="validator">Early rejection rules.</param>
+    /// <param name="parser">Maps RSS XML elements to DTOs.</param>
+    /// <param name="cleaner">Sanitizes HTML and topics.</param>
+    /// <param name="enricher">Applies topic inference and hero images.</param>
+    /// <param name="logger">Diagnostic logging.</param>
+    /// <param name="imgTagExtractor">Chooses representative images.</param>
+    /// <param name="analyzer">Scores cleaned plain text.</param>
     public FeedProcessingPipeline(
        IFeedItemValidator validator,
        IFeedItemParser parser,
@@ -34,6 +47,16 @@ public class FeedProcessingPipeline : IFeedProcessor
         _analyzer = analyzer;
     }
 
+    /// <summary>
+    /// Walks every RSS item element, produces enriched DTOs, and counts skipped invalid entries.
+    /// </summary>
+    /// <param name="feedUrl">Feed URL for logging and rule selection.</param>
+    /// <param name="feed">Loaded RSS document.</param>
+    /// <param name="lookup">Topic normalization indexes.</param>
+    /// <param name="settings">Cleaner, validation, and positivity configuration.</param>
+    /// <param name="source">Source snapshot with defaults such as thumbnails.</param>
+    /// <param name="cancellationToken">Cancellation observed per item.</param>
+    /// <returns>Accepted items and invalid-item tally.</returns>
     public FeedProcessingResult ProcessFeed(
         string feedUrl, XDocument feed, TopicLookup lookup,
         IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
@@ -70,6 +93,9 @@ public class FeedProcessingPipeline : IFeedProcessor
         return new FeedProcessingResult(dtoItems, invalidCount);
     }
 
+    /// <summary>
+    /// Parses one item, validates, cleans, enriches topics, scores sentiment, extracts imagery, and applies hero image rules.
+    /// </summary>
     private bool TryProcessFeedItem(
         string feedUrl, XElement feedItem, TopicLookup lookup,
         IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
@@ -113,6 +139,9 @@ public class FeedProcessingPipeline : IFeedProcessor
         return true;
     }
 
+    /// <summary>
+    /// Parses minimal HTML into an <see cref="HtmlNode"/> document root when content exists.
+    /// </summary>
     private static HtmlNode? ParseHtmlNode(string? html)
     {
         if (string.IsNullOrWhiteSpace(html))

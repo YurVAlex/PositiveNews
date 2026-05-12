@@ -12,6 +12,11 @@ namespace PositiveNews.Application;
 /// </summary>
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Registers MediatR, FluentValidation, validation pipeline behavior, and ingestion helpers.
+    /// </summary>
+    /// <param name="services">The application's dependency injection container.</param>
+    /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddMediatR(cfg =>

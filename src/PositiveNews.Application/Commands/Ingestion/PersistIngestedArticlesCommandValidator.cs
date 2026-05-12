@@ -2,8 +2,14 @@ using FluentValidation;
 
 namespace PositiveNews.Application.Commands.Ingestion;
 
+/// <summary>
+/// Requires a positive source id, non-empty language code, and a non-null item collection.
+/// </summary>
 public sealed class PersistIngestedArticlesCommandValidator : AbstractValidator<PersistIngestedArticlesCommand>
 {
+    /// <summary>
+    /// Initializes validation rules for <see cref="PersistIngestedArticlesCommand"/>.
+    /// </summary>
     public PersistIngestedArticlesCommandValidator()
     {
         RuleFor(x => x.SourceId).GreaterThan(0);

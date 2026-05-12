@@ -6,8 +6,10 @@ using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 
+/// <inheritdoc />
 internal sealed class TopicReadRepository(AppDbContext db) : ITopicReadRepository
 {
+    /// <inheritdoc />
     public async Task<IReadOnlyList<string>> GetTopicNamesAsync(CancellationToken ct)
     {
         return await db.Topics
@@ -17,6 +19,7 @@ internal sealed class TopicReadRepository(AppDbContext db) : ITopicReadRepositor
             .ToListAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyList<TopicSnapshot>> GetAllTopicSnapshotsAsync(CancellationToken ct)
     {
         return await db.Topics
@@ -26,6 +29,7 @@ internal sealed class TopicReadRepository(AppDbContext db) : ITopicReadRepositor
             .ToListAsync(ct);
     }
 
+    /// <inheritdoc />
     public async Task<IReadOnlyDictionary<string, int>> GetTopicIdsByNamesAsync(IReadOnlyCollection<string> names, CancellationToken ct)
     {
         if (names.Count == 0)

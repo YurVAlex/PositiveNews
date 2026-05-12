@@ -6,8 +6,10 @@ using PositiveNews.Infrastructure.Persistence;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 
+/// <inheritdoc />
 internal sealed class SourceReadRepository(AppDbContext db) : ISourceReadRepository
 {
+    /// <inheritdoc />
     public async Task<IReadOnlyList<IngestionSourceSnapshot>> GetActiveIngestionSourcesAsync(CancellationToken ct)
     {
         return await db.Sources

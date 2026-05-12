@@ -3,10 +3,22 @@ using MediatR;
 
 namespace PositiveNews.Application.Common.Behaviors;
 
+/// <summary>
+/// MediatR pipeline step that runs FluentValidation validators before the handler.
+/// Aggregates failures into a <see cref="Result"/>/<see cref="Result{T}"/> when possible; otherwise throws <see cref="ValidationException"/>.
+/// </summary>
+/// <param name="validators">FluentValidation validators registered for <typeparamref name="TRequest"/>.</param>
 public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
+    /// <summary>
+    /// Validates <paramref name="request"/>; on failure returns a validation error result or throws.
+    /// </summary>
+    /// <param name="request">The incoming MediatR request.</param>
+    /// <param name="next">The delegate that invokes the next pipeline behavior or handler.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>The handler response, or a validation failure when applicable.</returns>
     public async Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
@@ -42,6 +54,9 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
         throw new ValidationException(failures);
     }
 
+    /// <summary>
+    /// When the MediatR response type is <see cref="Result"/> or <see cref="Result{T}"/>, builds a failure without throwing.
+    /// </summary>
     private static bool TryCreateResultFailure(Error error, out TResponse response)
     {
         var responseType = typeof(TResponse);

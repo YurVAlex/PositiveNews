@@ -3,11 +3,15 @@ using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Infrastructure.Services;
 
+/// <summary>
+/// Maps raw RSS category strings to catalog topic names using slug-word overlap against a prebuilt lookup.
+/// </summary>
 public class TopicNormalizer : ITopicNormalizer
 {
     private static readonly string[] CommonWords =
         ["new", "old", "big", "small", "good", "bad", "hot", "cold"];
 
+    /// <inheritdoc />
     public IReadOnlyList<string> NormalizeTopics(IReadOnlyList<string> rawTopics, TopicLookup lookup)
     {
         if (rawTopics == null || rawTopics.Count == 0)

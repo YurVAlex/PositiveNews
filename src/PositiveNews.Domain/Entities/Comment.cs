@@ -2,30 +2,61 @@ using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Domain.Entities;
 
+/// <summary>
+/// User-authored comment on an article, optionally threaded under a parent comment.
+/// </summary>
 public class Comment
 {
     private readonly List<Comment> _replies = [];
 
-    // For EF Core materialization
+    /// <remarks>Used by EF Core when hydrating entities from the database.</remarks>
     private Comment() { }
 
+    /// <summary>Primary key.</summary>
     public long Id { get; private set; }
+
+    /// <summary>Article this comment belongs to.</summary>
     public long ArticleId { get; private set; }
+
+    /// <summary>Author user id.</summary>
     public long UserId { get; private set; }
+
+    /// <summary>Parent comment id when this is a reply; null for top-level comments.</summary>
     public long? ParentId { get; private set; }
+
+    /// <summary>Comment body text.</summary>
     public string Content { get; private set; } = string.Empty;
+
+    /// <summary>UTC creation time.</summary>
     public DateTime CreatedAt { get; private set; }
+
+    /// <summary>Set when the body was last edited.</summary>
     public DateTime? EditedAt { get; private set; }
+
+    /// <summary>When false, the comment is hidden from readers.</summary>
     public bool IsActive { get; private set; } = true;
+
+    /// <summary>Moderator who deactivated the comment, if any.</summary>
     public long? ModeratedBy { get; private set; }
 
-    // Navigation
+    /// <summary>Owning article.</summary>
     public ArticleMetadata Article { get; private set; } = null!;
+
+    /// <summary>Author.</summary>
     public User User { get; private set; } = null!;
+
+    /// <summary>Parent comment when <see cref="ParentId"/> is set.</summary>
     public Comment? Parent { get; private set; }
+
+    /// <summary>Moderator navigation when moderated.</summary>
     public User? Moderator { get; private set; }
+
+    /// <summary>Direct replies (nested comments).</summary>
     public IReadOnlyCollection<Comment> Replies => _replies.AsReadOnly();
 
+    /// <summary>
+    /// Creates a new comment with trimmed content and optional parent reply id.
+    /// </summary>
     public static Comment Create(long articleId, long userId, string content, long? parentId = null)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -44,6 +75,9 @@ public class Comment
         };
     }
 
+    /// <summary>
+    /// Updates the body and sets <see cref="EditedAt"/>; fails if inactive.
+    /// </summary>
     public void Edit(string newContent)
     {
         if (string.IsNullOrWhiteSpace(newContent))
@@ -57,6 +91,9 @@ public class Comment
         EditedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Soft-deletes the comment and records the moderator.
+    /// </summary>
     public void Deactivate(long moderatorId)
     {
         if (!IsActive)

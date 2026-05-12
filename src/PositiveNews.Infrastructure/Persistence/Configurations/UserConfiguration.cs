@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
+/// <summary>
+/// EF Core model configuration for <see cref="User"/>.
+/// </summary>
 internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("Users", SchemaNames.Identity);
