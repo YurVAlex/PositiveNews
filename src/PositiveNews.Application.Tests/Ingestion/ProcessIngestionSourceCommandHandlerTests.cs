@@ -220,16 +220,20 @@ public class ProcessIngestionSourceCommandHandlerTests
         mediator.Send(Arg.Any<PersistIngestedArticlesCommand>(), Arg.Any<CancellationToken>())
             .Returns(Result<int>.Success(0));
         IngestionRun? run = null;
-        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(callInfo => run = callInfo.Arg<IngestionRun>());
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => handler.Handle(
-            new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
-            cts.Token));
+        await handler.Awaiting(h => h.Handle(
+    new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
+    cts.Token))
+    .Should()
+    .ThrowAsync<OperationCanceledException>();
 
         run!.Status.Should().Be(IngestionStatus.Partial);
+        run.ErrorMessage.Should().Be("Operation was cancelled.");
+        await uow.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -269,11 +273,17 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromException<XDocument>(new IOException("network")));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
         await Assert.ThrowsAsync<IOException>(() => handler.Handle(
             new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
             CancellationToken.None));
+
+        run!.Status.Should().Be(IngestionStatus.Failed);
+        run.ErrorMessage.Should().Contain("IOException").And.Contain("network");
+        await uow.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -289,11 +299,47 @@ public class ProcessIngestionSourceCommandHandlerTests
             .Returns(new XDocument(new XElement("rss")));
         processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidOperationException("parse bug"));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(
             new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
             CancellationToken.None));
+
+        run!.Status.Should().Be(IngestionStatus.Failed);
+        run.ErrorMessage.Should().Contain("InvalidOperationException").And.Contain("parse bug");
+        await uow.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_PersistFailedAndRethrow_When_FindExistingArticleKeysThrows()
+    {
+        var runRepo = Substitute.For<IIngestionRunRepository>();
+        var uow = Substitute.For<IIngestionUnitOfWork>();
+        var dedup = new ArticleDeduplicator();
+        var reader = Substitute.For<IFeedReader>();
+        var processor = Substitute.For<IFeedProcessor>();
+        var mediator = Substitute.For<IMediator>();
+        var item = RssFeedItemBuilder.Create(title: "A", link: "https://a.com", externalId: "e1");
+        reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new XDocument(new XElement("rss")));
+        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+            .Returns(new FeedProcessingResult([item], 0));
+        mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<ExistingArticleKeys>(new InvalidOperationException("db unavailable")));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
+        var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(
+            new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
+            CancellationToken.None));
+
+        run!.Status.Should().Be(IngestionStatus.Failed);
+        run.ItemsFetched.Should().Be(0);
+        run.ErrorMessage.Should().Contain("InvalidOperationException").And.Contain("db unavailable");
+        await uow.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -156,7 +156,8 @@ public class ArticleMetadataTests
     [Fact]
     public void PositivityScore_Invalid_Value_Should_ThrowInvalidArticleStateException()
     {
-        var act = () => ArticleMetadata.Create(1, "t", "http://x", null, DateTime.UtcNow, "en", -0.1m);
+        var act = () => ArticleMetadata.Create(999999, "Test title", "http://My-test-URL", 
+                        "GUID-SOME-GUID-OR-URL-OR-SOME string", DateTime.UtcNow, "en", -0.1m);
 
         act.Should().Throw<InvalidArticleStateException>();
     }

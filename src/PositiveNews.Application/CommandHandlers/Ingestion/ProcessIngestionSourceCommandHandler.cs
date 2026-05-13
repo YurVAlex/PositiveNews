@@ -160,6 +160,13 @@ public sealed class ProcessIngestionSourceCommandHandler(
             await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
             return Result<int>.Success(newArticleCount);
         }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error while ingesting source {SourceName}.", source.Name);
+            run.Fail(FormatUnexpectedIngestionFailureMessage(ex), newArticleCount);
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+            throw;
+        }
         finally
         {
             stopwatch.Stop();
@@ -170,4 +177,9 @@ public sealed class ProcessIngestionSourceCommandHandler(
         }
     }
 
+    private static string FormatUnexpectedIngestionFailureMessage(Exception ex)
+    {
+        var detail = string.IsNullOrWhiteSpace(ex.Message) ? "(no message)" : ex.Message;
+        return $"{ex.GetType().Name}: {detail}";
+    }
 }

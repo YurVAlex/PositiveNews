@@ -1,4 +1,3 @@
-using System.Linq;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +8,9 @@ using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Web.Api;
+using PositiveNews.Web.Api.Models;
 using PositiveNews.Web.Tests.TestHelpers;
+using System.Linq;
 
 namespace PositiveNews.Web.Tests.Api.Controllers;
 
@@ -67,6 +68,8 @@ public class ArticlesApiControllerTests
             cts.Token);
         var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         ok.Value.Should().NotBeNull();
+
+        var response = ok.Value.Should().BeOfType<ArticleFeedResponse>().Subject;
     }
 
     [Fact]
