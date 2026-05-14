@@ -51,6 +51,7 @@ internal static class TestDataBuilders
             Id = id,
             SourceName = "Source",
             SourceLogoUrl = "https://logo",
+            SourceTrustScore = 0.95m,
             Title = title,
             Author = "Author",
             PublishedAt = DateTime.UtcNow,

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import loginIcon from '../assets/ui/login.svg'
+import logoutIcon from '../assets/ui/logout.svg'
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, logout } = useAuth()
@@ -11,7 +13,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <nav className="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-1">
           <div className="container-fluid">
             <Link className="navbar-brand" to="/">
-              PositiveNews.Web
+              Positive News
             </Link>
             <button
               className="navbar-toggler"
@@ -41,12 +43,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {isAuthenticated ? (
                   <>
                     <span className="text-muted fs-6">{user?.name ?? 'User'}</span>
-                    <button type="button" className="btn btn-sm btn-outline-secondary" onClick={logout}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                      onClick={logout}
+                    >
+                      <img src={logoutIcon} alt="" width={20} height={20} className="flex-shrink-0" />
                       Logout
                     </button>
                   </>
                 ) : (
-                  <Link className="btn btn-sm btn-primary" to="/login">
+                  <Link
+                    className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                    to="/login"
+                  >
+                    <img src={loginIcon} alt="" width={20} height={20} className="flex-shrink-0" />
                     Login
                   </Link>
                 )}
@@ -60,7 +71,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <footer className="border-top footer text-muted">
         <div className="container">
-          &copy; 2026 - PositiveNews.Web -{' '}
+          &copy; 2026 - Positive News -{' '}
           <Link to="/privacy" className="text-muted">
             Privacy
           </Link>

@@ -20,6 +20,7 @@ describe('ArticleCard', () => {
       </MemoryRouter>,
     )
 
+    expect(screen.getByTitle('Source trust score')).toHaveTextContent('1')
     expect(screen.getByText('62% Positivity')).toHaveClass('text-success')
     expect(screen.getByRole('link', { name: 'Health' })).toHaveClass('btn-primary')
     expect(screen.getByRole('link', { name: 'Science' })).toHaveClass('btn-outline-dark')
@@ -53,6 +54,7 @@ function articlePreview(overrides: Partial<ArticlePreviewResponse> = {}): Articl
     id: 1,
     sourceName: 'Positive Source',
     sourceLogoUrl: null,
+    sourceTrustScore: 1,
     title: 'Good news story',
     author: 'Reporter',
     publishedAt: '2026-05-11T00:00:00Z',

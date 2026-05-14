@@ -16,6 +16,7 @@ public static partial class ArticleMapper
     /// </summary>
     [MapProperty("Source.Name", nameof(ArticleFeedItemDto.SourceName))]
     [MapProperty("Source.LogoUrl", nameof(ArticleFeedItemDto.SourceLogoUrl))]
+    [MapProperty("Source.TrustScore", nameof(ArticleFeedItemDto.SourceTrustScore))]
     [MapProperty("ArticleTopics", nameof(ArticleFeedItemDto.Topics))]
     public static partial ArticleFeedItemDto ToArticleFeedItemDto(this ArticleMetadata source);
 

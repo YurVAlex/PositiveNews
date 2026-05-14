@@ -84,7 +84,7 @@ export function RegisterPage() {
               {isSubmitting ? 'Creating account...' : 'Register'}
             </button>
           </form>
-          <div className="mt-3 text-muted">
+                  <div className="mt-3 text-muted fs-5 fw-medium">
             Already have an account? <Link to="/login">Sign in</Link>
           </div>
         </div>

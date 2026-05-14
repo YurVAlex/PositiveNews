@@ -18,6 +18,7 @@ public class ArticleApiMapperTests
         preview.Title.Should().Be("T");
         preview.SourceName.Should().Be(dto.SourceName);
         preview.SourceLogoUrl.Should().Be(dto.SourceLogoUrl);
+        preview.SourceTrustScore.Should().Be(dto.SourceTrustScore);
         preview.Author.Should().Be(dto.Author);
         preview.PublishedAt.Should().Be(dto.PublishedAt);
         preview.ImageTag.Should().Be(dto.ImageTag);

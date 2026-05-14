@@ -15,6 +15,11 @@ function formatPositivityScore(score: number | null): string | null {
     return `${pct}% Positivity`
 }
 
+function formatTrustScoreMark(score: number): string {
+    if (!Number.isFinite(score)) return '—'
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(score)
+}
+
 /** Red below 0.49; yellow from 0.49 through 0.51; green above 0.51 */
 function positivityBadgeClassName(score: number): string {
     const base =
@@ -56,7 +61,15 @@ export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUr
                                 style={{ width: 32, height: 32, objectFit: 'cover' }}
                             />
                         ) : null}
-                        <span className="fw-bold text-muted fs-5 pt-2">{article.sourceName}</span>
+                        <span className="d-inline-flex align-items-baseline gap-1 flex-wrap pt-2">
+                            <span className="fw-bold text-muted fs-5">{article.sourceName}</span>
+                            <span
+                                className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
+                                title="Source trust score"
+                            >
+                                {formatTrustScoreMark(article.sourceTrustScore)}
+                            </span>
+                        </span>
                         {positivityLabel ? (
                             <span
                                 className={positivityBadgeClasses}

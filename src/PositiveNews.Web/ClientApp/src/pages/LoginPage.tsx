@@ -76,7 +76,7 @@ export function LoginPage() {
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-          <div className="mt-3 text-muted">
+                  <div className="mt-3 text-muted fs-5 fw-medium">
             No account yet? <Link to="/register">Register</Link>
           </div>
         </div>

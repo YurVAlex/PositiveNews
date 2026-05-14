@@ -2,6 +2,8 @@ export type ArticlePreviewResponse = {
   id: number
   sourceName: string
   sourceLogoUrl: string | null
+  /** Editorial trust weight from the news source (API decimal). */
+  sourceTrustScore: number
   title: string
   author: string | null
   publishedAt: string
