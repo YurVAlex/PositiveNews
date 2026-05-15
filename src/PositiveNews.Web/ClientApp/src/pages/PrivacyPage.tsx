@@ -7,8 +7,8 @@ export function PrivacyPage() {
 
   return (
     <main className="pb-3 mt-4">
-      <h1>Privacy Policy</h1>
-      <p>Use this page to detail your site&apos;s privacy policy.</p>
+          <h1>Positive News</h1>
+          <p>All rights belong to the authors.</p>
     </main>
   )
 }

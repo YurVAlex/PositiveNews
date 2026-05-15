@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { fetchArticleFeed, type FeedSortParam } from '../api/articles-api'
 import type { ArticleFeedResponse } from '../api/types'
 import { ArticleCard } from '../components/ArticleCard'
+import { FeedPagination } from '../components/FeedPagination'
 import { useAuth } from '../auth/AuthProvider'
 
 function parsePage(raw: string | null) {
@@ -143,7 +144,13 @@ export function FeedPage() {
       <div className="row justify-content-center">
         <div className="col-md-12">
           <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-3">
-            <h3 className="mb-0">{title}</h3>
+                      <h3 className="mb-0">{title}</h3>
+            <FeedPagination
+              currentPage={data.currentPage}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+              className="d-flex align-items-center"
+            />
             <div className="d-flex align-items-center gap-2 ms-md-auto">
               <label htmlFor="feed-sort-select" className="small text-muted mb-0 text-nowrap">
                 Sort by
@@ -199,39 +206,13 @@ export function FeedPage() {
             />
           ))}
 
-          {data.totalPages > 1 ? (
-            <nav>
-              <ul className="pagination justify-content-center">
-                <li className={`page-item ${data.currentPage === 1 ? 'disabled' : ''}`}>
-                  <button
-                    type="button"
-                    className="page-link"
-                    disabled={data.currentPage === 1}
-                    onClick={() => setPage(data.currentPage - 1)}
-                  >
-                    Previous
-                  </button>
-                </li>
-
-                <li className="page-item disabled">
-                  <span className="page-link">
-                    Page {data.currentPage} of {data.totalPages}
-                  </span>
-                </li>
-
-                <li className={`page-item ${data.currentPage === data.totalPages ? 'disabled' : ''}`}>
-                  <button
-                    type="button"
-                    className="page-link"
-                    disabled={data.currentPage === data.totalPages}
-                    onClick={() => setPage(data.currentPage + 1)}
-                  >
-                    Next
-                  </button>
-                </li>
-              </ul>
-            </nav>
-          ) : null}
+          <FeedPagination
+            currentPage={data.currentPage}
+            totalPages={data.totalPages}
+            onPageChange={setPage}
+            className="d-flex justify-content-center"
+            listClassName="justify-content-center"
+          />
         </div>
       </div>
     </main>
