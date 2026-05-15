@@ -27,12 +27,14 @@ public class ArticlesApiControllerTests
         var mediator = Substitute.For<IMediator>();
         mediator
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page));
+            .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(page)));
 
         var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
 
         using var cts = new CancellationTokenSource();
-        var result = await sut.GetFeed(1, TopicsSpaceHealth, null, cts.Token);
+        var result = await sut.GetFeed(
+            new GetArticleFeedRequest { Page = 1, Topic = TopicsSpaceHealth },
+            cts.Token);
 
         await mediator.Received(1).Send(
             Arg.Is<GetArticleFeedQuery>(q =>
@@ -46,30 +48,30 @@ public class ArticlesApiControllerTests
     }
 
     [Fact]
-    public async Task GetFeed_Should_ReturnArticleFeedResponse_When_Query_Parameter_Is_Broken()
+    public async Task GetFeed_Should_ReturnValidationProblem_When_HandlerReturnsValidationFailure()
     {
-        var page = TestDataBuilders.ArticleFeedPage();
         var mediator = Substitute.For<IMediator>();
         mediator
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page));
+            .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Failure(
+                new Error("Validation.Failed", "Validation failed.", ErrorType.Validation))));
 
         var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
 
         using var cts = new CancellationTokenSource();
-        var result = await sut.GetFeed(-1, BrokenTopics, "Trust", cts.Token);
+        var result = await sut.GetFeed(
+            new GetArticleFeedRequest { Page = -1, Topic = BrokenTopics, Sort = "Trust" },
+            cts.Token);
 
         await mediator.Received(1).Send(
             Arg.Is<GetArticleFeedQuery>(q =>
                 q.Page == -1 &&
                 q.Topics != null &&
                 q.Topics.SequenceEqual(BrokenTopics) &&
-                q.SortBy == ArticleFeedSortBy.PublishedAt),
+                !Enum.IsDefined(typeof(ArticleFeedSortBy), q.SortBy)),
             cts.Token);
-        var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        ok.Value.Should().NotBeNull();
-
-        var response = ok.Value.Should().BeOfType<ArticleFeedResponse>().Subject;
+        var obj = result.Result.Should().BeOfType<ObjectResult>().Subject;
+        obj.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
     }
 
     [Fact]
@@ -78,11 +80,13 @@ public class ArticlesApiControllerTests
         var mediator = Substitute.For<IMediator>();
         mediator
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(TestDataBuilders.ArticleFeedPage()));
+            .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(TestDataBuilders.ArticleFeedPage())));
 
         var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
 
-        await sut.GetFeed(2, TopicsTech, "POSITIVITY", CancellationToken.None);
+        await sut.GetFeed(
+            new GetArticleFeedRequest { Page = 2, Topic = TopicsTech, Sort = "POSITIVITY" },
+            CancellationToken.None);
 
         await mediator.Received(1).Send(
             Arg.Is<GetArticleFeedQuery>(q =>
@@ -91,6 +95,23 @@ public class ArticlesApiControllerTests
                 q.Topics != null &&
                 q.Topics.SequenceEqual(TopicsTech)),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetFeed_Should_ReturnNotFoundProblem_When_HandlerReturnsNotFound()
+    {
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Failure(
+                new Error("ArticleFeed.PageNotFound", "missing", ErrorType.NotFound))));
+
+        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+
+        var result = await sut.GetFeed(new GetArticleFeedRequest { Page = 5 }, CancellationToken.None);
+
+        var obj = result.Result.Should().BeOfType<ObjectResult>().Subject;
+        obj.StatusCode.Should().Be(StatusCodes.Status404NotFound);
     }
 
     [Fact]

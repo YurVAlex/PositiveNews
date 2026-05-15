@@ -1,4 +1,6 @@
+using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.DTOs.Articles;
+using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Web.Api.Models;
 using Riok.Mapperly.Abstractions;
 
@@ -34,4 +36,41 @@ public static partial class ArticleApiMapper
     /// </remarks>
     [MapProperty(nameof(ArticleFeedPageResult.Articles), nameof(ArticleFeedResponse.Articles))]
     public static partial ArticleFeedResponse ToArticleFeedResponse(this ArticleFeedPageResult source);
+
+    /// <summary>
+    /// Maps query-string feed request data into the corresponding MediatR query.
+    /// </summary>
+    /// <param name="source">Inbound HTTP request model.</param>
+    /// <returns>Application-layer feed query.</returns>
+    public static GetArticleFeedQuery ToGetArticleFeedQuery(this GetArticleFeedRequest source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        return new GetArticleFeedQuery(
+            source.Page,
+            source.Topic ?? Array.Empty<string>(),
+            SortBy: MapSort(source.Sort));
+    }
+
+    /// <summary>
+    /// Maps API sort text to feed sort enum values and preserves invalid input for validation.
+    /// </summary>
+    /// <param name="sort">Raw sort query value.</param>
+    /// <returns>Mapped sort value, or an undefined enum member when the value is unsupported.</returns>
+    private static ArticleFeedSortBy MapSort(string? sort)
+    {
+        if (string.IsNullOrWhiteSpace(sort))
+        {
+            return ArticleFeedSortBy.PublishedAt;
+        }
+
+        if (string.Equals(sort, "positivity", StringComparison.OrdinalIgnoreCase))
+        {
+            return ArticleFeedSortBy.PositivityScore;
+        }
+
+        return Enum.TryParse<ArticleFeedSortBy>(sort, ignoreCase: true, out var parsedSort)
+            ? parsedSort
+            : (ArticleFeedSortBy)(-1);
+    }
 }
