@@ -17,16 +17,39 @@ public class GetArticleFeedQueryHandlerTests
     {
         var articleReadRepository = Substitute.For<IArticleReadRepository>();
         var topicReadRepository = Substitute.For<ITopicReadRepository>();
+        var sourceReadRepository = Substitute.For<ISourceReadRepository>();
         topicReadRepository
             .GetTopicNamesAsync(Arg.Any<CancellationToken>())
             .Returns(["Space", "Health"]);
 
-        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository);
+        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository, sourceReadRepository);
 
         var result = await sut.Handle(new GetArticleFeedQuery(1, ["Space", "Unknown"]), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("ArticleFeed.TopicNotFound");
+        result.Error.Type.Should().Be(ErrorType.NotFound);
+        await articleReadRepository
+            .DidNotReceive()
+            .GetFeedPageAsync(Arg.Any<ArticleFeedFilter>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnNotFound_When_RequestedSourceDoesNotExist()
+    {
+        var articleReadRepository = Substitute.For<IArticleReadRepository>();
+        var topicReadRepository = Substitute.For<ITopicReadRepository>();
+        var sourceReadRepository = Substitute.For<ISourceReadRepository>();
+        sourceReadRepository
+            .GetExistingSourceIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+            .Returns([1]);
+
+        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository, sourceReadRepository);
+
+        var result = await sut.Handle(new GetArticleFeedQuery(1, SourceIds: [1, 99]), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("ArticleFeed.SourceNotFound");
         result.Error.Type.Should().Be(ErrorType.NotFound);
         await articleReadRepository
             .DidNotReceive()
@@ -47,11 +70,12 @@ public class GetArticleFeedQueryHandlerTests
             });
 
         var topicReadRepository = Substitute.For<ITopicReadRepository>();
+        var sourceReadRepository = Substitute.For<ISourceReadRepository>();
         topicReadRepository
             .GetTopicNamesAsync(Arg.Any<CancellationToken>())
             .Returns(["Space", "Health"]);
 
-        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository);
+        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository, sourceReadRepository);
 
         var result = await sut.Handle(new GetArticleFeedQuery(3, ["Space"]), CancellationToken.None);
 
@@ -72,6 +96,7 @@ public class GetArticleFeedQueryHandlerTests
         };
 
         var expectedSequence = new[] { "Space" };
+        var expectedSourceIds = new[] { 2, 3 };
 
         var articleReadRepository = Substitute.For<IArticleReadRepository>();
         articleReadRepository
@@ -83,10 +108,16 @@ public class GetArticleFeedQueryHandlerTests
             .GetTopicNamesAsync(Arg.Any<CancellationToken>())
             .Returns(["Space", "Health"]);
 
-        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository);
+        var sourceReadRepository = Substitute.For<ISourceReadRepository>();
+        sourceReadRepository
+            .GetExistingSourceIdsAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<CancellationToken>())
+            .Returns([2, 3]);
 
-        var result = await sut.Handle(new GetArticleFeedQuery(1, ["Space", "space"]), CancellationToken.None);
+        var sut = new GetArticleFeedQueryHandler(articleReadRepository, topicReadRepository, sourceReadRepository);
 
+        var result = await sut.Handle(
+            new GetArticleFeedQuery(1, ["Space", "space"], SourceIds: [2, 2, 3]),
+            CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(expectedPage);
@@ -95,7 +126,8 @@ public class GetArticleFeedQueryHandlerTests
                 f.Page == 1 &&
                 f.PageSize == 10 &&
                 f.SortBy == ArticleFeedSortBy.PublishedAt &&
-                f.Topics.SequenceEqual(expectedSequence)),
+                f.Topics.SequenceEqual(expectedSequence) &&
+                f.SourceIds.SequenceEqual(expectedSourceIds)),
             Arg.Any<CancellationToken>());
     }
 }

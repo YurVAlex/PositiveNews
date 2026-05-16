@@ -17,10 +17,12 @@ public enum ArticleFeedSortBy
 /// </summary>
 /// <param name="Page">One-based page index.</param>
 /// <param name="PageSize">Maximum items per page.</param>
-/// <param name="Topics">Topic names to filter by (empty means no topic filter).</param>
+/// <param name="Topics">Topic names to prioritize (empty means no topic preference).</param>
+/// <param name="SourceIds">Source ids to prioritize (empty means no source preference).</param>
 /// <param name="SortBy">Determines the primary sort order.</param>
 public sealed record ArticleFeedFilter(
     int Page,
     int PageSize,
     IReadOnlyList<string> Topics,
+    IReadOnlyList<int> SourceIds,
     ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt);

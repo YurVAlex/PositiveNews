@@ -45,10 +45,11 @@ internal static class TestDataBuilders
             Articles = articles ?? [ArticlePreviewDto()]
         };
 
-    public static ArticleFeedItemDto ArticlePreviewDto(long id = 1, string title = "Headline")
+    public static ArticleFeedItemDto ArticlePreviewDto(long id = 1, string title = "Headline", int sourceId = 1)
         => new()
         {
             Id = id,
+            SourceId = sourceId,
             SourceName = "Source",
             SourceLogoUrl = "https://logo",
             SourceTrustScore = 0.95m,

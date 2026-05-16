@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ArticlePreviewResponse } from '../api/types'
 import { ArticleImage } from './ArticleImage'
@@ -20,10 +20,8 @@ function formatTrustScoreMark(score: number): string {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(score)
 }
 
-/** Red below 0.49; yellow from 0.49 through 0.51; green above 0.51 */
 function positivityBadgeClassName(score: number): string {
-    const base =
-        'ms-auto text-nowrap small fw-semibold border rounded px-2 py-1'
+    const base = 'ms-auto text-nowrap small fw-semibold border rounded px-2 py-1'
     if (score < 0.49) return `${base} text-danger border-danger-subtle bg-danger-subtle`
     if (score <= 0.51) return `${base} text-dark border-warning-subtle bg-warning-subtle`
     return `${base} text-success border-success-subtle bg-success-subtle`
@@ -34,9 +32,18 @@ type ArticleCardProps = {
     index: number
     selectedTopics: string[]
     buildTopicToggleUrl: (topic: string) => string
+    selectedSourceIds: number[]
+    buildSourceToggleUrl: (sourceId: number) => string
 }
 
-export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUrl }: ArticleCardProps) {
+export function ArticleCard({
+    article,
+    index,
+    selectedTopics,
+    buildTopicToggleUrl,
+    selectedSourceIds,
+    buildSourceToggleUrl,
+}: ArticleCardProps) {
     const [summaryOpen, setSummaryOpen] = useState(false)
     const hasPreviewImage = Boolean(article.imageTag?.trim())
     const positivityLabel = formatPositivityScore(article.positivityScore)
@@ -45,6 +52,10 @@ export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUr
             ? positivityBadgeClassName(article.positivityScore)
             : ''
     const originUrl = article.url?.trim() ?? ''
+    const isSourceSelected = selectedSourceIds.includes(article.sourceId)
+    const sourceToggleTitle = isSourceSelected
+        ? `Remove "${article.sourceName}" from preferred sources`
+        : `Prefer articles from "${article.sourceName}"`
 
     return (
         <div className="card mb-4 shadow-sm overflow-hidden">
@@ -52,71 +63,82 @@ export function ArticleCard({ article, index, selectedTopics, buildTopicToggleUr
                 className={`article-card-layout ${!hasPreviewImage ? 'article-card-layout--no-image' : ''}`}
             >
                 <div className="article-card-hdr card-header bg-white border-0 pb-0 d-flex flex-column align-items-stretch">
-                    <div className="d-flex w-100 align-items-center gap-2">
-                        {article.sourceLogoUrl ? (
-                            <img
-                                src={article.sourceLogoUrl}
-                                alt={article.sourceName}
-                                className="flex-shrink-0"
-                                style={{ width: 32, height: 32, objectFit: 'cover' }}
-                            />
-                        ) : null}
-                        <span className="d-inline-flex align-items-baseline gap-1 flex-wrap pt-2">
-                            <span className="fw-bold text-muted fs-5">{article.sourceName}</span>
-                            <span
-                                className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
-                                title="Source trust score"
-                            >
-                                {formatTrustScoreMark(article.sourceTrustScore)}
-                            </span>
+                    <div className="d-flex w-100 align-items-center gap-2 flex-wrap">
+                        <Link
+                            to={buildSourceToggleUrl(article.sourceId)}
+                            className={`d-inline-flex align-items-center gap-2 text-decoration-none pt-2 ${
+                                isSourceSelected ? 'link-primary' : 'link-secondary'
+                            }`}
+                            title={sourceToggleTitle}
+                        >
+                            {article.sourceLogoUrl ? (
+                                <img
+                                    src={article.sourceLogoUrl}
+                                    alt=""
+                                    className="flex-shrink-0"
+                                    style={{ width: 32, height: 32, objectFit: 'cover' }}
+                                />
+                            ) : null}
+                            <span className="fw-bold fs-5">{article.sourceName}</span>
+                        </Link>
+                        <span
+                            className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
+                            title="Source trust score"
+                        >
+                            {formatTrustScoreMark(article.sourceTrustScore)}
                         </span>
                         {positivityLabel ? (
-                            <span
-                                className={positivityBadgeClasses}
-                                title="Positivity score"
-                            >
+                            <span className={positivityBadgeClasses} title="Positivity score">
                                 {positivityLabel}
                             </span>
                         ) : null}
                     </div>
-                    
                     <h6 className="card-subtitle pt-2 mb-0 text-muted">
-                        {(article.author?.trim().length ? article.author : 'Unknown Author') + ' • ' + formatPublishedAt(article.publishedAt)}
+                        {(article.author?.trim().length ? article.author : 'Unknown Author') +
+                            ' • ' +
+                            formatPublishedAt(article.publishedAt)}
                     </h6>
                 </div>
                 <div className="article-card-title card-body">
                     <h4 className="card-title fw-bold">{article.title}</h4>
                 </div>
-
                 {hasPreviewImage ? (
-                    <div className="article-card-image">
+                    <Link
+                        to={`/articles/${article.id}`}
+                        className="article-card-image text-decoration-none"
+                        aria-label={`Read article: ${article.title}`}
+                    >
                         <ArticleImage imageTag={article.imageTag} index={index} />
-                    </div>
+                    </Link>
                 ) : null}
-
                 <div className="article-card-body card-body pt-0 border-0">
                     <ArticleTopicLinks
                         topics={article.topics}
                         selectedTopics={selectedTopics}
                         buildTopicToggleUrl={buildTopicToggleUrl}
                     />
-
                     <div className="d-flex flex-wrap gap-2 mt-2 align-items-center">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => setSummaryOpen((o) => !o)}>
+                        <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => setSummaryOpen((o) => !o)}
+                        >
                             {summaryOpen ? 'Hide summary' : 'Show summary'}
                         </button>
-
                         <Link to={`/articles/${article.id}`} className="btn btn-primary">
                             Read article
                         </Link>
-
                         {originUrl ? (
-                            <a href={originUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline-secondary">
+                            <a
+                                href={originUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-outline-secondary"
+                            >
                                 Read origin
                             </a>
                         ) : null}
                     </div>
-
                     <div className={`mt-3 bg-light rounded ${summaryOpen ? '' : 'd-none'}`}>
                         <strong>Summary:</strong>
                         <p className="mb-0">{article.summaryShort}</p>

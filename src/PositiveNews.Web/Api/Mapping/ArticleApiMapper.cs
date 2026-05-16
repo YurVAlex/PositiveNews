@@ -49,6 +49,7 @@ public static partial class ArticleApiMapper
         return new GetArticleFeedQuery(
             source.Page,
             source.Topic ?? Array.Empty<string>(),
+            source.Source ?? Array.Empty<int>(),
             SortBy: MapSort(source.Sort));
     }
 

@@ -29,8 +29,38 @@ function topicsFromSearchParams(searchParams: URLSearchParams): string[] {
   return ordered
 }
 
+/** Distinct source ids from query string, preserving first-seen order. */
+function sourceIdsFromSearchParams(searchParams: URLSearchParams): number[] {
+  const ordered: number[] = []
+  const seen = new Set<number>()
+  for (const raw of searchParams.getAll('source')) {
+    const id = Number(raw)
+    if (!Number.isInteger(id) || id < 1) continue
+    if (seen.has(id)) continue
+    seen.add(id)
+    ordered.push(id)
+  }
+  return ordered
+}
+
 function parseSort(raw: string | null): FeedSortParam {
   return raw?.toLowerCase() === 'positivity' ? 'positivity' : 'date'
+}
+
+function feedTitle(topics: string[], sourceCount: number, singleSourceName: string | null): string {
+  const hasTopics = topics.length > 0
+  const hasSources = sourceCount > 0
+
+  if (hasTopics && hasSources) {
+    return 'Your preferences'
+  }
+  if (hasSources) {
+    return sourceCount === 1 && singleSourceName ? `Source: ${singleSourceName}` : 'Preferred sources'
+  }
+  if (hasTopics) {
+    return topics.length === 1 ? `Topic: ${topics[0]}` : 'Preferred topics'
+  }
+  return 'Latest News'
 }
 
 export function FeedPage() {
@@ -38,6 +68,7 @@ export function FeedPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const page = useMemo(() => parsePage(searchParams.get('page')), [searchParams])
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
+  const sourceIds = useMemo(() => sourceIdsFromSearchParams(searchParams), [searchParams])
   const sortMode = useMemo(() => parseSort(searchParams.get('sort')), [searchParams])
 
   const [data, setData] = useState<ArticleFeedResponse | null>(null)
@@ -49,7 +80,7 @@ export function FeedPage() {
 
     ;(async () => {
       try {
-        const res = await fetchArticleFeed(page, topics, sortMode, token)
+        const res = await fetchArticleFeed(page, topics, sourceIds, sortMode, token)
         if (!cancelled) {
           setData(res)
         }
@@ -63,7 +94,7 @@ export function FeedPage() {
     return () => {
       cancelled = true
     }
-  }, [page, topics, sortMode, token])
+  }, [page, topics, sourceIds, sortMode, token])
 
   const buildTopicToggleUrl = useCallback(
     (topicName: string) => {
@@ -86,19 +117,45 @@ export function FeedPage() {
     [searchParams, topics],
   )
 
-  const title =
-    topics.length === 0 ? 'Latest News' : topics.length === 1 ? `Topic: ${topics[0]}` : 'Preferred topics'
+  const buildSourceToggleUrl = useCallback(
+    (sourceId: number) => {
+      if (!Number.isInteger(sourceId) || sourceId < 1) return `/?${searchParams.toString()}`
+
+      const next = new URLSearchParams(searchParams)
+      const exists = sourceIds.includes(sourceId)
+      next.delete('source')
+      next.set('page', '1')
+      if (exists) {
+        sourceIds.filter((id) => id !== sourceId).forEach((id) => next.append('source', String(id)))
+      } else {
+        sourceIds.forEach((id) => next.append('source', String(id)))
+        next.append('source', String(sourceId))
+      }
+      return `/?${next.toString()}`
+    },
+    [searchParams, sourceIds],
+  )
+
+  const singleSourceName =
+    data?.selectedSources.length === 1 ? data.selectedSources[0].name : null
+
+  const title = feedTitle(topics, data?.selectedSources.length ?? sourceIds.length, singleSourceName)
 
   const documentTitle =
-    topics.length === 0
+    topics.length === 0 && sourceIds.length === 0
       ? 'Positive News Feed'
-      : topics.length === 1
-        ? `Articles - ${topics[0]}`
-        : 'Articles - preferred topics'
+      : `${title} - Articles`
 
   useEffect(() => {
     document.title = `${documentTitle} - PositiveNews.Web`
   }, [documentTitle])
+
+  /** Pagination uses setSearchParams (no scroll reset); scroll once the new page is shown. */
+  useEffect(() => {
+    if (data?.currentPage === page) {
+      window.scrollTo(0, 0)
+    }
+  }, [data, page])
 
   const setPage = useCallback(
     (nextPage: number) => {
@@ -123,6 +180,8 @@ export function FeedPage() {
     [searchParams, setSearchParams],
   )
 
+  const sortLabel = sortMode === 'positivity' ? 'positivity score' : 'publication date'
+
   if (error) {
     return (
       <main role="main" className="pb-3 mt-4">
@@ -144,7 +203,7 @@ export function FeedPage() {
       <div className="row justify-content-center">
         <div className="col-md-12">
           <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-3">
-                      <h3 className="mb-0">{title}</h3>
+            <h3 className="mb-0">{title}</h3>
             <FeedPagination
               currentPage={data.currentPage}
               totalPages={data.totalPages}
@@ -174,11 +233,10 @@ export function FeedPage() {
           {topics.length > 0 ? (
             <div className="alert alert-info mb-3">
               <div className="mb-2">
-                Prefered topics will be shown first, sorted by:{' '}
-                <strong>{sortMode === 'positivity' ? 'positivity score' : 'publication date'}</strong>.
+                Prefered topics will be shown first, sorted by: <strong>{sortLabel}</strong>.
               </div>
               <div className="d-flex flex-wrap align-items-center gap-2">
-                <span className="small text-muted me-1">Active:</span>
+                <span className="small text-muted me-1">Active topics:</span>
                 {topics.map((t) => (
                   <Link
                     key={t}
@@ -196,6 +254,39 @@ export function FeedPage() {
             </div>
           ) : null}
 
+          {data.selectedSources.length > 0 ? (
+            <div className="alert alert-info mb-3">
+              <div className="mb-2">
+                Prefered sources will be shown first, sorted by: <strong>{sortLabel}</strong>.
+              </div>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-muted me-1">Active sources:</span>
+                {data.selectedSources.map((s) => (
+                  <Link
+                    key={s.id}
+                    to={buildSourceToggleUrl(s.id)}
+                    className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                    title={`Remove “${s.name}” from preferred sources`}
+                  >
+                    {s.logoUrl ? (
+                      <img
+                        src={s.logoUrl}
+                        alt=""
+                        width={20}
+                        height={20}
+                        style={{ objectFit: 'cover' }}
+                      />
+                    ) : null}
+                    {s.name}
+                    <span className="ms-1 opacity-75" aria-hidden="true">
+                      ×
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {data.articles.map((a, i) => (
             <ArticleCard
               key={a.id}
@@ -203,6 +294,8 @@ export function FeedPage() {
               index={i}
               selectedTopics={topics}
               buildTopicToggleUrl={buildTopicToggleUrl}
+              selectedSourceIds={sourceIds}
+              buildSourceToggleUrl={buildSourceToggleUrl}
             />
           ))}
 

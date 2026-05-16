@@ -25,16 +25,33 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
             .ToList();
 
         var topicNamesLower = topics.Select(t => t.ToLowerInvariant()).ToList();
+        var sourceIds = (filter.SourceIds ?? Array.Empty<int>())
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
 
         var query = db.ArticlesMetadata
             .Where(a => a.IsActive)
             .AsNoTracking();
 
+        IOrderedQueryable<ArticleMetadata>? ordered = null;
+
         if (topicNamesLower.Count > 0)
         {
-            var matchedTopicFirst = query.OrderByDescending(a => a.ArticleTopics.Any(at =>
+            ordered = query.OrderByDescending(a => a.ArticleTopics.Any(at =>
                 at.Topic != null && topicNamesLower.Contains(at.Topic.Name.ToLower())));
-            query = ApplySecondarySort(matchedTopicFirst, filter.SortBy);
+        }
+
+        if (sourceIds.Count > 0)
+        {
+            ordered = ordered == null
+                ? query.OrderByDescending(a => sourceIds.Contains(a.SourceId))
+                : ordered.ThenByDescending(a => sourceIds.Contains(a.SourceId));
+        }
+
+        if (ordered != null)
+        {
+            query = ApplySecondarySort(ordered, filter.SortBy);
         }
         else
         {
@@ -50,14 +67,42 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
             .ProjectToArticleFeedItemDto()
             .ToListAsync(ct);
 
+        var selectedSources = await LoadSelectedSourcesAsync(sourceIds, ct);
+
         return new ArticleFeedPageResult
         {
             Articles = articles,
             CurrentPage = page,
             TotalPages = totalPages,
             PageSize = pageSize,
-            SelectedTopics = topics
+            SelectedTopics = topics,
+            SelectedSources = selectedSources
         };
+    }
+
+    private async Task<IReadOnlyList<FeedSourcePreferenceDto>> LoadSelectedSourcesAsync(
+        IReadOnlyList<int> sourceIds,
+        CancellationToken ct)
+    {
+        if (sourceIds.Count == 0)
+        {
+            return Array.Empty<FeedSourcePreferenceDto>();
+        }
+
+        var rows = await db.Sources
+            .AsNoTracking()
+            .Where(s => sourceIds.Contains(s.Id))
+            .Select(s => new FeedSourcePreferenceDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                LogoUrl = s.LogoUrl
+            })
+            .ToListAsync(ct);
+
+        var byId = rows.ToDictionary(s => s.Id);
+        return sourceIds
+            .Where(byId.ContainsKey).Select(id => byId[id]).ToList();
     }
 
     private static IQueryable<ArticleMetadata> ApplyPrimarySort(

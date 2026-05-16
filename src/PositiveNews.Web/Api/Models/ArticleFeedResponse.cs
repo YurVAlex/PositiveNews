@@ -29,4 +29,9 @@ public sealed class ArticleFeedResponse
     /// Gets the topic filters that were applied to this result.
     /// </summary>
     public IReadOnlyList<string> SelectedTopics { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Gets the preferred sources that were applied to this result.
+    /// </summary>
+    public IReadOnlyList<FeedSourcePreferenceResponse> SelectedSources { get; init; } = Array.Empty<FeedSourcePreferenceResponse>();
 }

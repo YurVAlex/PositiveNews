@@ -10,11 +10,13 @@ namespace PositiveNews.Application.Queries.Articles;
 /// </summary>
 /// <param name="Page">One-based page index.</param>
 /// <param name="Topics">Optional topic names filter (null means no filter).</param>
+/// <param name="SourceIds">Optional preferred source ids (null means no preference).</param>
 /// <param name="PageSize">Items per page.</param>
 /// <param name="SortBy">Primary sort column.</param>
 public sealed record GetArticleFeedQuery(
         int Page = 1,
         IReadOnlyList<string>? Topics = null,
+        IReadOnlyList<int>? SourceIds = null,
         int PageSize = 10,
         ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt)
     : IRequest<Result<ArticleFeedPageResult>>;

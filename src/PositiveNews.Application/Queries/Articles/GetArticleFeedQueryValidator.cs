@@ -27,5 +27,14 @@ public sealed class GetArticleFeedQueryValidator : AbstractValidator<GetArticleF
                 .Must(topic => topic.Trim().Length <= 120)
                 .WithMessage("Topic filters must be 120 characters or fewer.");
         });
+        RuleFor(x => x.SourceIds)
+            .Must(s => s == null || s.Count <= 30)
+            .WithMessage("At most 30 sources may be used for filtering.");
+        When(x => x.SourceIds is { Count: > 0 }, () =>
+        {
+            RuleForEach(x => x.SourceIds!)
+                .GreaterThan(0)
+                .WithMessage("Source filters must be positive integers.");
+        });
     }
 }

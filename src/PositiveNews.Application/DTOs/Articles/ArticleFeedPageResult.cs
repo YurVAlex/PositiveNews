@@ -19,4 +19,7 @@ public sealed class ArticleFeedPageResult
 
     /// <summary>Topic filter applied (may be empty).</summary>
     public IReadOnlyList<string> SelectedTopics { get; init; } = Array.Empty<string>();
+
+    /// <summary>Preferred sources applied (may be empty).</summary>
+    public IReadOnlyList<FeedSourcePreferenceDto> SelectedSources { get; init; } = Array.Empty<FeedSourcePreferenceDto>();
 }

@@ -13,4 +13,11 @@ public interface ISourceReadRepository
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Ordered or unordered list of ingestion source snapshots.</returns>
     Task<IReadOnlyList<IngestionSourceSnapshot>> GetActiveIngestionSourcesAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns ids from <paramref name="ids"/> that exist in the sources catalog.
+    /// </summary>
+    /// <param name="ids">Candidate source ids.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<int>> GetExistingSourceIdsAsync(IReadOnlyCollection<int> ids, CancellationToken ct);
 }

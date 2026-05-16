@@ -107,6 +107,12 @@ body {
     position: relative;
     overflow: hidden;
     padding: 15px 15px 15px 15px;
+    color: inherit;
+    cursor: pointer;
+}
+
+a.article-card-image:hover img {
+    opacity: 0.92;
 }
 
 
@@ -142,6 +148,7 @@ body {
 .article-card-image img {
     display: block;
     width: 100%;
+    transition: opacity 0.15s ease-in-out;
     height: 100%;
     object-fit: cover;
 }

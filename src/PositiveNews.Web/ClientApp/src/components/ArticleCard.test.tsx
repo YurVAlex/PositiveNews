@@ -4,6 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { ArticleCard } from './ArticleCard'
 import type { ArticlePreviewResponse } from '../api/types'
 
+const defaultSourceProps = {
+  selectedSourceIds: [] as number[],
+  buildSourceToggleUrl: (sourceId: number) => `/?source=${sourceId}`,
+}
+
 describe('ArticleCard', () => {
   it('formats positivity, renders topic links, and toggles summary', async () => {
     const user = userEvent.setup()
@@ -16,6 +21,7 @@ describe('ArticleCard', () => {
           index={0}
           selectedTopics={['health']}
           buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
         />
       </MemoryRouter>,
     )
@@ -32,6 +38,51 @@ describe('ArticleCard', () => {
     expect(screen.getByRole('button', { name: 'Hide summary' })).toBeInTheDocument()
   })
 
+  it('links preview image to the article detail page', () => {
+    const article = articlePreview({
+      imageTag: '<img src="https://example.com/hero.jpg" alt="Hero" />',
+    })
+
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={article}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Read article: Good news story' })).toHaveAttribute(
+      'href',
+      '/articles/1',
+    )
+    expect(screen.getByRole('link', { name: 'Read article' })).toHaveAttribute('href', '/articles/1')
+  })
+
+  it('links source name to toggle url and highlights when selected', () => {
+    const article = articlePreview({ sourceId: 5 })
+
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={article}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          selectedSourceIds={[5]}
+          buildSourceToggleUrl={(id) => `/?source=${id}`}
+        />
+      </MemoryRouter>,
+    )
+
+    const sourceLink = screen.getByRole('link', { name: 'Positive Source' })
+    expect(sourceLink).toHaveAttribute('href', '/?source=5')
+    expect(sourceLink).toHaveClass('link-primary')
+  })
+
   it('does not render positivity badge for null score and falls back to unknown author', () => {
     render(
       <MemoryRouter>
@@ -40,6 +91,7 @@ describe('ArticleCard', () => {
           index={0}
           selectedTopics={[]}
           buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
         />
       </MemoryRouter>,
     )
@@ -52,6 +104,7 @@ describe('ArticleCard', () => {
 function articlePreview(overrides: Partial<ArticlePreviewResponse> = {}): ArticlePreviewResponse {
   return {
     id: 1,
+    sourceId: 1,
     sourceName: 'Positive Source',
     sourceLogoUrl: null,
     sourceTrustScore: 1,

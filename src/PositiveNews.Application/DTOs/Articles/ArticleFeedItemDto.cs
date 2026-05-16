@@ -8,6 +8,9 @@ public sealed class ArticleFeedItemDto
     /// <summary>Article primary key.</summary>
     public long Id { get; init; }
 
+    /// <summary>News source primary key.</summary>
+    public int SourceId { get; init; }
+
     /// <summary>Display name of the news source.</summary>
     public string SourceName { get; init; } = string.Empty;
 

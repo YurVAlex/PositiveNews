@@ -6,6 +6,7 @@ export type FeedSortParam = 'date' | 'positivity'
 export async function fetchArticleFeed(
   page: number,
   topics: string[],
+  sourceIds: number[],
   sort: FeedSortParam = 'date',
   token: string | null = null,
 ): Promise<ArticleFeedResponse> {
@@ -15,6 +16,11 @@ export async function fetchArticleFeed(
     const trimmed = t.trim()
     if (trimmed.length > 0) {
       params.append('topic', trimmed)
+    }
+  }
+  for (const id of sourceIds) {
+    if (Number.isInteger(id) && id > 0) {
+      params.append('source', String(id))
     }
   }
 

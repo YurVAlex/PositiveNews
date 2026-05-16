@@ -1,5 +1,12 @@
+export type FeedSourcePreference = {
+  id: number
+  name: string
+  logoUrl: string | null
+}
+
 export type ArticlePreviewResponse = {
   id: number
+  sourceId: number
   sourceName: string
   sourceLogoUrl: string | null
   /** Editorial trust weight from the news source (API decimal). */
@@ -21,6 +28,8 @@ export type ArticleFeedResponse = {
   pageSize: number
   /** Topics echoed from the request (trimmed, deduplicated); used for ordering only. */
   selectedTopics: string[]
+  /** Preferred sources echoed from the request; used for feed chips. */
+  selectedSources: FeedSourcePreference[]
 }
 
 export type ArticleDetailResponse = {

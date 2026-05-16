@@ -11,6 +11,11 @@ public sealed class ArticlePreviewResponse
     public long Id { get; init; }
 
     /// <summary>
+    /// Gets the content source identifier.
+    /// </summary>
+    public int SourceId { get; init; }
+
+    /// <summary>
     /// Gets the display name of the content source.
     /// </summary>
     public string SourceName { get; init; } = string.Empty;
