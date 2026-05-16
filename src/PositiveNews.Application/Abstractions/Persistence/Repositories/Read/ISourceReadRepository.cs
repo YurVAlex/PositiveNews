@@ -1,4 +1,5 @@
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Articles;
 
 namespace PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 
@@ -20,4 +21,17 @@ public interface ISourceReadRepository
     /// <param name="ids">Candidate source ids.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<IReadOnlyList<int>> GetExistingSourceIdsAsync(IReadOnlyCollection<int> ids, CancellationToken ct);
+
+    /// <summary>
+    /// Returns active sources for feed filter controls (ordered by display name).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<SourceFilterItemDto>> GetSourceFilterListAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns filter items for the given source ids, preserving <paramref name="ids"/> order.
+    /// </summary>
+    /// <param name="ids">Source identifiers in display order.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<SourceFilterItemDto>> GetSourceFilterItemsByIdsAsync(IReadOnlyList<int> ids, CancellationToken ct);
 }

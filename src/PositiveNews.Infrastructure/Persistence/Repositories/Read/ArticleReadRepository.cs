@@ -11,7 +11,8 @@ using PositiveNews.Domain.Entities;
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 
 /// <inheritdoc />
-internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepository
+internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadRepository sourceReadRepository)
+    : IArticleReadRepository
 {
     /// <inheritdoc />
     public async Task<ArticleFeedPageResult> GetFeedPageAsync(ArticleFeedFilter filter, CancellationToken ct)
@@ -34,6 +35,83 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
             .Where(a => a.IsActive)
             .AsNoTracking();
 
+        query = filter.SortBy switch
+        {
+            ArticleFeedSortBy.Preferences => ApplyPreferenceSort(query, topicNamesLower, sourceIds),
+            _ => ApplyLegacyPreferenceBoostThenSort(query, topicNamesLower, sourceIds, filter.SortBy)
+        };
+
+        var totalArticles = await query.CountAsync(ct);
+        var totalPages = (int)Math.Ceiling(totalArticles / (double)pageSize);
+
+        var articles = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ProjectToArticleFeedItemDto()
+            .ToListAsync(ct);
+
+        var selectedSources = await sourceReadRepository.GetSourceFilterItemsByIdsAsync(sourceIds, ct);
+
+        return new ArticleFeedPageResult
+        {
+            Articles = articles,
+            CurrentPage = page,
+            TotalPages = totalPages,
+            PageSize = pageSize,
+            SelectedTopics = topics,
+            SelectedSources = selectedSources
+        };
+    }
+
+    /// <summary>
+    /// Ranks by preference weight (1 point per matching preferred topic, 1 for preferred source), then date.
+    /// </summary>
+    private static IQueryable<ArticleMetadata> ApplyPreferenceSort(
+        IQueryable<ArticleMetadata> query,
+        IReadOnlyList<string> topicNamesLower,
+        IReadOnlyList<int> sourceIds)
+    {
+        if (topicNamesLower.Count == 0 && sourceIds.Count == 0)
+        {
+            return query.OrderByDescending(a => a.PublishedAt);
+        }
+
+        var hasTopics = topicNamesLower.Count > 0;
+        var hasSources = sourceIds.Count > 0;
+
+        if (hasTopics && hasSources)
+        {
+            return query
+                .OrderByDescending(a =>
+                    a.ArticleTopics.Count(at =>
+                        at.Topic != null && topicNamesLower.Contains(at.Topic.Name.ToLower()))
+                    + (sourceIds.Contains(a.SourceId) ? 1 : 0))
+                .ThenByDescending(a => a.PublishedAt);
+        }
+
+        if (hasTopics)
+        {
+            return query
+                .OrderByDescending(a =>
+                    a.ArticleTopics.Count(at =>
+                        at.Topic != null && topicNamesLower.Contains(at.Topic.Name.ToLower())))
+                .ThenByDescending(a => a.PublishedAt);
+        }
+
+        return query
+            .OrderByDescending(a => sourceIds.Contains(a.SourceId) ? 1 : 0)
+            .ThenByDescending(a => a.PublishedAt);
+    }
+
+    /// <summary>
+    /// Legacy behavior: any preferred topic/source match first, then date or positivity sort.
+    /// </summary>
+    private static IQueryable<ArticleMetadata> ApplyLegacyPreferenceBoostThenSort(
+        IQueryable<ArticleMetadata> query,
+        IReadOnlyList<string> topicNamesLower,
+        IReadOnlyList<int> sourceIds,
+        ArticleFeedSortBy sortBy)
+    {
         IOrderedQueryable<ArticleMetadata>? ordered = null;
 
         if (topicNamesLower.Count > 0)
@@ -51,58 +129,10 @@ internal sealed class ArticleReadRepository(AppDbContext db) : IArticleReadRepos
 
         if (ordered != null)
         {
-            query = ApplySecondarySort(ordered, filter.SortBy);
-        }
-        else
-        {
-            query = ApplyPrimarySort(query, filter.SortBy);
+            return ApplySecondarySort(ordered, sortBy);
         }
 
-        var totalArticles = await query.CountAsync(ct);
-        var totalPages = (int)Math.Ceiling(totalArticles / (double)pageSize);
-
-        var articles = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ProjectToArticleFeedItemDto()
-            .ToListAsync(ct);
-
-        var selectedSources = await LoadSelectedSourcesAsync(sourceIds, ct);
-
-        return new ArticleFeedPageResult
-        {
-            Articles = articles,
-            CurrentPage = page,
-            TotalPages = totalPages,
-            PageSize = pageSize,
-            SelectedTopics = topics,
-            SelectedSources = selectedSources
-        };
-    }
-
-    private async Task<IReadOnlyList<FeedSourcePreferenceDto>> LoadSelectedSourcesAsync(
-        IReadOnlyList<int> sourceIds,
-        CancellationToken ct)
-    {
-        if (sourceIds.Count == 0)
-        {
-            return Array.Empty<FeedSourcePreferenceDto>();
-        }
-
-        var rows = await db.Sources
-            .AsNoTracking()
-            .Where(s => sourceIds.Contains(s.Id))
-            .Select(s => new FeedSourcePreferenceDto
-            {
-                Id = s.Id,
-                Name = s.Name,
-                LogoUrl = s.LogoUrl
-            })
-            .ToListAsync(ct);
-
-        var byId = rows.ToDictionary(s => s.Id);
-        return sourceIds
-            .Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+        return ApplyPrimarySort(query, sortBy);
     }
 
     private static IQueryable<ArticleMetadata> ApplyPrimarySort(

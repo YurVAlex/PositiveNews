@@ -1,9 +1,9 @@
 namespace PositiveNews.Web.Api.Models;
 
 /// <summary>
-/// Source metadata for preferred-source chips on the article feed.
+/// Source metadata for filter UI and preferred-source chips.
 /// </summary>
-public sealed class FeedSourcePreferenceResponse
+public sealed class SourceFilterItemResponse
 {
     /// <summary>
     /// Gets the source identifier.

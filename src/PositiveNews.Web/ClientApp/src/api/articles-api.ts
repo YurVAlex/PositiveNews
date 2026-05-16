@@ -1,7 +1,7 @@
 import type { ArticleDetailResponse, ArticleFeedResponse } from './types'
 import { apiUrl, authTokenHeader } from './http'
 
-export type FeedSortParam = 'date' | 'positivity'
+export type FeedSortParam = 'date' | 'positivity' | 'preferences'
 
 export async function fetchArticleFeed(
   page: number,
@@ -26,6 +26,8 @@ export async function fetchArticleFeed(
 
   if (sort === 'positivity') {
     params.set('sort', 'positivity')
+  } else if (sort === 'preferences') {
+    params.set('sort', 'preferences')
   }
 
   const res = await fetch(apiUrl(`/api/articles/feed?${params.toString()}`), {

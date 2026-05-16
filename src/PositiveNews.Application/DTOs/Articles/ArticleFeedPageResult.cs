@@ -21,5 +21,5 @@ public sealed class ArticleFeedPageResult
     public IReadOnlyList<string> SelectedTopics { get; init; } = Array.Empty<string>();
 
     /// <summary>Preferred sources applied (may be empty).</summary>
-    public IReadOnlyList<FeedSourcePreferenceDto> SelectedSources { get; init; } = Array.Empty<FeedSourcePreferenceDto>();
+    public IReadOnlyList<SourceFilterItemDto> SelectedSources { get; init; } = Array.Empty<SourceFilterItemDto>();
 }

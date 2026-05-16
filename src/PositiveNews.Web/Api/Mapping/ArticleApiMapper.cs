@@ -70,6 +70,11 @@ public static partial class ArticleApiMapper
             return ArticleFeedSortBy.PositivityScore;
         }
 
+        if (string.Equals(sort, "preferences", StringComparison.OrdinalIgnoreCase))
+        {
+            return ArticleFeedSortBy.Preferences;
+        }
+
         return Enum.TryParse<ArticleFeedSortBy>(sort, ignoreCase: true, out var parsedSort)
             ? parsedSort
             : (ArticleFeedSortBy)(-1);

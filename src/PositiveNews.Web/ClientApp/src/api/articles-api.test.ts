@@ -40,6 +40,24 @@ describe('fetchArticleFeed', () => {
     })
   })
 
+  it('serializes preferences sort when requested', async () => {
+    fetchMock.mockResolvedValue(
+      okResponse({
+        articles: [],
+        currentPage: 1,
+        totalPages: 1,
+        pageSize: 10,
+        selectedTopics: ['Health'],
+        selectedSources: [],
+      }),
+    )
+
+    await fetchArticleFeed(1, ['Health'], [], 'preferences')
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(new URL(url, 'http://localhost').searchParams.get('sort')).toBe('preferences')
+  })
+
   it('omits sort when date sort is requested', async () => {
     fetchMock.mockResolvedValue(
       okResponse({

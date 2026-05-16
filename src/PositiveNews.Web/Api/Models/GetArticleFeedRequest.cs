@@ -21,7 +21,7 @@ public sealed class GetArticleFeedRequest
     public int[]? Source { get; init; }
 
     /// <summary>
-    /// Gets optional sort mode (for example: <c>positivity</c>).
+    /// Gets optional sort mode (for example: <c>positivity</c>, <c>preferences</c>).
     /// </summary>
     public string? Sort { get; init; }
 }

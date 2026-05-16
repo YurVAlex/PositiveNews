@@ -9,7 +9,12 @@ public enum ArticleFeedSortBy
     PublishedAt = 0,
 
     /// <summary>Order by positivity score.</summary>
-    PositivityScore = 1
+    PositivityScore = 1,
+
+    /// <summary>
+    /// Order by preference weight (1 per matching topic, 1 for matching source), then publication date.
+    /// </summary>
+    Preferences = 2
 }
 
 /// <summary>

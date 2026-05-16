@@ -1,7 +1,15 @@
-export type FeedSourcePreference = {
+export type SourceFilterItem = {
   id: number
   name: string
   logoUrl: string | null
+}
+
+export type SourcesMetadataResponse = {
+  sources: SourceFilterItem[]
+}
+
+export type TopicsMetadataResponse = {
+  topicNames: string[]
 }
 
 export type ArticlePreviewResponse = {
@@ -29,7 +37,7 @@ export type ArticleFeedResponse = {
   /** Topics echoed from the request (trimmed, deduplicated); used for ordering only. */
   selectedTopics: string[]
   /** Preferred sources echoed from the request; used for feed chips. */
-  selectedSources: FeedSourcePreference[]
+  selectedSources: SourceFilterItem[]
 }
 
 export type ArticleDetailResponse = {

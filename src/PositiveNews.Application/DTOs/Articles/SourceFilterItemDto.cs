@@ -1,9 +1,9 @@
 namespace PositiveNews.Application.DTOs.Articles;
 
 /// <summary>
-/// Source metadata echoed in feed responses for preferred-source UI chips.
+/// Source row exposed for feed filter UI and preferred-source chips.
 /// </summary>
-public sealed class FeedSourcePreferenceDto
+public sealed class SourceFilterItemDto
 {
     /// <summary>Source primary key.</summary>
     public int Id { get; init; }

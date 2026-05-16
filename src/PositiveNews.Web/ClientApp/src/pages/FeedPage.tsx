@@ -44,7 +44,16 @@ function sourceIdsFromSearchParams(searchParams: URLSearchParams): number[] {
 }
 
 function parseSort(raw: string | null): FeedSortParam {
-  return raw?.toLowerCase() === 'positivity' ? 'positivity' : 'date'
+  const value = raw?.toLowerCase()
+  if (value === 'positivity') return 'positivity'
+  if (value === 'preferences') return 'preferences'
+  return 'date'
+}
+
+function sortModeLabel(sort: FeedSortParam): string {
+  if (sort === 'positivity') return 'positivity score'
+  if (sort === 'preferences') return 'your preferences'
+  return 'publication date'
 }
 
 function feedTitle(topics: string[], sourceCount: number, singleSourceName: string | null): string {
@@ -55,10 +64,10 @@ function feedTitle(topics: string[], sourceCount: number, singleSourceName: stri
     return 'Your preferences'
   }
   if (hasSources) {
-    return sourceCount === 1 && singleSourceName ? `Source: ${singleSourceName}` : 'Preferred sources'
+      return sourceCount === 1 && singleSourceName ? `Source: ${singleSourceName}` : 'Your preferences'
   }
   if (hasTopics) {
-    return topics.length === 1 ? `Topic: ${topics[0]}` : 'Preferred topics'
+      return topics.length === 1 ? `Topic: ${topics[0]}` : 'Your preferences'
   }
   return 'Latest News'
 }
@@ -70,6 +79,7 @@ export function FeedPage() {
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
   const sourceIds = useMemo(() => sourceIdsFromSearchParams(searchParams), [searchParams])
   const sortMode = useMemo(() => parseSort(searchParams.get('sort')), [searchParams])
+  const hasPreferences = topics.length > 0 || sourceIds.length > 0
 
   const [data, setData] = useState<ArticleFeedResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -172,7 +182,7 @@ export function FeedPage() {
       if (next === 'date') {
         params.delete('sort')
       } else {
-        params.set('sort', 'positivity')
+        params.set('sort', next)
       }
       params.set('page', '1')
       setSearchParams(params)
@@ -180,7 +190,12 @@ export function FeedPage() {
     [searchParams, setSearchParams],
   )
 
-  const sortLabel = sortMode === 'positivity' ? 'positivity score' : 'publication date'
+  const sortLabel = sortModeLabel(sortMode)
+
+  const preferenceSortHint =
+    sortMode === 'preferences'
+          ? 'Sorted by your preferences, then by publication date.'
+      : `Matching preferred topics and sources are shown first, sorted by: ${sortLabel}.`
 
   if (error) {
     return (
@@ -220,21 +235,25 @@ export function FeedPage() {
                 style={{ width: 'auto', minWidth: '11rem' }}
                 aria-label="Sort articles"
                 value={sortMode}
-                onChange={(e) =>
-                  setSortMode(e.target.value === 'positivity' ? 'positivity' : 'date')
-                }
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === 'positivity' || value === 'preferences' || value === 'date') {
+                    setSortMode(value)
+                  }
+                }}
               >
                 <option value="date">Publication date</option>
                 <option value="positivity">Positivity score</option>
+                <option value="preferences" disabled={!hasPreferences}>
+                  Your preferences
+                </option>
               </select>
             </div>
           </div>
 
           {topics.length > 0 ? (
             <div className="alert alert-info mb-3">
-              <div className="mb-2">
-                Prefered topics will be shown first, sorted by: <strong>{sortLabel}</strong>.
-              </div>
+              <div className="mb-2">{preferenceSortHint}</div>
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <span className="small text-muted me-1">Active topics:</span>
                 {topics.map((t) => (
@@ -256,9 +275,7 @@ export function FeedPage() {
 
           {data.selectedSources.length > 0 ? (
             <div className="alert alert-info mb-3">
-              <div className="mb-2">
-                Prefered sources will be shown first, sorted by: <strong>{sortLabel}</strong>.
-              </div>
+              {topics.length === 0 ? <div className="mb-2">{preferenceSortHint}</div> : null}
               <div className="d-flex flex-wrap align-items-center gap-2">
                 <span className="small text-muted me-1">Active sources:</span>
                 {data.selectedSources.map((s) => (

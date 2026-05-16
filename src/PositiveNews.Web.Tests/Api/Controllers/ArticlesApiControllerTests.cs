@@ -75,6 +75,28 @@ public class ArticlesApiControllerTests
     }
 
     [Fact]
+    public async Task GetFeed_Should_UsePreferencesSort_When_SortQueryIsPreferences()
+    {
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(TestDataBuilders.ArticleFeedPage())));
+
+        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+
+        await sut.GetFeed(
+            new GetArticleFeedRequest { Page = 1, Topic = TopicsTech, Source = [2], Sort = "preferences" },
+            CancellationToken.None);
+
+        await mediator.Received(1).Send(
+            Arg.Is<GetArticleFeedQuery>(q =>
+                q.SortBy == ArticleFeedSortBy.Preferences &&
+                q.Topics != null &&
+                q.Topics.SequenceEqual(TopicsTech)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GetFeed_Should_UsePositivitySort_When_SortQueryIsPositivity()
     {
         var mediator = Substitute.For<IMediator>();

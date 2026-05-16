@@ -33,5 +33,5 @@ public sealed class ArticleFeedResponse
     /// <summary>
     /// Gets the preferred sources that were applied to this result.
     /// </summary>
-    public IReadOnlyList<FeedSourcePreferenceResponse> SelectedSources { get; init; } = Array.Empty<FeedSourcePreferenceResponse>();
+    public IReadOnlyList<SourceFilterItemResponse> SelectedSources { get; init; } = Array.Empty<SourceFilterItemResponse>();
 }
