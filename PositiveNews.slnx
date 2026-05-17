@@ -3,7 +3,8 @@
     <Project Path="src/PositiveNews.Application/PositiveNews.Application.csproj" />
     <Project Path="src/PositiveNews.Domain/PositiveNews.Domain.csproj" />
     <Project Path="src/PositiveNews.Infrastructure/PositiveNews.Infrastructure.csproj" />
-    <Project Path="src/PositiveNews.Web/PositiveNews.Web.csproj" />
+    <Project Path="src/PositiveNews.Web/PositiveNews.Web.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
   </Folder>
-  
 </Solution>
