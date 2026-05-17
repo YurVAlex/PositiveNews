@@ -38,6 +38,22 @@ describe('ArticleCard', () => {
     expect(screen.getByRole('button', { name: 'Hide summary' })).toBeInTheDocument()
   })
 
+  it('links title to the article detail page', () => {
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={articlePreview()}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Good news story' })).toHaveAttribute('href', '/articles/1')
+  })
+
   it('links preview image to the article detail page', () => {
     const article = articlePreview({
       imageTag: '<img src="https://example.com/hero.jpg" alt="Hero" />',

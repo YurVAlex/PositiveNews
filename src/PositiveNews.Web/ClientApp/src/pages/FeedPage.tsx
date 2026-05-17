@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { fetchArticleFeed, type FeedSortParam } from '../api/articles-api'
 import type { ArticleFeedResponse } from '../api/types'
 import { ArticleCard } from '../components/ArticleCard'
+import { FeedActiveSources } from '../components/FeedActiveSources'
+import { FeedActiveTopics } from '../components/FeedActiveTopics'
 import { FeedPagination } from '../components/FeedPagination'
+import { buildPreferenceSortHint, FeedSortSelect, feedSortModeLabel } from '../components/FeedSortSelect'
 import { useAuth } from '../auth/AuthProvider'
 
 function parsePage(raw: string | null) {
@@ -50,12 +53,6 @@ function parseSort(raw: string | null): FeedSortParam {
   return 'date'
 }
 
-function sortModeLabel(sort: FeedSortParam): string {
-  if (sort === 'positivity') return 'positivity score'
-  if (sort === 'preferences') return 'your preferences'
-  return 'publication date'
-}
-
 function feedTitle(topics: string[], sourceCount: number, singleSourceName: string | null): string {
   const hasTopics = topics.length > 0
   const hasSources = sourceCount > 0
@@ -64,10 +61,10 @@ function feedTitle(topics: string[], sourceCount: number, singleSourceName: stri
     return 'Your preferences'
   }
   if (hasSources) {
-      return sourceCount === 1 && singleSourceName ? `Source: ${singleSourceName}` : 'Your preferences'
+    return sourceCount === 1 && singleSourceName ? `Source: ${singleSourceName}` : 'Your preferences'
   }
   if (hasTopics) {
-      return topics.length === 1 ? `Topic: ${topics[0]}` : 'Your preferences'
+    return topics.length === 1 ? `Topic: ${topics[0]}` : 'Your preferences'
   }
   return 'Latest News'
 }
@@ -160,7 +157,6 @@ export function FeedPage() {
     document.title = `${documentTitle} - PositiveNews.Web`
   }, [documentTitle])
 
-  /** Pagination uses setSearchParams (no scroll reset); scroll once the new page is shown. */
   useEffect(() => {
     if (data?.currentPage === page) {
       window.scrollTo(0, 0)
@@ -190,12 +186,8 @@ export function FeedPage() {
     [searchParams, setSearchParams],
   )
 
-  const sortLabel = sortModeLabel(sortMode)
-
-  const preferenceSortHint =
-    sortMode === 'preferences'
-          ? 'Sorted by your preferences, then by publication date.'
-      : `Matching preferred topics and sources are shown first, sorted by: ${sortLabel}.`
+  const sortLabel = feedSortModeLabel(sortMode)
+  const preferenceSortHint = buildPreferenceSortHint(sortMode, sortLabel)
 
   if (error) {
     return (
@@ -225,84 +217,25 @@ export function FeedPage() {
               onPageChange={setPage}
               className="d-flex align-items-center"
             />
-            <div className="d-flex align-items-center gap-2 ms-md-auto">
-              <label htmlFor="feed-sort-select" className="small text-muted mb-0 text-nowrap">
-                Sort by
-              </label>
-              <select
-                id="feed-sort-select"
-                className="form-select form-select-sm"
-                style={{ width: 'auto', minWidth: '11rem' }}
-                aria-label="Sort articles"
-                value={sortMode}
-                onChange={(e) => {
-                  const value = e.target.value
-                  if (value === 'positivity' || value === 'preferences' || value === 'date') {
-                    setSortMode(value)
-                  }
-                }}
-              >
-                <option value="date">Publication date</option>
-                <option value="positivity">Positivity score</option>
-                <option value="preferences" disabled={!hasPreferences}>
-                  Your preferences
-                </option>
-              </select>
-            </div>
+            <FeedSortSelect
+              sortMode={sortMode}
+              hasPreferences={hasPreferences}
+              onSortChange={setSortMode}
+              className="ms-md-auto"
+            />
           </div>
 
-          {topics.length > 0 ? (
-            <div className="alert alert-info mb-3">
-              <div className="mb-2">{preferenceSortHint}</div>
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <span className="small text-muted me-1">Active topics:</span>
-                {topics.map((t) => (
-                  <Link
-                    key={t}
-                    to={buildTopicToggleUrl(t)}
-                    className="btn btn-sm btn-primary"
-                    title={`Remove “${t}” from preferred topics`}
-                  >
-                    {t}
-                    <span className="ms-1 opacity-75" aria-hidden="true">
-                      ×
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <FeedActiveTopics
+            topics={topics}
+            buildTopicToggleUrl={buildTopicToggleUrl}
+            hint={preferenceSortHint}
+          />
 
-          {data.selectedSources.length > 0 ? (
-            <div className="alert alert-info mb-3">
-              {topics.length === 0 ? <div className="mb-2">{preferenceSortHint}</div> : null}
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <span className="small text-muted me-1">Active sources:</span>
-                {data.selectedSources.map((s) => (
-                  <Link
-                    key={s.id}
-                    to={buildSourceToggleUrl(s.id)}
-                    className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
-                    title={`Remove “${s.name}” from preferred sources`}
-                  >
-                    {s.logoUrl ? (
-                      <img
-                        src={s.logoUrl}
-                        alt=""
-                        width={20}
-                        height={20}
-                        style={{ objectFit: 'cover' }}
-                      />
-                    ) : null}
-                    {s.name}
-                    <span className="ms-1 opacity-75" aria-hidden="true">
-                      ×
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <FeedActiveSources
+            sources={data.selectedSources}
+            buildSourceToggleUrl={buildSourceToggleUrl}
+            hint={topics.length === 0 ? preferenceSortHint : null}
+          />
 
           {data.articles.map((a, i) => (
             <ArticleCard

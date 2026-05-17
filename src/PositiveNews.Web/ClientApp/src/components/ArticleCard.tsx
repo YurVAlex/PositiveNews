@@ -56,6 +56,7 @@ export function ArticleCard({
     const sourceToggleTitle = isSourceSelected
         ? `Remove "${article.sourceName}" from preferred sources`
         : `Prefer articles from "${article.sourceName}"`
+    const articleDetailUrl = `/articles/${article.id}`
 
     return (
         <div className="card mb-4 shadow-sm overflow-hidden">
@@ -100,11 +101,18 @@ export function ArticleCard({
                     </h6>
                 </div>
                 <div className="article-card-title card-body">
-                    <h4 className="card-title fw-bold">{article.title}</h4>
+                    <h4 className="card-title fw-bold mb-0">
+                        <Link
+                            to={articleDetailUrl}
+                            className="text-decoration-none text-dark link-underline-opacity-0 link-underline-opacity-100-hover"
+                        >
+                            {article.title}
+                        </Link>
+                    </h4>
                 </div>
                 {hasPreviewImage ? (
                     <Link
-                        to={`/articles/${article.id}`}
+                        to={articleDetailUrl}
                         className="article-card-image text-decoration-none"
                         aria-label={`Read article: ${article.title}`}
                     >
@@ -125,7 +133,7 @@ export function ArticleCard({
                         >
                             {summaryOpen ? 'Hide summary' : 'Show summary'}
                         </button>
-                        <Link to={`/articles/${article.id}`} className="btn btn-primary">
+                        <Link to={articleDetailUrl} className="btn btn-primary">
                             Read article
                         </Link>
                         {originUrl ? (
