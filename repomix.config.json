@@ -9,16 +9,18 @@
   },
   "include": [
     "**/*.cs",
-    "**/*.csproj",
-    "**/*.sln",
     "**/*.json",
-    "**/*.sql",
-    "**/*.md",
     "**/Dockerfile",
-    "**/.dockerignore"
+    "**/.dockerignore",
+    "**/*.ts", 
+    "**/*.tsx", 
+    "**/*.html"
   ],
   "ignore": {
     "customPatterns": [
+      "**/Properties/**",
+      "**/wwwroot/**",
+      "**/logs/**",
       "**/bin/**",
       "**/obj/**",
       "**/.vs/**",
@@ -33,7 +35,13 @@
       "**/Migrations/**",
       "**/appsettings.Development.json",
       "**/appsettings.Local.json",
-      "repomix-output.txt"
+      "repomix-output.txt",
+      "repomix.config.json",
+      "**/*.sql",
+      "**/*.cshtml",
+      "**/*.sln",
+      "**/*.md",
+      "**/*.csproj"
     ],
     "useGitignore": true,
     "useDefaultPatterns": true

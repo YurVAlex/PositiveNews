@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class UserSourceFilterConfiguration : IEntityTypeConfiguration<UserSourceFilter>
+/// <summary>
+/// EF Core model configuration for <see cref="UserSourceFilter"/>.
+/// </summary>
+internal sealed class UserSourceFilterConfiguration : IEntityTypeConfiguration<UserSourceFilter>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<UserSourceFilter> builder)
     {
         builder.ToTable("UserSourceFilters", SchemaNames.Identity);

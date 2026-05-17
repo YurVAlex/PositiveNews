@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "PositiveNews.Web": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:56354;http://localhost:56355"
+    }
+  }
+}

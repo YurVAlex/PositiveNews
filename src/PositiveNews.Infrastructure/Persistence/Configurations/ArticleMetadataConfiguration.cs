@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMetadata>
+/// <summary>
+/// EF Core model configuration for <see cref="ArticleMetadata"/>.
+/// </summary>
+internal sealed class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMetadata>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<ArticleMetadata> builder)
     {
         builder.ToTable("ArticlesMetadata", SchemaNames.Catalog);
@@ -16,7 +20,7 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
         builder.Property(a => a.Title).HasMaxLength(500).IsRequired();
         builder.Property(a => a.Author).HasMaxLength(300);
         builder.Property(a => a.Url).HasMaxLength(1000).IsRequired();
-        builder.Property(a => a.ImageUrl).HasMaxLength(1000);
+        builder.Property(a => a.ImageTag).HasColumnType("nvarchar(max)");
         builder.Property(a => a.PublishedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.IngestedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.PositivityScore).HasColumnType("decimal(5,4)");
@@ -24,8 +28,9 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
         builder.Property(a => a.LanguageCode).HasMaxLength(10).HasDefaultValue("und");
         builder.Property(a => a.RegionCode).HasMaxLength(10).HasDefaultValue("Global");
         builder.Property(a => a.IsActive).HasDefaultValue(true);
+        builder.Property(a => a.SummaryShort).HasMaxLength(2000);
 
-        // Check constraint
+        // Check constraint kept as defense-in-depth alongside domain invariant
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Articles_Positivity", "[PositivityScore] BETWEEN 0.0000 AND 1.0000"));
 
@@ -60,5 +65,14 @@ public class ArticleMetadataConfiguration : IEntityTypeConfiguration<ArticleMeta
                .WithOne(c => c.Metadata)
                .HasForeignKey<ArticleContent>(c => c.Id)
                .OnDelete(DeleteBehavior.Cascade);
+
+        // Backing field navigation access for collections
+        builder.Navigation(a => a.ArticleTopics)
+               .HasField("_articleTopics")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(a => a.Comments)
+               .HasField("_comments")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

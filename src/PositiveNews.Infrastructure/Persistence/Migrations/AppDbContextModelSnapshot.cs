@@ -33,10 +33,6 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                     b.Property<string>("ContentRaw")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SummaryShort")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
                     b.HasKey("Id");
 
                     b.ToTable("ArticlesContent", "Catalog");
@@ -61,9 +57,8 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                    b.Property<string>("ImageTag")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("IngestedAt")
                         .ValueGeneratedOnAdd()
@@ -102,6 +97,10 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("SourceId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SummaryShort")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -358,6 +357,9 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
                         .HasDefaultValue("en");
+
+                    b.Property<string>("DefaultThumbnailHtml")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)

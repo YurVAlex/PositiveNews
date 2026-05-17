@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleContent>
+/// <summary>
+/// EF Core model configuration for <see cref="ArticleContent"/>.
+/// </summary>
+internal sealed class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleContent>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<ArticleContent> builder)
     {
         builder.ToTable("ArticlesContent", SchemaNames.Catalog);
@@ -18,6 +22,5 @@ public class ArticleContentConfiguration : IEntityTypeConfiguration<ArticleConte
 
         builder.Property(c => c.ContentRaw).HasColumnType("nvarchar(max)");
         builder.Property(c => c.ContentClean).HasColumnType("nvarchar(max)");
-        builder.Property(c => c.SummaryShort).HasMaxLength(2000);
     }
 }

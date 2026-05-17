@@ -2,12 +2,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
-using PositiveNews.Domain.Enums;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
+/// <summary>
+/// EF Core model configuration for <see cref="AuditLog"/>.
+/// </summary>
+internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<AuditLog> builder)
     {
         builder.ToTable("AuditLogs", SchemaNames.Admin);

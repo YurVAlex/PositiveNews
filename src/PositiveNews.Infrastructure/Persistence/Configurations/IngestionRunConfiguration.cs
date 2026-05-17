@@ -2,19 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
-using PositiveNews.Domain.Enums;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
+/// <summary>
+/// EF Core model configuration for <see cref="IngestionRun"/>.
+/// </summary>
+internal sealed class IngestionRunConfiguration : IEntityTypeConfiguration<IngestionRun>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<IngestionRun> builder)
     {
         builder.ToTable("IngestionRuns", SchemaNames.Catalog);
 
         builder.HasKey(ir => ir.Id);
 
-        // Store enum as string for readability and to match the SQL CHECK constraint.
+        // Store enum as string for readability
         builder.Property(ir => ir.Status)
                .HasMaxLength(50)
                .HasConversion<string>();

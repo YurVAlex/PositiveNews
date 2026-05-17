@@ -1,0 +1,17 @@
+﻿using PositiveNews.Application.DTOs;
+
+namespace PositiveNews.Application.Interfaces;
+
+/// <summary>
+/// Scores plain-text article content for positivity using configurable lexicons.
+/// </summary>
+public interface IPositivityAnalyzer
+{
+    /// <summary>
+    /// Computes a sentiment score from token-level and phrase-level signals.
+    /// </summary>
+    /// <param name="plainTextContent">Normalized plain text (may be empty).</param>
+    /// <param name="keyPhrases">Positive/negative word lists and tuning parameters.</param>
+    /// <returns>Numeric positivity score for persistence and UI.</returns>
+    decimal AnalyzeSentiment(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases);
+}

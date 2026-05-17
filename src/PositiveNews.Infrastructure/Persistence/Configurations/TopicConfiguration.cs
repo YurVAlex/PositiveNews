@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class TopicConfiguration : IEntityTypeConfiguration<Topic>
+/// <summary>
+/// EF Core model configuration for <see cref="Topic"/>.
+/// </summary>
+internal sealed class TopicConfiguration : IEntityTypeConfiguration<Topic>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Topic> builder)
     {
         builder.ToTable("Topics", SchemaNames.Catalog);
@@ -16,5 +20,14 @@ public class TopicConfiguration : IEntityTypeConfiguration<Topic>
         builder.Property(t => t.Slug).HasMaxLength(200).IsRequired();
         builder.HasIndex(t => t.Slug).IsUnique();
         builder.Property(t => t.Description).HasMaxLength(500);
+
+        // Backing field navigation access for collections
+        builder.Navigation(t => t.ArticleTopics)
+               .HasField("_articleTopics")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(t => t.UserTopicFilters)
+               .HasField("_userTopicFilters")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

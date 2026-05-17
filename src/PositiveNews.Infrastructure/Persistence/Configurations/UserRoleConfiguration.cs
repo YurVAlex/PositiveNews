@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
+/// <summary>
+/// EF Core model configuration for <see cref="UserRole"/>.
+/// </summary>
+internal sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<UserRole> builder)
     {
         builder.ToTable("UserRoles", SchemaNames.Identity);

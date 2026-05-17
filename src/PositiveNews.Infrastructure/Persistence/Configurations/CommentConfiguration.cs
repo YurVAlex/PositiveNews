@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class CommentConfiguration : IEntityTypeConfiguration<Comment>
+/// <summary>
+/// EF Core model configuration for <see cref="Comment"/>.
+/// </summary>
+internal sealed class CommentConfiguration : IEntityTypeConfiguration<Comment>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Comment> builder)
     {
         builder.ToTable("Comments", SchemaNames.Community);
@@ -40,5 +44,10 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.HasIndex(c => new { c.ArticleId, c.CreatedAt })
                .HasFilter("[IsActive] = 1")
                .HasDatabaseName("IX_Comments_Article_Thread");
+
+        // Backing field navigation access for replies
+        builder.Navigation(c => c.Replies)
+               .HasField("_replies")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

@@ -1,0 +1,52 @@
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using PositiveNews.Application.Abstractions.Security;
+using PositiveNews.Domain.Entities;
+
+namespace PositiveNews.Infrastructure.Security;
+
+/// <summary>
+/// Issues JWT access tokens using symmetric HMAC-SHA256 credentials from <see cref="JwtOptions"/>.
+/// </summary>
+internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
+{
+    private readonly JwtOptions _options = jwtOptions.Value;
+
+    /// <inheritdoc />
+    public string CreateAccessToken(User user, IReadOnlyCollection<string> roles)
+    {
+        var issuedAt = DateTime.UtcNow;
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString(CultureInfo.InvariantCulture)),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(JwtRegisteredClaimNames.UniqueName, user.Name),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)),
+            new(ClaimTypes.Name, user.Name),
+            new(ClaimTypes.Email, user.Email)
+        };
+
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _options.Issuer,
+            audience: _options.Audience,
+            claims: claims,
+            notBefore: issuedAt,
+            expires: issuedAt.AddMinutes(_options.AccessTokenMinutes),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <inheritdoc />
+    public DateTime GetAccessTokenExpiryUtc()
+        => DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
+}

@@ -5,8 +5,12 @@ using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Persistence.Configurations;
 
-public class RoleConfiguration : IEntityTypeConfiguration<Role>
+/// <summary>
+/// EF Core model configuration for <see cref="Role"/>.
+/// </summary>
+internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
 {
+    /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Role> builder)
     {
         builder.ToTable("Roles", SchemaNames.Identity);
@@ -14,5 +18,9 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Name).HasMaxLength(50).IsRequired();
         builder.HasIndex(r => r.Name).IsUnique();
+
+        builder.Navigation(r => r.UserRoles)
+               .HasField("_userRoles")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
