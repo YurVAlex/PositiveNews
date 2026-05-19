@@ -13,11 +13,14 @@ import { usePersistFeedPreferences } from '../hooks/usePersistFeedPreferences'
 import {
   applyPreferencesToSearchParams,
   isSettingsOpen,
+  loadFeedPrefsDraft,
+  mergeDraftIntoSearchParams,
   parseMinPositivity,
   parsePage,
   parseSort,
   preferencesFromSearchParams,
   saveFeedPrefsDraft,
+  shouldHydrateFeedFromDraft,
   sourceIdsFromSearchParams,
   topicsFromSearchParams,
 } from '../utils/feed-preferences-url'
@@ -68,6 +71,15 @@ export function FeedPage() {
     clearPendingServerPreferences()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply server snapshot once when auth provides it
   }, [pendingServerPreferences, clearPendingServerPreferences, setSearchParams])
+
+  useEffect(() => {
+    if (pendingServerPreferences) return
+    if (!shouldHydrateFeedFromDraft(searchParams)) return
+    const draft = loadFeedPrefsDraft()
+    if (!draft) return
+    setSearchParams(mergeDraftIntoSearchParams(searchParams, draft), { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate bare / from session draft once per landing
+  }, [pendingServerPreferences, searchParams, setSearchParams])
 
   useEffect(() => {
     const snapshot = preferencesFromSearchParams(searchParams)
@@ -193,6 +205,12 @@ export function FeedPage() {
     [updatePreferences],
   )
 
+  const closeSettings = useCallback(() => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('settings')
+    setSearchParams(params)
+  }, [searchParams, setSearchParams])
+
   const sortLabel = feedSortModeLabel(sortMode)
   const preferenceSortHint = buildPreferenceSortHint(sortMode, sortLabel)
 
@@ -224,6 +242,7 @@ export function FeedPage() {
               onTopicsChange={(nextTopics) => updatePreferences({ topics: nextTopics })}
               onSourcesChange={(nextSourceIds) => updatePreferences({ sourceIds: nextSourceIds })}
               onMinPositivityCommit={(value) => updatePreferences({ minPositivity: value })}
+              onClose={closeSettings}
               token={token}
             />
           ) : null}

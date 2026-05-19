@@ -24,8 +24,19 @@ export function ArticleTopicLinks({ topics, selectedTopics, buildTopicToggleUrl 
         const btnClass = isActive ? 'btn btn-primary btn-sm' : 'btn btn-outline-dark btn-sm'
 
         return (
-          <Link key={topic} to={buildTopicToggleUrl(topic)} className={btnClass} style={{ fontSize: '0.85rem' }}>
+          <Link
+            key={topic}
+            to={buildTopicToggleUrl(topic)}
+            className={btnClass}
+            style={{ fontSize: '0.85rem' }}
+            title={isActive ? `Remove "${topic}" from preferred topics` : `Prefer articles about "${topic}"`}
+          >
             {topic}
+            {isActive ? (
+              <span className="ms-1 opacity-75" aria-hidden="true">
+                ×
+              </span>
+            ) : null}
           </Link>
         )
       })}

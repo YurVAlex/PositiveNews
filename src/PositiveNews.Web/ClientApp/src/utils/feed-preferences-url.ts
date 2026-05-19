@@ -192,6 +192,58 @@ export function clearFeedPrefsDraft(): void {
   }
 }
 
+export function hasNonDefaultPreferences(snapshot: FeedPreferencesSnapshot): boolean {
+  return (
+    snapshot.topics.length > 0 ||
+    snapshot.sourceIds.length > 0 ||
+    snapshot.sort !== 'date' ||
+    snapshot.minPositivity !== DEFAULT_MIN_POSITIVITY
+  )
+}
+
+/** True when the URL explicitly carries feed filter/sort preference keys. */
+export function hasPreferenceParamsInUrl(params: URLSearchParams): boolean {
+  if (params.has('topic') || params.has('source')) {
+    return true
+  }
+  if (params.get('sort')?.trim()) {
+    return true
+  }
+  if (params.get('minPositivity')?.trim()) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Merges a session draft into current search params when the URL has no preference keys
+ * (e.g. user returned via / or ?page=2 only).
+ */
+export function mergeDraftIntoSearchParams(
+  current: URLSearchParams,
+  draft: FeedPreferencesSnapshot,
+): URLSearchParams {
+  return applyPreferencesToSearchParams(new URLSearchParams(current), draft, {
+    includeSettings: true,
+    settingsOpen: isSettingsOpen(current),
+    page: parsePage(current.get('page')),
+  })
+}
+
+/** Whether landing search params should be hydrated from the session draft. */
+export function shouldHydrateFeedFromDraft(params: URLSearchParams): boolean {
+  if (hasPreferenceParamsInUrl(params)) {
+    return false
+  }
+  const draft = loadFeedPrefsDraft()
+  if (!draft || !hasNonDefaultPreferences(draft)) {
+    return false
+  }
+  return serializePreferenceParams(params) !== serializePreferenceParams(
+    applyPreferencesToSearchParams(new URLSearchParams(), draft),
+  )
+}
+
 /**
  * Builds the feed path restoring guest/user prefs from navigation state or session draft.
  */

@@ -12,7 +12,22 @@ type FeedSettingsPanelProps = {
   onTopicsChange: (topics: string[]) => void
   onSourcesChange: (sourceIds: number[]) => void
   onMinPositivityCommit: (value: number) => void
+  onClose: () => void
   token: string | null
+}
+
+function SettingsPanelHeader({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="d-flex justify-content-between align-items-start mb-3">
+      <h4 className="h6 mb-0">Feed settings</h4>
+      <button
+        type="button"
+        className="btn-close"
+        aria-label="Close feed settings"
+        onClick={onClose}
+      />
+    </div>
+  )
 }
 
 function formatPositivityLabel(value: number): string {
@@ -26,6 +41,7 @@ export function FeedSettingsPanel({
   onTopicsChange,
   onSourcesChange,
   onMinPositivityCommit,
+  onClose,
   token,
 }: FeedSettingsPanelProps) {
   const [allTopics, setAllTopics] = useState<string[]>([])
@@ -117,6 +133,7 @@ export function FeedSettingsPanel({
   if (loadError) {
     return (
       <section className="feed-settings-panel card card-body shadow-sm mb-3" aria-label="Feed settings">
+        <SettingsPanelHeader onClose={onClose} />
         <div className="alert alert-warning mb-0 py-2">{loadError}</div>
       </section>
     )
@@ -124,7 +141,7 @@ export function FeedSettingsPanel({
 
   return (
     <section className="feed-settings-panel card card-body shadow-sm mb-3" aria-label="Feed settings">
-      <h4 className="h6 mb-3">Feed settings</h4>
+      <SettingsPanelHeader onClose={onClose} />
 
       <div className="mb-3">
         <label className="form-label small fw-semibold mb-2">Topics</label>

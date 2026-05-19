@@ -28,7 +28,7 @@ describe('ArticleCard', () => {
 
     expect(screen.getByTitle('Source trust score')).toHaveTextContent('1')
     expect(screen.getByText('62% Positivity')).toHaveClass('text-success')
-    expect(screen.getByRole('link', { name: 'Health' })).toHaveClass('btn-primary')
+    expect(screen.getByRole('link', { name: /Health/ })).toHaveClass('btn-primary')
     expect(screen.getByRole('link', { name: 'Science' })).toHaveClass('btn-outline-dark')
 
     const summary = screen.getByText('A short happy summary.').closest('div')
@@ -94,9 +94,10 @@ describe('ArticleCard', () => {
       </MemoryRouter>,
     )
 
-    const sourceLink = screen.getByRole('link', { name: 'Positive Source' })
+    const sourceLink = screen.getByRole('link', { name: /Positive Source/ })
     expect(sourceLink).toHaveAttribute('href', '/?source=5')
-    expect(sourceLink).toHaveClass('link-primary')
+    expect(sourceLink).toHaveClass('btn-primary')
+    expect(sourceLink.textContent).toContain('×')
   })
 
   it('does not render positivity badge for null score and falls back to unknown author', () => {

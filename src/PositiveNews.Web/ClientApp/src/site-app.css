@@ -201,6 +201,8 @@ a.article-card-image:hover img {
 .feed-preference-listbox {
     display: flex;
     flex-direction: column;
+    border-color: rgba(var(--bs-primary-rgb), 0.35);
+    background-color: rgba(var(--bs-primary-rgb), 0.04);
 }
 
 .feed-preference-listbox__option {
@@ -219,10 +221,13 @@ a.article-card-image:hover img {
 
 .feed-preference-listbox__option:hover,
 .feed-preference-listbox__option:focus-visible {
-    background-color: var(--bs-tertiary-bg);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary-text-emphasis);
     outline: none;
 }
 
 .feed-preference-listbox__option.feed-preference-select__option--active {
     font-weight: 700;
+    background-color: rgba(var(--bs-primary-rgb), 0.14);
+    color: var(--bs-primary);
 }

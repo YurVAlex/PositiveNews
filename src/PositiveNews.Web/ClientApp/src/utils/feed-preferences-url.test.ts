@@ -4,11 +4,15 @@ import {
   buildFeedReturnPath,
   DEFAULT_MIN_POSITIVITY,
   FEED_PREFS_DRAFT_KEY,
+  hasNonDefaultPreferences,
+  hasPreferenceParamsInUrl,
+  mergeDraftIntoSearchParams,
   parseMinPositivity,
   parseSort,
   preferencesFromSearchParams,
   saveFeedPrefsDraft,
   serializePreferenceParams,
+  shouldHydrateFeedFromDraft,
   topicsFromSearchParams,
 } from './feed-preferences-url'
 
@@ -63,5 +67,50 @@ describe('feed-preferences-url', () => {
     })
     expect(buildFeedReturnPath()).toBe('/?topic=Science&source=2&sort=positivity&minPositivity=0.6&page=1')
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
+  })
+
+  it('detects preference keys in the URL', () => {
+    expect(hasPreferenceParamsInUrl(new URLSearchParams())).toBe(false)
+    expect(hasPreferenceParamsInUrl(new URLSearchParams('page=2&settings=1'))).toBe(false)
+    expect(hasPreferenceParamsInUrl(new URLSearchParams('topic=Health'))).toBe(true)
+  })
+
+  it('shouldHydrateFeedFromDraft when bare URL and session draft differ', () => {
+    saveFeedPrefsDraft({
+      topics: ['Health'],
+      sourceIds: [],
+      sort: 'date',
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    })
+    expect(shouldHydrateFeedFromDraft(new URLSearchParams())).toBe(true)
+    expect(shouldHydrateFeedFromDraft(new URLSearchParams('topic=Health'))).toBe(false)
+    sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
+  })
+
+  it('mergeDraftIntoSearchParams preserves page and settings', () => {
+    const draft = {
+      topics: ['Science'],
+      sourceIds: [],
+      sort: 'date' as const,
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    }
+    const merged = mergeDraftIntoSearchParams(
+      new URLSearchParams('page=3&settings=1'),
+      draft,
+    )
+    expect(merged.get('page')).toBe('3')
+    expect(merged.get('settings')).toBe('1')
+    expect(merged.getAll('topic')).toEqual(['Science'])
+  })
+
+  it('hasNonDefaultPreferences is false for empty snapshot', () => {
+    expect(
+      hasNonDefaultPreferences({
+        topics: [],
+        sourceIds: [],
+        sort: 'date',
+        minPositivity: DEFAULT_MIN_POSITIVITY,
+      }),
+    ).toBe(false)
   })
 })

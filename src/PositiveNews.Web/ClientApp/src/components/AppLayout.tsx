@@ -1,19 +1,46 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import loginIcon from '../assets/ui/login.svg'
 import logoutIcon from '../assets/ui/logout.svg'
 import settingsIcon from '../assets/ui/settings.svg'
 import {
+  buildFeedReturnPath,
   buildSearchFromSnapshot,
+  DEFAULT_MIN_POSITIVITY,
   isSettingsOpen,
   loadFeedPrefsDraft,
 } from '../utils/feed-preferences-url'
+
+type FeedNavigationState = {
+  feedSearch?: string
+}
+
+const EMPTY_FEED_PREFS = {
+  topics: [],
+  sourceIds: [],
+  sort: 'date' as const,
+  minPositivity: DEFAULT_MIN_POSITIVITY,
+}
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  const feedHomePath = useMemo(() => {
+    const state = location.state as FeedNavigationState | null
+    return buildFeedReturnPath(state?.feedSearch)
+  }, [location.state])
+
+  const feedSearchForPrivacy = useMemo(() => {
+    if (location.pathname !== '/') {
+      return undefined
+    }
+    const qs = location.search
+    return qs ? qs : undefined
+  }, [location.pathname, location.search])
 
   const handleSettingsClick = () => {
     if (location.pathname === '/') {
@@ -29,22 +56,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
       return
     }
 
-    if (location.pathname.startsWith('/articles/')) {
-      const draft = loadFeedPrefsDraft()
-      const search = buildSearchFromSnapshot(
-        draft ?? {
-          topics: [],
-          sourceIds: [],
-          sort: 'date',
-          minPositivity: 0.5,
-        },
-        { settingsOpen: true, page: 1 },
-      )
-      navigate(`/${search}`, { replace: false })
-      return
-    }
-
-    navigate('/?settings=1', { replace: false })
+    const draft = loadFeedPrefsDraft()
+    const search = buildSearchFromSnapshot(draft ?? EMPTY_FEED_PREFS, {
+      settingsOpen: true,
+      page: 1,
+    })
+    navigate(`/${search}`, { replace: false })
   }
 
   const handleLogout = () => {
@@ -60,7 +77,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <header>
         <nav className="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-1">
           <div className="container-fluid">
-            <Link className="navbar-brand" to="/">
+            <Link className="navbar-brand" to={feedHomePath}>
               Positive News
             </Link>
             <button
@@ -77,12 +94,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <div className="navbar-collapse collapse d-sm-inline-flex justify-content-between">
               <ul className="navbar-nav flex-grow-1">
                 <li className="nav-item">
-                  <Link className="nav-link text-dark" to="/">
-                    Home
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link text-dark" to="/privacy">
+                  <Link
+                    className="nav-link text-dark"
+                    to="/privacy"
+                    state={feedSearchForPrivacy ? { feedSearch: feedSearchForPrivacy } : undefined}
+                  >
                     Privacy
                   </Link>
                 </li>
@@ -129,7 +145,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <footer className="border-top footer text-muted">
         <div className="container">
           &copy; 2026 - Positive News -{' '}
-          <Link to="/privacy" className="text-muted">
+          <Link
+            to="/privacy"
+            className="text-muted"
+            state={feedSearchForPrivacy ? { feedSearch: feedSearchForPrivacy } : undefined}
+          >
             Privacy
           </Link>
         </div>

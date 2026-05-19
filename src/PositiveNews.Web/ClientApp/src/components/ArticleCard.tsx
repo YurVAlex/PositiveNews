@@ -72,9 +72,12 @@ export function ArticleCard({
                     <div className="d-flex w-100 align-items-center gap-2 flex-wrap">
                         <Link
                             to={buildSourceToggleUrl(article.sourceId)}
-                            className={`d-inline-flex align-items-center gap-2 text-decoration-none pt-2 ${
-                                isSourceSelected ? 'link-primary' : 'link-secondary'
-                            }`}
+                            className={[
+                                'd-inline-flex align-items-center gap-2 text-decoration-none',
+                                isSourceSelected
+                                    ? 'btn btn-sm btn-outline-primary'
+                                    : 'link-secondary pt-2',
+                            ].join(' ')}
                             title={sourceToggleTitle}
                         >
                             {article.sourceLogoUrl ? (
@@ -85,7 +88,14 @@ export function ArticleCard({
                                     style={{ width: 32, height: 32, objectFit: 'cover' }}
                                 />
                             ) : null}
-                            <span className="fw-bold fs-5">{article.sourceName}</span>
+                            <span className={isSourceSelected ? 'fw-semibold' : 'fw-bold fs-5'}>
+                                {article.sourceName}
+                            </span>
+                            {isSourceSelected ? (
+                                <span className="ms-1 opacity-75" aria-hidden="true">
+                                    ×
+                                </span>
+                            ) : null}
                         </Link>
                         <span
                             className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
