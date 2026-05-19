@@ -1,12 +1,34 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { fetchArticleDetail } from '../api/articles-api'
 import type { ArticleDetailResponse } from '../api/types'
 import { useAuth } from '../auth/AuthProvider'
+import { buildFeedReturnPath } from '../utils/feed-preferences-url'
+
+type ArticleDetailLocationState = {
+  feedSearch?: string
+}
 
 function formatDetailDate(iso: string) {
   const d = new Date(iso)
   return d.toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function BackToFeedLink({ className }: { className?: string }) {
+  const location = useLocation()
+  const feedReturnPath = useMemo(() => {
+    const state = location.state as ArticleDetailLocationState | null
+    return buildFeedReturnPath(state?.feedSearch)
+  }, [location.state])
+
+  return (
+    <Link
+      to={feedReturnPath}
+      className={['text-decoration-none d-inline-block', className].filter(Boolean).join(' ')}
+    >
+      &larr; Back to Feed
+    </Link>
+  )
 }
 
 export function ArticleDetailPage() {
@@ -88,9 +110,7 @@ export function ArticleDetailPage() {
       <div className="row justify-content-center">
         <div className="col-md-12">
           <div className="d-flex justify-content-between">
-            <Link to="/" className="text-decoration-none mb-4 d-inline-block">
-              &larr; Back to Feed
-            </Link>
+            <BackToFeedLink className="mb-4" />
             <div>
               {article.sourceLogoUrl ? (
                 <img
@@ -122,6 +142,10 @@ export function ArticleDetailPage() {
           ) : (
             <div className="alert alert-warning">Full content is not available for this article yet.</div>
           )}
+
+          <div className="mt-4 pt-3 border-top">
+            <BackToFeedLink />
+          </div>
         </div>
       </div>
     </main>

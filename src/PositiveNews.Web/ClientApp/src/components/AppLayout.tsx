@@ -1,11 +1,59 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import loginIcon from '../assets/ui/login.svg'
 import logoutIcon from '../assets/ui/logout.svg'
+import settingsIcon from '../assets/ui/settings.svg'
+import {
+  buildSearchFromSnapshot,
+  isSettingsOpen,
+  loadFeedPrefsDraft,
+} from '../utils/feed-preferences-url'
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, user, logout } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleSettingsClick = () => {
+    if (location.pathname === '/') {
+      const params = new URLSearchParams(location.search)
+      const open = isSettingsOpen(params)
+      if (open) {
+        params.delete('settings')
+      } else {
+        params.set('settings', '1')
+      }
+      const qs = params.toString()
+      navigate(qs ? `/?${qs}` : '/', { replace: true })
+      return
+    }
+
+    if (location.pathname.startsWith('/articles/')) {
+      const draft = loadFeedPrefsDraft()
+      const search = buildSearchFromSnapshot(
+        draft ?? {
+          topics: [],
+          sourceIds: [],
+          sort: 'date',
+          minPositivity: 0.5,
+        },
+        { settingsOpen: true, page: 1 },
+      )
+      navigate(`/${search}`, { replace: false })
+      return
+    }
+
+    navigate('/?settings=1', { replace: false })
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/', { replace: true })
+  }
+
+  const settingsActive =
+    location.pathname === '/' && isSettingsOpen(new URLSearchParams(location.search))
 
   return (
     <>
@@ -40,13 +88,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </li>
               </ul>
               <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+                <button
+                  type="button"
+                                  className={`btn btn-sm ${settingsActive ? 'btn-info' : 'btn-light'}`}
+                  onClick={handleSettingsClick}
+                  aria-pressed={settingsActive}
+                  aria-expanded={settingsActive}
+                >
+                <img src={settingsIcon} alt="" width={20} height={20} className="flex-shrink-0" /> Settings
+                </button>
                 {isAuthenticated ? (
                   <>
                     <span className="text-muted fs-6">{user?.name ?? 'User'}</span>
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
-                      onClick={logout}
+                      onClick={handleLogout}
                     >
                       <img src={logoutIcon} alt="" width={20} height={20} className="flex-shrink-0" />
                       Logout

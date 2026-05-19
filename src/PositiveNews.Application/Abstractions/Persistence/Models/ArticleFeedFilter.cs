@@ -25,9 +25,11 @@ public enum ArticleFeedSortBy
 /// <param name="Topics">Topic names to prioritize (empty means no topic preference).</param>
 /// <param name="SourceIds">Source ids to prioritize (empty means no source preference).</param>
 /// <param name="SortBy">Determines the primary sort order.</param>
+/// <param name="MinPositivity">When set, excludes articles below this positivity score (null scores pass).</param>
 public sealed record ArticleFeedFilter(
     int Page,
     int PageSize,
     IReadOnlyList<string> Topics,
     IReadOnlyList<int> SourceIds,
-    ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt);
+    ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt,
+    decimal? MinPositivity = null);

@@ -62,3 +62,10 @@ export type AuthResponse = {
   expiresAtUtc: string
   user: UserProfileResponse
 }
+
+export type UserFeedPreferencesResponse = {
+  topicNames: string[]
+  sourceIds: number[]
+  minPositivity: number
+  sortBy: string
+}

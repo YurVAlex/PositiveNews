@@ -9,6 +9,7 @@ export async function fetchArticleFeed(
   sourceIds: number[],
   sort: FeedSortParam = 'date',
   token: string | null = null,
+  minPositivity?: number,
 ): Promise<ArticleFeedResponse> {
   const params = new URLSearchParams()
   params.set('page', String(page))
@@ -28,6 +29,10 @@ export async function fetchArticleFeed(
     params.set('sort', 'positivity')
   } else if (sort === 'preferences') {
     params.set('sort', 'preferences')
+  }
+
+  if (minPositivity !== undefined && Number.isFinite(minPositivity)) {
+    params.set('minPositivity', String(minPositivity))
   }
 
   const res = await fetch(apiUrl(`/api/articles/feed?${params.toString()}`), {

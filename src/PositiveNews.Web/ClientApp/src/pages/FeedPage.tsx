@@ -6,52 +6,21 @@ import { ArticleCard } from '../components/ArticleCard'
 import { FeedActiveSources } from '../components/FeedActiveSources'
 import { FeedActiveTopics } from '../components/FeedActiveTopics'
 import { FeedPagination } from '../components/FeedPagination'
+import { FeedSettingsPanel } from '../components/FeedSettingsPanel'
 import { buildPreferenceSortHint, FeedSortSelect, feedSortModeLabel } from '../components/FeedSortSelect'
 import { useAuth } from '../auth/AuthProvider'
-
-function parsePage(raw: string | null) {
-  const n = Number(raw ?? '1')
-  if (!Number.isFinite(n) || n < 1) {
-    return 1
-  }
-  return Math.floor(n)
-}
-
-/** Distinct topics from query string, preserving first-seen casing. */
-function topicsFromSearchParams(searchParams: URLSearchParams): string[] {
-  const ordered: string[] = []
-  const seen = new Set<string>()
-  for (const raw of searchParams.getAll('topic')) {
-    const trimmed = raw.trim()
-    if (!trimmed.length) continue
-    const key = trimmed.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    ordered.push(trimmed)
-  }
-  return ordered
-}
-
-/** Distinct source ids from query string, preserving first-seen order. */
-function sourceIdsFromSearchParams(searchParams: URLSearchParams): number[] {
-  const ordered: number[] = []
-  const seen = new Set<number>()
-  for (const raw of searchParams.getAll('source')) {
-    const id = Number(raw)
-    if (!Number.isInteger(id) || id < 1) continue
-    if (seen.has(id)) continue
-    seen.add(id)
-    ordered.push(id)
-  }
-  return ordered
-}
-
-function parseSort(raw: string | null): FeedSortParam {
-  const value = raw?.toLowerCase()
-  if (value === 'positivity') return 'positivity'
-  if (value === 'preferences') return 'preferences'
-  return 'date'
-}
+import { usePersistFeedPreferences } from '../hooks/usePersistFeedPreferences'
+import {
+  applyPreferencesToSearchParams,
+  isSettingsOpen,
+  parseMinPositivity,
+  parsePage,
+  parseSort,
+  preferencesFromSearchParams,
+  saveFeedPrefsDraft,
+  sourceIdsFromSearchParams,
+  topicsFromSearchParams,
+} from '../utils/feed-preferences-url'
 
 function feedTitle(topics: string[], sourceCount: number, singleSourceName: string | null): string {
   const hasTopics = topics.length > 0
@@ -70,16 +39,42 @@ function feedTitle(topics: string[], sourceCount: number, singleSourceName: stri
 }
 
 export function FeedPage() {
-  const { token } = useAuth()
+  const { token, isAuthenticated, pendingServerPreferences, clearPendingServerPreferences } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = useMemo(() => parsePage(searchParams.get('page')), [searchParams])
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
   const sourceIds = useMemo(() => sourceIdsFromSearchParams(searchParams), [searchParams])
   const sortMode = useMemo(() => parseSort(searchParams.get('sort')), [searchParams])
+  const minPositivity = useMemo(() => parseMinPositivity(searchParams.get('minPositivity')), [searchParams])
+  const settingsOpen = useMemo(() => isSettingsOpen(searchParams), [searchParams])
   const hasPreferences = topics.length > 0 || sourceIds.length > 0
+  const feedReturnSearch = useMemo(() => {
+    const qs = searchParams.toString()
+    return qs ? `?${qs}` : ''
+  }, [searchParams])
 
   const [data, setData] = useState<ArticleFeedResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!pendingServerPreferences) return
+    const next = applyPreferencesToSearchParams(new URLSearchParams(), pendingServerPreferences, {
+      includeSettings: true,
+      settingsOpen: isSettingsOpen(searchParams),
+      page: 1,
+    })
+    setSearchParams(next, { replace: true })
+    clearPendingServerPreferences()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply server snapshot once when auth provides it
+  }, [pendingServerPreferences, clearPendingServerPreferences, setSearchParams])
+
+  useEffect(() => {
+    const snapshot = preferencesFromSearchParams(searchParams)
+    saveFeedPrefsDraft(snapshot)
+  }, [searchParams])
+
+  usePersistFeedPreferences(searchParams, token, isAuthenticated, setSaveError)
 
   useEffect(() => {
     let cancelled = false
@@ -87,7 +82,7 @@ export function FeedPage() {
 
     ;(async () => {
       try {
-        const res = await fetchArticleFeed(page, topics, sourceIds, sortMode, token)
+        const res = await fetchArticleFeed(page, topics, sourceIds, sortMode, token, minPositivity)
         if (!cancelled) {
           setData(res)
         }
@@ -101,46 +96,65 @@ export function FeedPage() {
     return () => {
       cancelled = true
     }
-  }, [page, topics, sourceIds, sortMode, token])
+  }, [page, topics, sourceIds, sortMode, minPositivity, token])
+
+  const updatePreferences = useCallback(
+    (patch: Partial<{ topics: string[]; sourceIds: number[]; sort: FeedSortParam; minPositivity: number }>) => {
+      const current = preferencesFromSearchParams(searchParams)
+      const snapshot = {
+        topics: patch.topics ?? current.topics,
+        sourceIds: patch.sourceIds ?? current.sourceIds,
+        sort: patch.sort ?? current.sort,
+        minPositivity: patch.minPositivity ?? current.minPositivity,
+      }
+      const next = applyPreferencesToSearchParams(new URLSearchParams(searchParams), snapshot, {
+        includeSettings: true,
+        settingsOpen,
+        page: 1,
+      })
+      setSearchParams(next)
+    },
+    [searchParams, setSearchParams, settingsOpen],
+  )
 
   const buildTopicToggleUrl = useCallback(
     (topicName: string) => {
       const trimmed = topicName.trim()
       if (!trimmed.length) return `/?${searchParams.toString()}`
 
-      const next = new URLSearchParams(searchParams)
+      const current = preferencesFromSearchParams(searchParams)
       const lower = trimmed.toLowerCase()
-      const exists = topics.some((t) => t.toLowerCase() === lower)
-      next.delete('topic')
-      next.set('page', '1')
-      if (exists) {
-        topics.filter((t) => t.toLowerCase() !== lower).forEach((t) => next.append('topic', t))
-      } else {
-        topics.forEach((t) => next.append('topic', t))
-        next.append('topic', trimmed)
-      }
+      const exists = current.topics.some((t) => t.toLowerCase() === lower)
+      const nextTopics = exists
+        ? current.topics.filter((t) => t.toLowerCase() !== lower)
+        : [...current.topics, trimmed]
+
+      const next = applyPreferencesToSearchParams(new URLSearchParams(searchParams), {
+        ...current,
+        topics: nextTopics,
+      }, { includeSettings: true, settingsOpen, page: 1 })
       return `/?${next.toString()}`
     },
-    [searchParams, topics],
+    [searchParams, settingsOpen],
   )
 
   const buildSourceToggleUrl = useCallback(
     (sourceId: number) => {
       if (!Number.isInteger(sourceId) || sourceId < 1) return `/?${searchParams.toString()}`
 
-      const next = new URLSearchParams(searchParams)
-      const exists = sourceIds.includes(sourceId)
-      next.delete('source')
-      next.set('page', '1')
-      if (exists) {
-        sourceIds.filter((id) => id !== sourceId).forEach((id) => next.append('source', String(id)))
-      } else {
-        sourceIds.forEach((id) => next.append('source', String(id)))
-        next.append('source', String(sourceId))
-      }
+      const current = preferencesFromSearchParams(searchParams)
+      const exists = current.sourceIds.includes(sourceId)
+      const nextSourceIds = exists
+        ? current.sourceIds.filter((id) => id !== sourceId)
+        : [...current.sourceIds, sourceId]
+
+      const next = applyPreferencesToSearchParams(new URLSearchParams(searchParams), {
+        ...current,
+        sourceIds: nextSourceIds,
+      }, { includeSettings: true, settingsOpen, page: 1 })
       return `/?${next.toString()}`
     },
-    [searchParams, sourceIds],
+    [searchParams, settingsOpen],
   )
 
   const singleSourceName =
@@ -174,16 +188,9 @@ export function FeedPage() {
 
   const setSortMode = useCallback(
     (next: FeedSortParam) => {
-      const params = new URLSearchParams(searchParams)
-      if (next === 'date') {
-        params.delete('sort')
-      } else {
-        params.set('sort', next)
-      }
-      params.set('page', '1')
-      setSearchParams(params)
+      updatePreferences({ sort: next })
     },
-    [searchParams, setSearchParams],
+    [updatePreferences],
   )
 
   const sortLabel = feedSortModeLabel(sortMode)
@@ -209,6 +216,24 @@ export function FeedPage() {
     <main role="main" className="pb-2 mt-1">
       <div className="row justify-content-center">
         <div className="col-md-12">
+          {settingsOpen ? (
+            <FeedSettingsPanel
+              selectedTopics={topics}
+              selectedSourceIds={sourceIds}
+              minPositivity={minPositivity}
+              onTopicsChange={(nextTopics) => updatePreferences({ topics: nextTopics })}
+              onSourcesChange={(nextSourceIds) => updatePreferences({ sourceIds: nextSourceIds })}
+              onMinPositivityCommit={(value) => updatePreferences({ minPositivity: value })}
+              token={token}
+            />
+          ) : null}
+
+          {saveError ? (
+            <div className="alert alert-warning py-2 mb-2" role="alert">
+              {saveError}
+            </div>
+          ) : null}
+
           <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-3">
             <h3 className="mb-0">{title}</h3>
             <FeedPagination
@@ -246,6 +271,7 @@ export function FeedPage() {
               buildTopicToggleUrl={buildTopicToggleUrl}
               selectedSourceIds={sourceIds}
               buildSourceToggleUrl={buildSourceToggleUrl}
+              feedReturnSearch={feedReturnSearch}
             />
           ))}
 

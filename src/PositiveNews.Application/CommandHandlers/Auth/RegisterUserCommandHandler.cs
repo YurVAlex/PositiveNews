@@ -24,6 +24,7 @@ public sealed class RegisterUserCommandHandler(
     IUserReadRepository userReadRepository,
     IUserWriteRepository userWriteRepository,
     IUserRoleWriteRepository userRoleWriteRepository,
+    IUserFeedPreferencesWriteRepository userFeedPreferencesWriteRepository,
     IRoleReadRepository roleReadRepository,
     IPasswordHasherService passwordHasherService,
     ITokenService tokenService,
@@ -60,6 +61,9 @@ public sealed class RegisterUserCommandHandler(
 
         userWriteRepository.Add(user);
         userRoleWriteRepository.Add(UserRole.Create(userRole.Id, user));
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        userFeedPreferencesWriteRepository.AddDefault(user.Id);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var roles = new[] { userRole.Name };

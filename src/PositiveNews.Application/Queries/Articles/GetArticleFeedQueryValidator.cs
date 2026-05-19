@@ -15,6 +15,10 @@ public sealed class GetArticleFeedQueryValidator : AbstractValidator<GetArticleF
         RuleFor(x => x.Page).GreaterThan(0);
         RuleFor(x => x.PageSize).InclusiveBetween(1, 100);
         RuleFor(x => x.SortBy).IsInEnum();
+        When(x => x.MinPositivity.HasValue, () =>
+        {
+            RuleFor(x => x.MinPositivity!.Value).InclusiveBetween(0m, 1m);
+        });
         RuleFor(x => x.Topics)
             .Must(t => t == null || t.Count <= 30)
             .WithMessage("At most 30 topics may be used for filtering.");

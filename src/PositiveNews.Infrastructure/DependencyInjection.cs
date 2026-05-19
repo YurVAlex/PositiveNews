@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<ITopicReadRepository, TopicReadRepository>();
         services.AddScoped<ISourceReadRepository, SourceReadRepository>();
         services.AddScoped<IUserReadRepository, UserReadRepository>();
+        services.AddScoped<IUserFeedPreferencesReadRepository, UserFeedPreferencesReadRepository>();
         services.AddScoped<IRoleReadRepository, RoleReadRepository>();
 
         services.AddScoped<IArticleWriteRepository, ArticleWriteRepository>();
@@ -56,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<ISourceWriteRepository, SourceWriteRepository>();
         services.AddScoped<IIngestionRunRepository, IngestionRunRepository>();
         services.AddScoped<IUserWriteRepository, UserWriteRepository>();
+        services.AddScoped<IUserFeedPreferencesWriteRepository, UserFeedPreferencesWriteRepository>();
         services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

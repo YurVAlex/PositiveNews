@@ -34,6 +34,8 @@ type ArticleCardProps = {
     buildTopicToggleUrl: (topic: string) => string
     selectedSourceIds: number[]
     buildSourceToggleUrl: (sourceId: number) => string
+    /** Current feed query string (e.g. "?topic=Health") preserved when opening article detail. */
+    feedReturnSearch?: string
 }
 
 export function ArticleCard({
@@ -43,6 +45,7 @@ export function ArticleCard({
     buildTopicToggleUrl,
     selectedSourceIds,
     buildSourceToggleUrl,
+    feedReturnSearch,
 }: ArticleCardProps) {
     const [summaryOpen, setSummaryOpen] = useState(false)
     const hasPreviewImage = Boolean(article.imageTag?.trim())
@@ -56,7 +59,9 @@ export function ArticleCard({
     const sourceToggleTitle = isSourceSelected
         ? `Remove "${article.sourceName}" from preferred sources`
         : `Prefer articles from "${article.sourceName}"`
-    const articleDetailUrl = `/articles/${article.id}`
+    const articleDetailTo = feedReturnSearch
+        ? { pathname: `/articles/${article.id}`, state: { feedSearch: feedReturnSearch } }
+        : `/articles/${article.id}`
 
     return (
         <div className="card mb-4 shadow-sm overflow-hidden">
@@ -103,7 +108,7 @@ export function ArticleCard({
                 <div className="article-card-title card-body">
                     <h4 className="card-title fw-bold mb-0">
                         <Link
-                            to={articleDetailUrl}
+                            to={articleDetailTo}
                             className="text-decoration-none text-dark link-underline-opacity-0 link-underline-opacity-100-hover"
                         >
                             {article.title}
@@ -112,7 +117,7 @@ export function ArticleCard({
                 </div>
                 {hasPreviewImage ? (
                     <Link
-                        to={articleDetailUrl}
+                        to={articleDetailTo}
                         className="article-card-image text-decoration-none"
                         aria-label={`Read article: ${article.title}`}
                     >
@@ -133,7 +138,7 @@ export function ArticleCard({
                         >
                             {summaryOpen ? 'Hide summary' : 'Show summary'}
                         </button>
-                        <Link to={articleDetailUrl} className="btn btn-primary">
+                        <Link to={articleDetailTo} className="btn btn-success">
                             Read article
                         </Link>
                         {originUrl ? (

@@ -35,6 +35,12 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
             .Where(a => a.IsActive)
             .AsNoTracking();
 
+        if (filter.MinPositivity.HasValue)
+        {
+            var threshold = filter.MinPositivity.Value;
+            query = query.Where(a => a.PositivityScore == null || a.PositivityScore >= threshold);
+        }
+
         query = filter.SortBy switch
         {
             ArticleFeedSortBy.Preferences => ApplyPreferenceSort(query, topicNamesLower, sourceIds),

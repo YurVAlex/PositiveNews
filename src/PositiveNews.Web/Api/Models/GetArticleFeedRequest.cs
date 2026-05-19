@@ -24,4 +24,9 @@ public sealed class GetArticleFeedRequest
     /// Gets optional sort mode (for example: <c>positivity</c>, <c>preferences</c>).
     /// </summary>
     public string? Sort { get; init; }
+
+    /// <summary>
+    /// Gets optional minimum positivity score in [0, 1] for feed items.
+    /// </summary>
+    public decimal? MinPositivity { get; init; }
 }
