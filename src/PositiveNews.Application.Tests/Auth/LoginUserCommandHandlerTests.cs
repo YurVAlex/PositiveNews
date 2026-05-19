@@ -65,7 +65,7 @@ public class LoginUserCommandHandlerTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Auth.InvalidCredentials");
-        result.Error.Message.Should().Be("The user blocked.");
+        result.Error.Message.Should().Be("The user has been deleted or blocked.");
         passwordHasher.DidNotReceive().VerifyPassword(Arg.Any<User>(), Arg.Any<string>(), Arg.Any<string>());
         tokenService.DidNotReceive().CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
     }

@@ -96,8 +96,28 @@ describe('ArticleCard', () => {
 
     const sourceLink = screen.getByRole('link', { name: /Positive Source/ })
     expect(sourceLink).toHaveAttribute('href', '/?source=5')
-    expect(sourceLink).toHaveClass('btn-primary')
+    expect(sourceLink).toHaveClass('btn-outline-primary')
     expect(sourceLink.textContent).toContain('×')
+  })
+
+  it('shows source default image when preview image is missing', () => {
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={articlePreview({ imageTag: null, sourceName: 'NASA Breaking News' })}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Read article: Good news story' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Default article image' })).toHaveAttribute(
+      'src',
+      '/Defaults/nasa.png',
+    )
   })
 
   it('does not render positivity badge for null score and falls back to unknown author', () => {

@@ -26,7 +26,7 @@ public class FeedItemEnricherTests
             new PositivityAnalizerKeyPhrases(
                 emptyWords, emptyWords, emptyWords, emptyWords, emptyWords, emptyWords, 1, 1, 1m, 1m),
             new CleanerRules([], [], [], [], new HashSet<string>(), new HashSet<string>()),
-            new FeedItemValidationRules(new HashSet<string>()),
+            new FeedItemValidationRules(new HashSet<string>(), []),
             new Dictionary<string, SourceIngestionRules>(StringComparer.OrdinalIgnoreCase)
             {
                 ["s1"] = new SourceIngestionRules("news.example", ["Health"])

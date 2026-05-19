@@ -30,7 +30,8 @@ public class IngestionSettingsProviderTests
                 },
                 FeedItemValidationRules = new FeedItemValidationRulesConfig
                 {
-                    InvalidAuthors = ["spam"]
+                    InvalidAuthors = ["spam"],
+                    InvalidLinkContains = ["photojournal"]
                 }
             }
         };
@@ -45,6 +46,7 @@ public class IngestionSettingsProviderTests
         snapshot.PositivityAnalizerKeyPhrases.PhrasePolarityWeight.Should().Be(10m);
         snapshot.CleanerRules.AllowedTags.Should().Contain("p");
         snapshot.FeedItemValidationRules.InvalidAuthors.Should().Contain("spam");
+        snapshot.FeedItemValidationRules.InvalidLinkContains.Should().Contain("photojournal");
     }
 
     [Fact]

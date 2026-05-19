@@ -83,4 +83,35 @@ public sealed class AuthApiController(IMediator mediator) : ControllerBase
             .Map(profile => profile.ToUserProfileResponse())
             .ToActionResult(this);
     }
+
+    /// <summary>
+    /// Deactivates the currently authenticated user's account.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>HTTP 200 when deactivation succeeds, or a problem response on failure.</returns>
+    [Authorize]
+    [HttpDelete("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeactivateMe(CancellationToken cancellationToken = default)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdValue, out var userId))
+        {
+            var problemDetails = new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized",
+                Detail = "Invalid or missing user identifier in the security context.",
+                Type = "https://tools.ietf.org/html/rfc7235#section-3.1"
+            };
+            ProblemDetailsTraceExtensions.EnrichWithTrace(HttpContext, problemDetails);
+            return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
+        }
+
+        var result = await mediator.Send(new DeactivateAccountCommand(userId), cancellationToken);
+        return result.ToActionResult(this);
+    }
 }

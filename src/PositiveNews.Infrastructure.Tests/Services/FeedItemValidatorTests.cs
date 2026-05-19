@@ -18,12 +18,18 @@ public class FeedItemValidatorTests
     private static HtmlNode LongContentNode()
         => HtmlNode.CreateNode("<article>This is long enough article content for validation.</article>");
 
+    private static FeedItemValidationRules EmptyRules()
+        => new(new HashSet<string>(), []);
+
+    private static FeedItemValidationRules RulesWithBlockedLinkFragments(params string[] fragments)
+        => new(new HashSet<string>(), fragments);
+
     [Fact]
     public void IsValid_Should_ReturnTrue_When_ItemCompleteAndContentLongEnough()
     {
         var sut = new FeedItemValidator();
 
-        var result = sut.IsValid(ValidItem(), new FeedItemValidationRules(new HashSet<string>()), LongContentNode());
+        var result = sut.IsValid(ValidItem(), EmptyRules(), LongContentNode());
 
         result.Should().BeTrue();
     }
@@ -45,7 +51,7 @@ public class FeedItemValidatorTests
             _ => ValidItem()
         };
 
-        var result = sut.IsValid(item, new FeedItemValidationRules(new HashSet<string>()), LongContentNode());
+        var result = sut.IsValid(item, EmptyRules(), LongContentNode());
 
         result.Should().BeFalse();
     }
@@ -54,7 +60,9 @@ public class FeedItemValidatorTests
     public void IsValid_Should_ReturnFalse_When_AuthorBlocked()
     {
         var sut = new FeedItemValidator();
-        var rules = new FeedItemValidationRules(new HashSet<string>(["Blocked"], StringComparer.OrdinalIgnoreCase));
+        var rules = new FeedItemValidationRules(
+            new HashSet<string>(["Blocked"], StringComparer.OrdinalIgnoreCase),
+            []);
 
         var result = sut.IsValid(ValidItem() with { Author = "Blocked" }, rules, LongContentNode());
 
@@ -67,7 +75,21 @@ public class FeedItemValidatorTests
         var sut = new FeedItemValidator();
         var shortNode = HtmlNode.CreateNode("<article>Too short</article>");
 
-        var result = sut.IsValid(ValidItem(), new FeedItemValidationRules(new HashSet<string>()), shortNode);
+        var result = sut.IsValid(ValidItem(), EmptyRules(), shortNode);
+
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsValid_Should_ReturnFalse_When_LinkContainsBlockedFragment()
+    {
+        var sut = new FeedItemValidator();
+        var rules = RulesWithBlockedLinkFragments("photojournal");
+
+        var result = sut.IsValid(
+            ValidItem() with { Link = "https://example.com/photojournal/gallery" },
+            rules,
+            LongContentNode());
 
         result.Should().BeFalse();
     }
@@ -77,7 +99,7 @@ public class FeedItemValidatorTests
     {
         var sut = new FeedItemValidator();
 
-        var result = sut.IsValid(ValidItem(), new FeedItemValidationRules(new HashSet<string>()), null);
+        var result = sut.IsValid(ValidItem(), EmptyRules(), null);
 
         result.Should().BeFalse();
     }

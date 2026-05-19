@@ -131,14 +131,37 @@ public class User
         FailedLoginCount++;
     }
 
+    private const string DeletedEmailSuffix = ".deleted";
+    private const string DeletedUserDisplayName = "Deleted user";
+    private const int MaxEmailLength = 300;
+
     /// <summary>
-    /// Deactivates the account and records the acting moderator.
+    /// Deactivates the account, anonymizes profile data, and records the acting moderator.
     /// </summary>
     public void Deactivate(long moderatorId)
     {
         if (!IsActive)
             throw new InvalidUserStateException("User is already inactive.");
+
+        Email = ToDeletedEmail(Email);
+        Name = DeletedUserDisplayName;
         IsActive = false;
         ModeratedBy = moderatorId;
+    }
+
+    private static string ToDeletedEmail(string email)
+    {
+        if (email.EndsWith(DeletedEmailSuffix, StringComparison.Ordinal))
+        {
+            return email;
+        }
+
+        var combined = email + DeletedEmailSuffix;
+        if (combined.Length <= MaxEmailLength)
+        {
+            return combined;
+        }
+
+        return email[..(MaxEmailLength - DeletedEmailSuffix.Length)] + DeletedEmailSuffix;
     }
 }

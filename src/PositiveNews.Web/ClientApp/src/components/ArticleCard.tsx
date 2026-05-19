@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { ArticlePreviewResponse } from '../api/types'
 import { ArticleImage } from './ArticleImage'
 import { ArticleTopicLinks } from './ArticleTopicLinks'
+import { resolveSourceDefaultImageTag } from '../utils/source-default-image'
 
 function formatPublishedAt(iso: string) {
     const d = new Date(iso)
@@ -48,7 +49,8 @@ export function ArticleCard({
     feedReturnSearch,
 }: ArticleCardProps) {
     const [summaryOpen, setSummaryOpen] = useState(false)
-    const hasPreviewImage = Boolean(article.imageTag?.trim())
+    const fallbackImageTag = resolveSourceDefaultImageTag(article.sourceName)
+    const hasPreviewImage = Boolean(article.imageTag?.trim()) || Boolean(fallbackImageTag)
     const positivityLabel = formatPositivityScore(article.positivityScore)
     const positivityBadgeClasses =
         article.positivityScore != null && !Number.isNaN(article.positivityScore)
@@ -131,7 +133,11 @@ export function ArticleCard({
                         className="article-card-image text-decoration-none"
                         aria-label={`Read article: ${article.title}`}
                     >
-                        <ArticleImage imageTag={article.imageTag} index={index} />
+                        <ArticleImage
+                            imageTag={article.imageTag}
+                            fallbackImageTag={fallbackImageTag}
+                            index={index}
+                        />
                     </Link>
                 ) : null}
                 <div className="article-card-body card-body pt-0 border-0">

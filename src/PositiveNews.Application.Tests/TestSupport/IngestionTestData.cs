@@ -24,7 +24,7 @@ internal static class IngestionTestData
                 ShouldRemoveParagraphPatterns: [],
                 AllowedTags: new HashSet<string>(),
                 AttributesToRemove: new HashSet<string>()),
-            new FeedItemValidationRules(InvalidAuthors: new HashSet<string>()),
+            new FeedItemValidationRules(InvalidAuthors: new HashSet<string>(), InvalidLinkContains: []),
             Sources: new Dictionary<string, SourceIngestionRules>(StringComparer.OrdinalIgnoreCase));
 
     public static TopicLookup EmptyTopicLookup()

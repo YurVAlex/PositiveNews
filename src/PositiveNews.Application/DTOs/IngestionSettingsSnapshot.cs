@@ -59,8 +59,10 @@ public sealed record CleanerRules(
 /// Rules used by <see cref="PositiveNews.Application.Interfaces.IFeedItemValidator"/> before deeper processing.
 /// </summary>
 /// <param name="InvalidAuthors">Author names or patterns that disqualify an item.</param>
+/// <param name="InvalidLinkContains">Link substrings that disqualify an item when present.</param>
 public sealed record FeedItemValidationRules(
-    IReadOnlySet<string> InvalidAuthors);
+    IReadOnlySet<string> InvalidAuthors,
+    IReadOnlyList<string> InvalidLinkContains);
 
 /// <summary>
 /// Optional overrides when a feed URL matches <see cref="UrlContains"/>.

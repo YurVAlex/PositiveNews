@@ -96,6 +96,9 @@ public class FeedItemValidationRulesConfig
 {
     /// <summary>Author strings that cause an item to be rejected.</summary>
     public List<string> InvalidAuthors { get; set; } = [];
+
+    /// <summary>Link substrings that cause an item to be rejected.</summary>
+    public List<string> InvalidLinkContains { get; set; } = [];
 }
 
 /// <summary>

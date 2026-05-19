@@ -59,7 +59,8 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
             AttributesToRemove: new HashSet<string>(_config.Common.CleanerRules.AttributesToRemove, StringComparer.OrdinalIgnoreCase));
 
         var validation = new FeedItemValidationRules(
-            InvalidAuthors: new HashSet<string>(_config.Common.FeedItemValidationRules.InvalidAuthors, StringComparer.OrdinalIgnoreCase));
+            InvalidAuthors: new HashSet<string>(_config.Common.FeedItemValidationRules.InvalidAuthors, StringComparer.OrdinalIgnoreCase),
+            InvalidLinkContains: _config.Common.FeedItemValidationRules.InvalidLinkContains);
 
         var sources = _config.Sources.ToDictionary(
             kvp => kvp.Key,

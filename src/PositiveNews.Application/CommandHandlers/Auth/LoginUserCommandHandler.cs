@@ -39,7 +39,7 @@ public sealed class LoginUserCommandHandler(
         if (!user.IsActive)
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidCredentials", "The user blocked.", ErrorType.Unauthorized));
+                new Error("Auth.InvalidCredentials", "The user has been deleted or blocked.", ErrorType.Unauthorized));
         }
 
         if (!passwordHasherService.VerifyPassword(user, user.PasswordHash, request.Password))

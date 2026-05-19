@@ -82,3 +82,20 @@ export async function getCurrentUser(token: string): Promise<UserProfileResponse
 
   return res.json() as Promise<UserProfileResponse>
 }
+
+export async function deactivateAccount(token: string): Promise<void> {
+  const res = await fetch(apiUrl('/api/auth/me'), {
+    method: 'DELETE',
+    headers: authTokenHeader(token),
+  })
+
+  if (res.status === 401) {
+    throw new Error(await readErrorMessage(res, 'Unauthorized'))
+  }
+  if (res.status === 409) {
+    throw new Error(await readErrorMessage(res, 'Account is already deactivated.'))
+  }
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res, `Account deactivation failed (${res.status})`))
+  }
+}

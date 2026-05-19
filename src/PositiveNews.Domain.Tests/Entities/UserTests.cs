@@ -120,6 +120,8 @@ public class UserTests
 
         user.IsActive.Should().BeFalse();
         user.ModeratedBy.Should().Be(42);
+        user.Email.Should().Be("a@b.com.deleted");
+        user.Name.Should().Be("Deleted user");
 
         var act = () => user.Deactivate(42);
 

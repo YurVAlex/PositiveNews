@@ -1,4 +1,4 @@
-import { getCurrentUser, login, register } from './auth-api'
+import { deactivateAccount, getCurrentUser, login, register } from './auth-api'
 import type { AuthResponse, UserProfileResponse } from './types'
 
 const fetchMock = vi.fn()
@@ -47,6 +47,22 @@ describe('login', () => {
     fetchMock.mockResolvedValue(new Response('not-json', { status: 401 }))
 
     await expect(login('user@example.com', 'wrong')).rejects.toThrow('Invalid email or password.')
+  })
+})
+
+describe('deactivateAccount', () => {
+  it('sends delete request with bearer token', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }))
+
+    await deactivateAccount('token')
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me', {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer token',
+      },
+    })
   })
 })
 
