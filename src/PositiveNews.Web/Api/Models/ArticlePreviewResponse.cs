@@ -66,6 +66,11 @@ public sealed class ArticlePreviewResponse
     public decimal? PositivityScore { get; init; }
 
     /// <summary>
+    /// Gets the number of detail-page views recorded for this article.
+    /// </summary>
+    public long ViewCount { get; init; }
+
+    /// <summary>
     /// Gets topic labels associated with the article.
     /// </summary>
     public IReadOnlyList<string> Topics { get; init; } = Array.Empty<string>();

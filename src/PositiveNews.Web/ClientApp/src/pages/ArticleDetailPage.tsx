@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { fetchArticleDetail } from '../api/articles-api'
 import type { ArticleDetailResponse } from '../api/types'
 import { useAuth } from '../auth/AuthProvider'
-import { buildFeedReturnPath } from '../utils/feed-preferences-url'
+import { buildFeedReturnTo } from '../utils/feed-preferences-url'
 
 type ArticleDetailLocationState = {
   feedSearch?: string
@@ -16,14 +16,14 @@ function formatDetailDate(iso: string) {
 
 function BackToFeedLink({ className }: { className?: string }) {
   const location = useLocation()
-  const feedReturnPath = useMemo(() => {
+  const feedReturnTo = useMemo(() => {
     const state = location.state as ArticleDetailLocationState | null
-    return buildFeedReturnPath(state?.feedSearch)
+    return buildFeedReturnTo(state?.feedSearch)
   }, [location.state])
 
   return (
     <Link
-      to={feedReturnPath}
+      to={feedReturnTo}
       className={['text-decoration-none d-inline-block', className].filter(Boolean).join(' ')}
     >
       &larr; Back to Feed

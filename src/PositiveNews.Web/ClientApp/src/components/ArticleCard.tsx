@@ -1,8 +1,11 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ArticlePreviewResponse } from '../api/types'
 import { ArticleImage } from './ArticleImage'
 import { ArticleTopicLinks } from './ArticleTopicLinks'
+import trustedIcon from '../assets/ui/trusted.jpg'
+import positivityIcon from '../assets/ui/positivity.png'
+import viewIcon from '../assets/ui/view.png'
 import { resolveSourceDefaultImageTag } from '../utils/source-default-image'
 
 function formatPublishedAt(iso: string) {
@@ -13,7 +16,7 @@ function formatPublishedAt(iso: string) {
 function formatPositivityScore(score: number | null): string | null {
     if (score == null || Number.isNaN(score)) return null
     const pct = Math.round(score * 100)
-    return `${pct}% Positivity`
+    return `${pct}% `
 }
 
 function formatTrustScoreMark(score: number): string {
@@ -21,11 +24,20 @@ function formatTrustScoreMark(score: number): string {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(score)
 }
 
+function formatViewCount(count: number): string {
+    if (!Number.isFinite(count) || count < 0) return '0'
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(count)
+}
+
 function positivityBadgeClassName(score: number): string {
-    const base = 'ms-auto text-nowrap small fw-semibold border rounded px-2 py-1'
+    const base = 'd-inline-flex align-items-center gap-1 text-nowrap small fw-semibold border rounded px-2 py-1'
     if (score < 0.49) return `${base} text-danger border-danger-subtle bg-danger-subtle`
     if (score <= 0.51) return `${base} text-dark border-warning-subtle bg-warning-subtle`
     return `${base} text-success border-success-subtle bg-success-subtle`
+}
+
+function viewCountBadgeClassName(): string {
+    return 'd-inline-flex align-items-center gap-1 text-nowrap small fw-semibold border rounded px-2 py-1 text-secondary border-secondary-subtle bg-light'
 }
 
 type ArticleCardProps = {
@@ -78,7 +90,7 @@ export function ArticleCard({
                                 'd-inline-flex align-items-center gap-2 text-decoration-none',
                                 isSourceSelected
                                     ? 'btn btn-sm btn-outline-primary'
-                                    : 'link-secondary pt-2',
+                                    : 'link-secondary',
                             ].join(' ')}
                             title={sourceToggleTitle}
                         >
@@ -100,22 +112,54 @@ export function ArticleCard({
                             ) : null}
                         </Link>
                         <span
-                            className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
+                            className="d-inline-flex align-items-center gap-1 small fw-semibold text-secondary border border-secondary-subtle rounded-pill ps-2 pe-1 py-0 lh-sm"
                             title="Source trust score"
                         >
                             {formatTrustScoreMark(article.sourceTrustScore)}
+                            <img
+                                src={trustedIcon}
+                                alt=""
+                                width={14}
+                                height={14}
+                                className="flex-shrink-0"
+                                aria-hidden="true"
+                            />
                         </span>
                         {positivityLabel ? (
-                            <span className={positivityBadgeClasses} title="Positivity score">
+                            <span className={`${positivityBadgeClasses} ms-auto`} title="Positivity score">
                                 {positivityLabel}
+                                <img
+                                    src={positivityIcon}
+                                    alt=""
+                                    width={18}
+                                    height={18}
+                                    className="flex-shrink-0"
+                                    aria-hidden="true"
+                                />
                             </span>
                         ) : null}
                     </div>
-                    <h6 className="card-subtitle pt-2 mb-0 text-muted">
-                        {(article.author?.trim().length ? article.author : 'Unknown Author') +
-                            ' • ' +
-                            formatPublishedAt(article.publishedAt)}
-                    </h6>
+                    <div className="d-flex w-100 align-items-center gap-2 pt-2">
+                        <h6 className="card-subtitle mb-0 text-muted">
+                            {(article.author?.trim().length ? article.author : 'Unknown Author') +
+                                ' • ' +
+                                formatPublishedAt(article.publishedAt)}
+                        </h6>
+                        <span
+                            className={`${viewCountBadgeClassName()} ms-auto flex-shrink-0`}
+                            title="Views count"
+                        >
+                            {formatViewCount(article.viewCount)}
+                            <img
+                                src={viewIcon}
+                                alt=""
+                                width={18}
+                                height={18}
+                                className="flex-shrink-0"
+                                aria-hidden="true"
+                            />
+                        </span>
+                    </div>
                 </div>
                 <div className="article-card-title card-body">
                     <h4 className="card-title fw-bold mb-0">

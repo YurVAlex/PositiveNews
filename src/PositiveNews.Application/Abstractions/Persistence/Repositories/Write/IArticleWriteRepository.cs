@@ -12,4 +12,12 @@ public interface IArticleWriteRepository
     /// </summary>
     /// <param name="article">Article metadata aggregate root.</param>
     void Add(ArticleMetadata article);
+
+    /// <summary>
+    /// Increments <see cref="ArticleMetadata.ViewCount"/> for an active article when its detail page is opened.
+    /// </summary>
+    /// <param name="id">Article identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><c>true</c> when the article exists and was updated; otherwise <c>false</c>.</returns>
+    Task<bool> TryIncrementViewCountAsync(long id, CancellationToken cancellationToken = default);
 }

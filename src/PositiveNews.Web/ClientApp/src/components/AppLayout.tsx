@@ -6,7 +6,7 @@ import loginIcon from '../assets/ui/login.svg'
 import logoutIcon from '../assets/ui/logout.svg'
 import settingsIcon from '../assets/ui/settings.svg'
 import {
-  buildFeedReturnPath,
+  buildFeedReturnTo,
   buildSearchFromSnapshot,
   DEFAULT_MIN_POSITIVITY,
   isSettingsOpen,
@@ -29,9 +29,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const feedHomePath = useMemo(() => {
+  const feedHomeTo = useMemo(() => {
     const state = location.state as FeedNavigationState | null
-    return buildFeedReturnPath(state?.feedSearch)
+    return buildFeedReturnTo(state?.feedSearch)
   }, [location.state])
 
   const feedSearchForPrivacy = useMemo(() => {
@@ -77,7 +77,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <header>
         <nav className="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-1">
           <div className="container-fluid">
-            <Link className="navbar-brand" to={feedHomePath}>
+            <Link className="navbar-brand" to={feedHomeTo}>
               Positive News
             </Link>
             <button

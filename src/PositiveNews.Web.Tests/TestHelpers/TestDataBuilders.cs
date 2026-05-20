@@ -60,6 +60,7 @@ internal static class TestDataBuilders
             SummaryShort = "Summary",
             Url = "https://example.com/a",
             PositivityScore = 0.5m,
+            ViewCount = 12,
             Topics = ["Tech"]
         };
 

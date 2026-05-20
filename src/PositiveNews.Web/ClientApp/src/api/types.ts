@@ -26,6 +26,7 @@ export type ArticlePreviewResponse = {
   summaryShort: string
   url: string
   positivityScore: number | null
+  viewCount: number
   topics: string[]
 }
 

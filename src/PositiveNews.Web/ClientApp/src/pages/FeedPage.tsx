@@ -20,6 +20,7 @@ import {
   parseSort,
   preferencesFromSearchParams,
   saveFeedPrefsDraft,
+  saveLastFeedSearch,
   shouldHydrateFeedFromDraft,
   sourceIdsFromSearchParams,
   topicsFromSearchParams,
@@ -52,9 +53,15 @@ export function FeedPage() {
   const settingsOpen = useMemo(() => isSettingsOpen(searchParams), [searchParams])
   const hasPreferences = topics.length > 0 || sourceIds.length > 0
   const feedReturnSearch = useMemo(() => {
-    const qs = searchParams.toString()
+    const params = new URLSearchParams(searchParams)
+    params.set('page', String(page))
+    const qs = params.toString()
     return qs ? `?${qs}` : ''
-  }, [searchParams])
+  }, [searchParams, page])
+
+  useEffect(() => {
+    saveLastFeedSearch(feedReturnSearch)
+  }, [feedReturnSearch])
 
   const [data, setData] = useState<ArticleFeedResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -269,17 +276,21 @@ export function FeedPage() {
             />
           </div>
 
-          <FeedActiveTopics
-            topics={topics}
-            buildTopicToggleUrl={buildTopicToggleUrl}
-            hint={preferenceSortHint}
-          />
+          {!settingsOpen ? (
+            <>
+              <FeedActiveTopics
+                topics={topics}
+                buildTopicToggleUrl={buildTopicToggleUrl}
+                hint={preferenceSortHint}
+              />
 
-          <FeedActiveSources
-            sources={data.selectedSources}
-            buildSourceToggleUrl={buildSourceToggleUrl}
-            hint={topics.length === 0 ? preferenceSortHint : null}
-          />
+              <FeedActiveSources
+                sources={data.selectedSources}
+                buildSourceToggleUrl={buildSourceToggleUrl}
+                hint={topics.length === 0 ? preferenceSortHint : null}
+              />
+            </>
+          ) : null}
 
           {data.articles.map((a, i) => (
             <ArticleCard

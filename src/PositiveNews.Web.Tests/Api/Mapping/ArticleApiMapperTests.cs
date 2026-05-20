@@ -25,6 +25,7 @@ public class ArticleApiMapperTests
         preview.SummaryShort.Should().Be(dto.SummaryShort);
         preview.Url.Should().Be(dto.Url);
         preview.PositivityScore.Should().Be(dto.PositivityScore);
+        preview.ViewCount.Should().Be(dto.ViewCount);
         preview.Topics.Should().BeEquivalentTo(dto.Topics);
     }
 

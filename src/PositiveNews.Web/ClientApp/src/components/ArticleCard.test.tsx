@@ -27,7 +27,7 @@ describe('ArticleCard', () => {
     )
 
     expect(screen.getByTitle('Source trust score')).toHaveTextContent('1')
-    expect(screen.getByText('62% Positivity')).toHaveClass('text-success')
+    expect(screen.getByTitle('Positivity score')).toHaveClass('text-success')
     expect(screen.getByRole('link', { name: /Health/ })).toHaveClass('btn-primary')
     expect(screen.getByRole('link', { name: 'Science' })).toHaveClass('btn-outline-dark')
 
@@ -120,6 +120,23 @@ describe('ArticleCard', () => {
     )
   })
 
+  it('renders view count badge with tooltip under positivity score', () => {
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={articlePreview({ viewCount: 1234, positivityScore: 0.62 })}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTitle('Views count').textContent?.replace(/\s/g, '')).toContain('1234')
+    expect(screen.getByTitle('Positivity score')).toBeInTheDocument()
+  })
+
   it('does not render positivity badge for null score and falls back to unknown author', () => {
     render(
       <MemoryRouter>
@@ -152,6 +169,7 @@ function articlePreview(overrides: Partial<ArticlePreviewResponse> = {}): Articl
     summaryShort: 'A short happy summary.',
     url: 'https://example.com/story',
     positivityScore: 0.5,
+    viewCount: 0,
     topics: ['Health', 'Science'],
     ...overrides,
   }

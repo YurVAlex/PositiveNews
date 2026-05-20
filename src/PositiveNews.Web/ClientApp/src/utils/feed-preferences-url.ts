@@ -3,6 +3,12 @@ import type { UserFeedPreferencesResponse } from '../api/types'
 
 export const DEFAULT_MIN_POSITIVITY = 0.5
 export const FEED_PREFS_DRAFT_KEY = 'positiveNews.feedPrefsDraft'
+export const LAST_FEED_SEARCH_KEY = 'positiveNews.lastFeedSearch'
+
+export type FeedReturnTo = {
+  pathname: '/'
+  search?: string
+}
 
 export type FeedPreferencesSnapshot = {
   topics: string[]
@@ -192,6 +198,36 @@ export function clearFeedPrefsDraft(): void {
   }
 }
 
+/** Persists the latest feed URL query (including page) for "Back to feed" when navigation state is lost. */
+export function saveLastFeedSearch(feedSearch: string): void {
+  const normalized = normalizeFeedSearch(feedSearch)
+  try {
+    if (normalized) {
+      sessionStorage.setItem(LAST_FEED_SEARCH_KEY, normalized)
+    } else {
+      sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function loadLastFeedSearch(): string | null {
+  try {
+    const raw = sessionStorage.getItem(LAST_FEED_SEARCH_KEY)
+    if (!raw?.trim()) return null
+    return normalizeFeedSearch(raw)
+  } catch {
+    return null
+  }
+}
+
+function normalizeFeedSearch(feedSearch?: string | null): string {
+  const trimmed = feedSearch?.trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('?') ? trimmed : `?${trimmed}`
+}
+
 export function hasNonDefaultPreferences(snapshot: FeedPreferencesSnapshot): boolean {
   return (
     snapshot.topics.length > 0 ||
@@ -245,18 +281,31 @@ export function shouldHydrateFeedFromDraft(params: URLSearchParams): boolean {
 }
 
 /**
- * Builds the feed path restoring guest/user prefs from navigation state or session draft.
+ * Builds a feed route restoring query params (including page) from navigation state,
+ * last visited feed URL, or session preference draft.
  */
-export function buildFeedReturnPath(feedSearch?: string | null): string {
-  const trimmed = feedSearch?.trim()
-  if (trimmed) {
-    return trimmed.startsWith('?') ? `/${trimmed}` : `/?${trimmed}`
+export function buildFeedReturnTo(feedSearch?: string | null): FeedReturnTo {
+  const fromState = normalizeFeedSearch(feedSearch)
+  if (fromState) {
+    return { pathname: '/', search: fromState }
+  }
+
+  const fromLastVisit = loadLastFeedSearch()
+  if (fromLastVisit) {
+    return { pathname: '/', search: fromLastVisit }
   }
 
   const draft = loadFeedPrefsDraft()
   if (draft) {
-    return `/${buildSearchFromSnapshot(draft)}`
+    const search = buildSearchFromSnapshot(draft)
+    return search ? { pathname: '/', search } : { pathname: '/' }
   }
 
-  return '/'
+  return { pathname: '/' }
+}
+
+/** @deprecated Prefer {@link buildFeedReturnTo} for React Router links. */
+export function buildFeedReturnPath(feedSearch?: string | null): string {
+  const to = buildFeedReturnTo(feedSearch)
+  return to.search ? `/${to.search}` : '/'
 }

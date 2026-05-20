@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyPreferencesToSearchParams,
-  buildFeedReturnPath,
+  buildFeedReturnTo,
   DEFAULT_MIN_POSITIVITY,
   FEED_PREFS_DRAFT_KEY,
+  LAST_FEED_SEARCH_KEY,
   hasNonDefaultPreferences,
   hasPreferenceParamsInUrl,
   mergeDraftIntoSearchParams,
@@ -11,6 +12,7 @@ import {
   parseSort,
   preferencesFromSearchParams,
   saveFeedPrefsDraft,
+  saveLastFeedSearch,
   serializePreferenceParams,
   shouldHydrateFeedFromDraft,
   topicsFromSearchParams,
@@ -47,25 +49,48 @@ describe('feed-preferences-url', () => {
     expect(serializePreferenceParams(restored)).toBe(serializePreferenceParams(original))
   })
 
-  it('buildFeedReturnPath prefers navigation state over session draft', () => {
+  it('buildFeedReturnTo prefers navigation state over session draft', () => {
     saveFeedPrefsDraft({
       topics: ['Draft'],
       sourceIds: [],
       sort: 'date',
       minPositivity: DEFAULT_MIN_POSITIVITY,
     })
-    expect(buildFeedReturnPath('?topic=Health')).toBe('/?topic=Health')
+    expect(buildFeedReturnTo('?topic=Health')).toEqual({ pathname: '/', search: '?topic=Health' })
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
   })
 
-  it('buildFeedReturnPath restores session draft when state is missing', () => {
+  it('buildFeedReturnTo preserves page from navigation state', () => {
+    expect(buildFeedReturnTo('?page=3&topic=Health')).toEqual({
+      pathname: '/',
+      search: '?page=3&topic=Health',
+    })
+  })
+
+  it('buildFeedReturnTo uses last feed search before preference draft', () => {
+    saveFeedPrefsDraft({
+      topics: ['Science'],
+      sourceIds: [],
+      sort: 'date',
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    })
+    saveLastFeedSearch('?page=3')
+    expect(buildFeedReturnTo()).toEqual({ pathname: '/', search: '?page=3' })
+    sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
+    sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
+  })
+
+  it('buildFeedReturnTo restores session draft when state and last search are missing', () => {
     saveFeedPrefsDraft({
       topics: ['Science'],
       sourceIds: [2],
       sort: 'positivity',
       minPositivity: 0.6,
     })
-    expect(buildFeedReturnPath()).toBe('/?topic=Science&source=2&sort=positivity&minPositivity=0.6&page=1')
+    expect(buildFeedReturnTo()).toEqual({
+      pathname: '/',
+      search: '?topic=Science&source=2&sort=positivity&minPositivity=0.6&page=1',
+    })
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
   })
 
