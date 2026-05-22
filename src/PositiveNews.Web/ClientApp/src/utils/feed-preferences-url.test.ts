@@ -112,6 +112,27 @@ describe('feed-preferences-url', () => {
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
   })
 
+  it('should not hydrate bare URL when draft only has default sort (e.g. after switching to date)', () => {
+    saveFeedPrefsDraft({
+      topics: [],
+      sourceIds: [],
+      sort: 'date',
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    })
+    expect(shouldHydrateFeedFromDraft(new URLSearchParams())).toBe(false)
+    sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
+  })
+
+  it('omits sort from URL when sort is publication date', () => {
+    const params = applyPreferencesToSearchParams(new URLSearchParams('sort=positivity'), {
+      topics: [],
+      sourceIds: [],
+      sort: 'date',
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    })
+    expect(params.get('sort')).toBeNull()
+  })
+
   it('mergeDraftIntoSearchParams preserves page and settings', () => {
     const draft = {
       topics: ['Science'],

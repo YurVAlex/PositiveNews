@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchArticleFeed, type FeedSortParam } from '../api/articles-api'
 import type { ArticleFeedResponse } from '../api/types'
@@ -66,6 +66,15 @@ export function FeedPage() {
   const [data, setData] = useState<ArticleFeedResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const didHydrateFromDraft = useRef(false)
+
+  const commitSearchParams = useCallback(
+    (next: URLSearchParams, options?: { replace?: boolean }) => {
+      saveFeedPrefsDraft(preferencesFromSearchParams(next))
+      setSearchParams(next, options)
+    },
+    [setSearchParams],
+  )
 
   useEffect(() => {
     if (!pendingServerPreferences) return
@@ -74,6 +83,7 @@ export function FeedPage() {
       settingsOpen: isSettingsOpen(searchParams),
       page: 1,
     })
+    saveFeedPrefsDraft(preferencesFromSearchParams(next))
     setSearchParams(next, { replace: true })
     clearPendingServerPreferences()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply server snapshot once when auth provides it
@@ -81,12 +91,14 @@ export function FeedPage() {
 
   useEffect(() => {
     if (pendingServerPreferences) return
+    if (didHydrateFromDraft.current) return
+    didHydrateFromDraft.current = true
     if (!shouldHydrateFeedFromDraft(searchParams)) return
     const draft = loadFeedPrefsDraft()
     if (!draft) return
-    setSearchParams(mergeDraftIntoSearchParams(searchParams, draft), { replace: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate bare / from session draft once per landing
-  }, [pendingServerPreferences, searchParams, setSearchParams])
+    commitSearchParams(mergeDraftIntoSearchParams(searchParams, draft), { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate bare / from session draft once on first feed mount
+  }, [pendingServerPreferences, searchParams, commitSearchParams])
 
   useEffect(() => {
     const snapshot = preferencesFromSearchParams(searchParams)
@@ -131,9 +143,9 @@ export function FeedPage() {
         settingsOpen,
         page: 1,
       })
-      setSearchParams(next)
+      commitSearchParams(next)
     },
-    [searchParams, setSearchParams, settingsOpen],
+    [searchParams, commitSearchParams, settingsOpen],
   )
 
   const buildTopicToggleUrl = useCallback(
@@ -200,9 +212,9 @@ export function FeedPage() {
     (nextPage: number) => {
       const next = new URLSearchParams(searchParams)
       next.set('page', String(nextPage))
-      setSearchParams(next)
+      commitSearchParams(next)
     },
-    [searchParams, setSearchParams],
+    [searchParams, commitSearchParams],
   )
 
   const setSortMode = useCallback(
@@ -215,8 +227,8 @@ export function FeedPage() {
   const closeSettings = useCallback(() => {
     const params = new URLSearchParams(searchParams)
     params.delete('settings')
-    setSearchParams(params)
-  }, [searchParams, setSearchParams])
+    commitSearchParams(params)
+  }, [searchParams, commitSearchParams])
 
   const sortLabel = feedSortModeLabel(sortMode)
   const preferenceSortHint = buildPreferenceSortHint(sortMode, sortLabel)
