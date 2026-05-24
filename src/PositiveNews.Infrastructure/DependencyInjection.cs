@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IArticleTopicWriteRepository, ArticleTopicWriteRepository>();
         services.AddScoped<ITopicWriteRepository, TopicWriteRepository>();
         services.AddScoped<ISourceWriteRepository, SourceWriteRepository>();
+        services.AddScoped<IAuditLogWriteRepository, AuditLogWriteRepository>();
         services.AddScoped<IIngestionRunRepository, IngestionRunRepository>();
         services.AddScoped<IUserWriteRepository, UserWriteRepository>();
         services.AddScoped<IUserFeedPreferencesWriteRepository, UserFeedPreferencesWriteRepository>();

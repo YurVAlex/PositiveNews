@@ -20,4 +20,20 @@ public interface IArticleWriteRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> when the article exists and was updated; otherwise <c>false</c>.</returns>
     Task<bool> TryIncrementViewCountAsync(long id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks all articles for the source as inactive.
+    /// </summary>
+    /// <param name="sourceId">Source identifier.</param>
+    /// <param name="moderatorId">Moderator identifier for the action.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task DeactivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marks all articles for the source as active.
+    /// </summary>
+    /// <param name="sourceId">Source identifier.</param>
+    /// <param name="moderatorId">Moderator identifier for the action.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task ActivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default);
 }

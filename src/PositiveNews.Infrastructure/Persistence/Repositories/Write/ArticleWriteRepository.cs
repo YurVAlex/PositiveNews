@@ -25,4 +25,28 @@ internal sealed class ArticleWriteRepository(AppDbContext db) : IArticleWriteRep
         article.IncrementViewCount();
         return true;
     }
+
+    public async Task DeactivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default)
+    {
+        var articles = await db.ArticlesMetadata
+            .Where(a => a.SourceId == sourceId && a.IsActive)
+            .ToListAsync(cancellationToken);
+
+        foreach (var article in articles)
+        {
+            article.Deactivate(moderatorId);
+        }
+    }
+
+    public async Task ActivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default)
+    {
+        var articles = await db.ArticlesMetadata
+            .Where(a => a.SourceId == sourceId && !a.IsActive)
+            .ToListAsync(cancellationToken);
+
+        foreach (var article in articles)
+        {
+            article.Activate(moderatorId);
+        }
+    }
 }

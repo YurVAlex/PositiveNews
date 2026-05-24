@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchAdminStatus } from '../api/admin-api'
 import { IngestionRuns } from '../components/admin/IngestionRuns'
+import { ManageSources } from '../components/admin/ManageSources'
 import { useAuth } from '../auth/AuthProvider'
 
 export function AdminPage() {
@@ -38,7 +39,12 @@ export function AdminPage() {
         <p className="text-muted small mb-3">Checking admin API access…</p>
       )}
 
-      {accessOk ? <IngestionRuns /> : null}
+      {accessOk ? (
+        <>
+          <ManageSources />
+          <IngestionRuns />
+        </>
+      ) : null}
     </main>
   )
 }

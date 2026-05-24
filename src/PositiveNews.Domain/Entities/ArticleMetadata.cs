@@ -145,6 +145,17 @@ public class ArticleMetadata
     }
 
     /// <summary>
+    /// Reactivates a previously inactive article and records the acting moderator.
+    /// </summary>
+    public void Activate(long moderatorId)
+    {
+        if (IsActive)
+            throw new InvalidArticleStateException("Article is already active.");
+        IsActive = true;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
     /// Adds a topic association if it is not already present.
     /// </summary>
     public void AddTopic(int topicId)
