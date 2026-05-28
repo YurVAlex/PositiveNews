@@ -34,7 +34,10 @@ internal sealed class ArticleWriteRepository(AppDbContext db) : IArticleWriteRep
 
         foreach (var article in articles)
         {
-            article.Deactivate(moderatorId);
+            if (article.IsActive)
+            {
+                article.Deactivate(moderatorId);
+            }
         }
     }
 
@@ -46,7 +49,10 @@ internal sealed class ArticleWriteRepository(AppDbContext db) : IArticleWriteRep
 
         foreach (var article in articles)
         {
-            article.Activate(moderatorId);
+            if (!article.IsActive)
+            {
+                article.Activate(moderatorId);
+            }
         }
     }
 }
