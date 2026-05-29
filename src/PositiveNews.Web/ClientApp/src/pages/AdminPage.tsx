@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchAdminStatus } from '../api/admin-api'
 import { IngestionRuns } from '../components/admin/IngestionRuns'
 import { ManageSources } from '../components/admin/ManageSources'
+import { ModerateArticle } from '../components/admin/ModerateArticle'
 import { useAuth } from '../auth/AuthProvider'
 
 export function AdminPage() {
@@ -42,6 +43,7 @@ export function AdminPage() {
       {accessOk ? (
         <>
           <ManageSources />
+          <ModerateArticle />
           <IngestionRuns />
         </>
       ) : null}

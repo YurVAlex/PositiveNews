@@ -115,6 +115,63 @@ public sealed class AdminApiController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Searches articles available for admin moderation.
+    /// </summary>
+    [HttpGet("articles")]
+    [ProducesResponseType(typeof(IReadOnlyList<ArticleAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ArticleAdminItemResponse>>> GetArticles(
+        [FromQuery(Name = "q")] string? searchTerm,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminArticlesQuery(searchTerm), cancellationToken);
+        return result
+            .Map(items => items.ToArticleAdminItemResponses())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Returns article data for admin moderation.
+    /// </summary>
+    [HttpGet("articles/{articleId:long}")]
+    [ProducesResponseType(typeof(ArticleAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ArticleAdminDetailResponse>> GetArticleDetail(
+        long articleId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminArticleDetailQuery(articleId), cancellationToken);
+        return result
+            .Map(article => article.ToArticleAdminDetailResponse())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Moderates the active state of a single article.
+    /// </summary>
+    [HttpPut("articles/{articleId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ModerateArticle(long articleId, [FromBody] ModerateArticleRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var command = new ModerateArticleCommand(articleId, request.IsActive, request.Reason, request.Note, moderatorId);
+        var result = await mediator.Send(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.ToActionResult(this);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
     /// Starts an ingestion cycle in the background when one is not already running.
     /// </summary>
     [HttpPost("ingestion/trigger")]

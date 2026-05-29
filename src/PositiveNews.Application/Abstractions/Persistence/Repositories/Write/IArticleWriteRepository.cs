@@ -36,4 +36,11 @@ public interface IArticleWriteRepository
     /// <param name="moderatorId">Moderator identifier for the action.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task ActivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Loads a single article for update using tracking semantics.
+    /// </summary>
+    /// <param name="articleId">Article identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<ArticleMetadata?> GetByIdAsync(long articleId, CancellationToken cancellationToken = default);
 }
