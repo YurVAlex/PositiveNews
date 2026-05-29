@@ -5,6 +5,7 @@ export type AdminArticleItem = {
   sourceId: number
   sourceName: string
   title: string
+  positivityScore: number | null
   isActive: boolean
   moderatedBy: number | null
   publishedAt: string
@@ -15,10 +16,17 @@ export type AdminArticleDetail = AdminArticleItem & {
   author: string | null
   url: string
   summaryShort: string
+  imageTag: string | null
+  contentRaw: string | null
 }
 
 export type ModerateArticleRequest = {
   isActive: boolean
+  title?: string | null
+  imageTag?: string | null
+  positivityScore?: number | null
+  summaryShort?: string | null
+  contentRaw?: string | null
   reason?: string | null
   note?: string | null
 }

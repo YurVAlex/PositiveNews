@@ -28,7 +28,9 @@ internal sealed class ArticleWriteRepository(AppDbContext db) : IArticleWriteRep
 
     /// <inheritdoc />
     public Task<ArticleMetadata?> GetByIdAsync(long articleId, CancellationToken cancellationToken = default)
-        => db.ArticlesMetadata.FindAsync(new object[] { articleId }, cancellationToken).AsTask();
+        => db.ArticlesMetadata
+            .Include(a => a.Content)
+            .FirstOrDefaultAsync(a => a.Id == articleId, cancellationToken);
 
     public async Task DeactivateBySourceAsync(int sourceId, long moderatorId, CancellationToken cancellationToken = default)
     {

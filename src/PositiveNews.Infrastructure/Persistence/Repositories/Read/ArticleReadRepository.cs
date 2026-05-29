@@ -96,6 +96,7 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
                 SourceId = a.SourceId,
                 SourceName = a.Source.Name,
                 Title = a.Title,
+                PositivityScore = a.PositivityScore,
                 IsActive = a.IsActive,
                 ModeratedBy = a.ModeratedBy,
                 PublishedAt = a.PublishedAt
@@ -117,10 +118,13 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
                 SourceName = a.Source.Name,
                 SourceLogoUrl = a.Source.LogoUrl,
                 Title = a.Title,
+                ImageTag = a.ImageTag,
+                PositivityScore = a.PositivityScore,
                 Author = a.Author,
                 PublishedAt = a.PublishedAt,
                 Url = a.Url,
                 SummaryShort = a.SummaryShort ?? string.Empty,
+                ContentRaw = a.Content != null ? a.Content.ContentRaw : null,
                 IsActive = a.IsActive,
                 ModeratedBy = a.ModeratedBy
             })

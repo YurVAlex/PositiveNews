@@ -1,5 +1,4 @@
 using FluentValidation;
-using PositiveNews.Application.Commands.Admin;
 
 namespace PositiveNews.Application.Commands.Admin;
 

@@ -156,6 +156,44 @@ public class ArticleMetadata
     }
 
     /// <summary>
+    /// Updates the article title for administrative corrections.
+    /// </summary>
+    public void UpdateTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new InvalidArticleStateException("Article title cannot be empty.");
+
+        Title = title.Length > 500 ? title[..500] : title.Trim();
+    }
+
+    /// <summary>
+    /// Updates the preview image markup.
+    /// </summary>
+    public void UpdateImageTag(string? imageTag)
+    {
+        ImageTag = string.IsNullOrWhiteSpace(imageTag) ? null : imageTag.Trim();
+    }
+
+    /// <summary>
+    /// Updates the article positivity score.
+    /// </summary>
+    public void UpdatePositivityScore(decimal? positivityScore)
+    {
+        if (positivityScore.HasValue && (positivityScore.Value < 0m || positivityScore.Value > 1m))
+            throw new InvalidArticleStateException("PositivityScore must be between 0 and 1.");
+
+        PositivityScore = positivityScore;
+    }
+
+    /// <summary>
+    /// Updates the short summary shown in admin and listing cards.
+    /// </summary>
+    public void UpdateSummaryShort(string? summaryShort)
+    {
+        SummaryShort = string.IsNullOrWhiteSpace(summaryShort) ? null : summaryShort.Trim();
+    }
+
+    /// <summary>
     /// Adds a topic association if it is not already present.
     /// </summary>
     public void AddTopic(int topicId)

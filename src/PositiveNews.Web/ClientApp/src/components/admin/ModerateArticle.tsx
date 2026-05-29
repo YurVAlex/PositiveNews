@@ -23,6 +23,11 @@ export function ModerateArticle() {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null)
   const [formState, setFormState] = useState<ModerateArticleRequest>({
     isActive: false,
+    title: '',
+    imageTag: '',
+    positivityScore: null,
+    summaryShort: '',
+    contentRaw: '',
     reason: '',
     note: '',
   })
@@ -50,6 +55,11 @@ export function ModerateArticle() {
         setSelectedArticleDetail(detail)
         setFormState({
           isActive: detail.isActive,
+          title: detail.title,
+          imageTag: detail.imageTag ?? '',
+          positivityScore: detail.positivityScore ?? null,
+          summaryShort: detail.summaryShort ?? '',
+          contentRaw: detail.contentRaw ?? '',
           reason: '',
           note: '',
         })
@@ -85,9 +95,62 @@ export function ModerateArticle() {
     setError(null)
   }
 
+  const handleClearSelection = async () => {
+    if (!token) return
+
+    setError(null)
+    setSubmitMessage(null)
+    setSearchTerm('')
+    setSelectedArticleId(null)
+    setSelectedArticleDetail(null)
+    setFormState({
+      isActive: false,
+      title: '',
+      imageTag: '',
+      positivityScore: null,
+      summaryShort: '',
+      contentRaw: '',
+      reason: '',
+      note: '',
+    })
+
+    setLoading(true)
+    try {
+      const items = await fetchAdminArticles(token)
+      setArticles(items)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load articles')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setSelectedArticleId(null)
+    setSelectedArticleDetail(null)
+    setSubmitMessage(null)
+    setError(null)
+    setFormState({
+      isActive: false,
+      title: '',
+      imageTag: '',
+      positivityScore: null,
+      summaryShort: '',
+      contentRaw: '',
+      reason: '',
+      note: '',
+    })
+  }
+
   const handleFormChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = event.target as HTMLInputElement | HTMLTextAreaElement
-    const value = target.type === 'checkbox' && 'checked' in target ? target.checked : target.value
+    const value = target.type === 'checkbox'
+      ? ('checked' in target ? target.checked : false)
+      : target.type === 'number'
+      ? target.value === ''
+        ? null
+        : Number(target.value)
+      : target.value
 
     setFormState((current) => ({
       ...current,
@@ -111,6 +174,11 @@ export function ModerateArticle() {
         setSelectedArticleDetail(detail)
         setFormState({
           isActive: detail.isActive,
+          title: detail.title,
+          imageTag: detail.imageTag ?? '',
+          positivityScore: detail.positivityScore ?? null,
+          summaryShort: detail.summaryShort ?? '',
+          contentRaw: detail.contentRaw ?? '',
           reason: '',
           note: '',
         })
@@ -160,7 +228,7 @@ export function ModerateArticle() {
         </form>
 
         <div className="row g-3">
-          <div className="col-12 col-lg-6">
+          <div className="col-12">
             <div className="table-responsive border rounded mb-3" style={{ maxHeight: '26rem', overflowY: 'auto' }}>
               <table className="table table-sm table-hover mb-0">
                 <thead className="table-light">
@@ -168,19 +236,21 @@ export function ModerateArticle() {
                     <th scope="col">Id</th>
                     <th scope="col">Title</th>
                     <th scope="col">Source</th>
+                    <th scope="col">Positivity</th>
                     <th scope="col">Active</th>
+                    <th scope="col">Moderated</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="text-muted">
+                      <td colSpan={6} className="text-muted">
                         Loading articles…
                       </td>
                     </tr>
                   ) : articles.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-muted">No articles found.</td>
+                      <td colSpan={6} className="text-muted">No articles found.</td>
                     </tr>
                   ) : (
                     articles.map((article) => (
@@ -193,17 +263,26 @@ export function ModerateArticle() {
                         <td>{article.id}</td>
                         <td>{article.title}</td>
                         <td>{article.sourceName}</td>
+                        <td>{article.positivityScore != null ? article.positivityScore.toFixed(2) : '-'}</td>
                         <td>{article.isActive ? 'Yes' : 'No'}</td>
+                        <td>{article.moderatedBy != null ? 'Yes' : 'No'}</td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <div className="col-12 col-lg-6">
-            <div className="border rounded p-3">
+            <div className="mb-3">
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={handleClearSelection}
+                disabled={!token || loading}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="border rounded p-3 mt-3">
               <div className="d-flex align-items-center justify-content-between mb-3">
                 <h3 className="h6 mb-0">Moderation details</h3>
               </div>
@@ -217,8 +296,17 @@ export function ModerateArticle() {
               ) : (
                 <form onSubmit={handleSubmit}>
                   <div className="mb-3">
-                    <label className="form-label">Title</label>
-                    <input type="text" className="form-control" value={selectedArticleDetail.title} disabled />
+                    <label className="form-label" htmlFor="title">
+                      Title
+                    </label>
+                    <input
+                      id="title"
+                      name="title"
+                      type="text"
+                      className="form-control"
+                      value={formState.title ?? ''}
+                      onChange={handleFormChange}
+                    />
                   </div>
                   <div className="mb-3">
                     <label className="form-label">Source</label>
@@ -231,6 +319,61 @@ export function ModerateArticle() {
                       className="form-control"
                       value={formatApiUtcAsLocal(selectedArticleDetail.publishedAt)}
                       disabled
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" htmlFor="imageTag">
+                      Image tag
+                    </label>
+                    <input
+                      id="imageTag"
+                      name="imageTag"
+                      type="text"
+                      className="form-control"
+                      value={formState.imageTag ?? ''}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" htmlFor="positivityScore">
+                      Positivity score
+                    </label>
+                    <input
+                      id="positivityScore"
+                      name="positivityScore"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      className="form-control"
+                      value={formState.positivityScore ?? ''}
+                      onChange={handleFormChange}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" htmlFor="summaryShort">
+                      Summary short
+                    </label>
+                    <textarea
+                      id="summaryShort"
+                      name="summaryShort"
+                      className="form-control"
+                      value={formState.summaryShort ?? ''}
+                      onChange={handleFormChange}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label" htmlFor="contentRaw">
+                      Raw HTML content
+                    </label>
+                    <textarea
+                      id="contentRaw"
+                      name="contentRaw"
+                      className="form-control"
+                      value={formState.contentRaw ?? ''}
+                      onChange={handleFormChange}
+                      rows={8}
                     />
                   </div>
                   <div className="mb-3 form-check">
@@ -274,9 +417,14 @@ export function ModerateArticle() {
                       placeholder="Optional note for audit log"
                     />
                   </div>
-                  <button type="submit" className="btn btn-primary" disabled={submitLoading}>
-                    {submitLoading ? 'Saving…' : 'Save moderation'}
-                  </button>
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="btn btn-primary" disabled={submitLoading}>
+                      {submitLoading ? 'Saving…' : 'Apply'}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={handleCancel} disabled={submitLoading}>
+                      Cancel
+                    </button>
+                  </div>
                 </form>
               )}
             </div>

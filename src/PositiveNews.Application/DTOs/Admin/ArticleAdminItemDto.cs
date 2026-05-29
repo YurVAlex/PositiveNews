@@ -9,6 +9,7 @@ public sealed class ArticleAdminItemDto
     public int SourceId { get; init; }
     public string SourceName { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
+    public decimal? PositivityScore { get; init; }
     public bool IsActive { get; init; }
     public long? ModeratedBy { get; init; }
     public DateTime PublishedAt { get; init; }

@@ -161,7 +161,17 @@ public sealed class AdminApiController(IMediator mediator) : ControllerBase
             return UnauthorizedProblem();
         }
 
-        var command = new ModerateArticleCommand(articleId, request.IsActive, request.Reason, request.Note, moderatorId);
+        var command = new ModerateArticleCommand(
+            articleId,
+            request.IsActive,
+            request.Title,
+            request.ImageTag,
+            request.PositivityScore,
+            request.SummaryShort,
+            request.ContentRaw,
+            request.Reason,
+            request.Note,
+            moderatorId);
         var result = await mediator.Send(command, cancellationToken);
         if (result.IsFailure)
         {
