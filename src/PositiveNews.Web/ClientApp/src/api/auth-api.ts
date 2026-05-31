@@ -99,3 +99,23 @@ export async function deactivateAccount(token: string): Promise<void> {
     throw new Error(await readErrorMessage(res, `Account deactivation failed (${res.status})`))
   }
 }
+
+export async function refreshToken(token: string): Promise<AuthResponse> {
+  const res = await fetch(apiUrl('/api/auth/refresh'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({ refreshToken: token }),
+  })
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error(await readErrorMessage(res, 'Invalid or expired refresh token.'))
+    }
+    throw new Error(await readErrorMessage(res, `Token refresh failed (${res.status})`))
+  }
+
+  return res.json() as Promise<AuthResponse>
+}

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -10,7 +11,7 @@ using PositiveNews.Domain.Entities;
 namespace PositiveNews.Infrastructure.Security;
 
 /// <summary>
-/// Issues JWT access tokens using symmetric HMAC-SHA256 credentials from <see cref="JwtOptions"/>.
+/// Issues JWT access tokens and refresh tokens using symmetric HMAC-SHA256 credentials from <see cref="JwtOptions"/>.
 /// </summary>
 internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenService
 {
@@ -49,4 +50,17 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> jwtOptions) : ITokenS
     /// <inheritdoc />
     public DateTime GetAccessTokenExpiryUtc()
         => DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
+
+    /// <inheritdoc />
+    public string CreateRefreshTokenString()
+    {
+        var randomNumber = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
+    }
+
+    /// <inheritdoc />
+    public DateTime GetRefreshTokenExpiryUtc()
+        => DateTime.UtcNow.AddDays(_options.RefreshTokenDays);
 }

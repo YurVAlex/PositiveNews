@@ -114,4 +114,22 @@ public sealed class AuthApiController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new DeactivateAccountCommand(userId), cancellationToken);
         return result.ToActionResult(this);
     }
+
+    /// <summary>
+    /// Refreshes an access token using a valid refresh token.
+    /// </summary>
+    /// <param name="request">Refresh token payload.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>New authentication tokens and profile, or an error problem response.</returns>
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthResponse>> Refresh([FromBody] RefreshRequest request, CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new RefreshTokenCommand(request.RefreshToken), cancellationToken);
+        return result
+            .Map(auth => auth.ToAuthResponse())
+            .ToActionResult(this);
+    }
 }

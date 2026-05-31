@@ -76,6 +76,7 @@ public class RegisterUserCommandHandlerTests
             roleReadRepository,
             passwordHasher,
             tokenService,
+            null,
             unitOfWork);
 
         var result = await handler.Handle(new RegisterUserCommand(" USER@example.com ", " Jane ", "Password1!"), CancellationToken.None);
@@ -93,7 +94,7 @@ public class RegisterUserCommandHandlerTests
         tokenService.Received(1).CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
         tokenService.Received(1).GetAccessTokenExpiryUtc();
         userFeedPreferencesWriteRepository.Received(1).AddDefault(Arg.Any<long>());
-        await unitOfWork.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await unitOfWork.Received(3).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     private static RegisterUserCommandHandler CreateHandler(
@@ -104,6 +105,7 @@ public class RegisterUserCommandHandlerTests
         IRoleReadRepository? roleReadRepository = null,
         IPasswordHasherService? passwordHasher = null,
         ITokenService? tokenService = null,
+        IRefreshTokenWriteRepository? refreshTokenWriteRepository = null,
         IUnitOfWork? unitOfWork = null)
         => new(
             userReadRepository,
@@ -113,5 +115,6 @@ public class RegisterUserCommandHandlerTests
             roleReadRepository ?? Substitute.For<IRoleReadRepository>(),
             passwordHasher ?? Substitute.For<IPasswordHasherService>(),
             tokenService ?? Substitute.For<ITokenService>(),
+            refreshTokenWriteRepository ?? Substitute.For<IRefreshTokenWriteRepository>(),
             unitOfWork ?? Substitute.For<IUnitOfWork>());
 }

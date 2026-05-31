@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<UserSourceFilter> UserSourceFilters => Set<UserSourceFilter>();
     /// <summary>Optional per-user inclusion filters for topics.</summary>
     public DbSet<UserTopicFilter> UserTopicFilters => Set<UserTopicFilter>();
+    /// <summary>Refresh tokens for obtaining new access tokens.</summary>
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <summary>Topic taxonomy used for categorization and filtering.</summary>
     public DbSet<Topic> Topics => Set<Topic>();

@@ -61,6 +61,7 @@ export type UserProfileResponse = {
 export type AuthResponse = {
   accessToken: string
   expiresAtUtc: string
+  refreshToken: string
   user: UserProfileResponse
 }
 

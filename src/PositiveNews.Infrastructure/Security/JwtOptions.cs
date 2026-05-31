@@ -18,5 +18,8 @@ public sealed class JwtOptions
     public string SecretKey { get; init; } = string.Empty;
 
     /// <summary>Lifetime of issued access tokens in minutes.</summary>
-    public int AccessTokenMinutes { get; init; } = 120;
+    public int AccessTokenMinutes { get; init; } = 30;
+
+    /// <summary>Lifetime of issued refresh tokens in days.</summary>
+    public int RefreshTokenDays { get; init; } = 7;
 }
