@@ -86,6 +86,7 @@ function authResponse(): AuthResponse {
   return {
     accessToken: 'token',
     expiresAtUtc: '2026-05-11T00:00:00Z',
+    refreshToken: 'refresh-token',
     user: { id: 1, email: 'user@example.com', name: 'Jane', roles: ['User'] },
   }
 }

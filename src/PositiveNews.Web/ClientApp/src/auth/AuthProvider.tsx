@@ -8,6 +8,7 @@ import {
   type PropsWithChildren,
 } from 'react'
 import { getCurrentUser, login as loginApi, refreshToken as refreshTokenApi, register as registerApi } from '../api/auth-api'
+import type { AuthResponse } from '../api/types'
 import { getFeedPreferences, putFeedPreferences } from '../api/preferences-api'
 import type { UserProfileResponse } from '../api/types'
 import {
@@ -33,7 +34,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, name: string, password: string) => Promise<void>
   logout: () => void
-  refreshTokens: () => Promise<void>
+  refreshTokens: () => Promise<AuthResponse>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
