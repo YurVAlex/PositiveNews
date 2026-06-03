@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react'
 import { putFeedPreferences } from '../api/preferences-api'
 import {
   preferencesFromSearchParams,
@@ -6,6 +5,7 @@ import {
   shouldHydrateFeedFromDraft,
   snapshotToApiRequest,
 } from '../utils/feed-preferences-url'
+import React from 'react'
 
 const SAVE_DEBOUNCE_MS = 500
 
