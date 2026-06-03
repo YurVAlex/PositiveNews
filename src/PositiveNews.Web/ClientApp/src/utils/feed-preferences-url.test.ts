@@ -67,7 +67,7 @@ describe('feed-preferences-url', () => {
     })
   })
 
-  it('buildFeedReturnTo uses last feed search before preference draft', () => {
+  it('buildFeedReturnTo merges session draft into page-only last feed search', () => {
     saveFeedPrefsDraft({
       topics: ['Science'],
       sourceIds: [],
@@ -75,12 +75,30 @@ describe('feed-preferences-url', () => {
       minPositivity: DEFAULT_MIN_POSITIVITY,
     })
     saveLastFeedSearch('?page=3')
-    expect(buildFeedReturnTo()).toEqual({ pathname: '/', search: '?page=3' })
+    expect(buildFeedReturnTo()).toEqual({
+      pathname: '/',
+      search: '?page=3&topic=Science',
+    })
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
     sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
   })
 
+  it('buildFeedReturnTo merges draft into page-only navigation state', () => {
+    saveFeedPrefsDraft({
+      topics: ['Health'],
+      sourceIds: [2],
+      sort: 'positivity',
+      minPositivity: 0.6,
+    })
+    expect(buildFeedReturnTo('?page=2')).toEqual({
+      pathname: '/',
+      search: '?page=2&topic=Health&source=2&sort=positivity&minPositivity=0.6',
+    })
+    sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
+  })
+
   it('buildFeedReturnTo restores session draft when state and last search are missing', () => {
+    sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
     saveFeedPrefsDraft({
       topics: ['Science'],
       sourceIds: [2],

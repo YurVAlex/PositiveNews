@@ -281,18 +281,45 @@ export function shouldHydrateFeedFromDraft(params: URLSearchParams): boolean {
 }
 
 /**
+ * When a stored feed URL only has page/settings (no topic/source/sort/minPositivity),
+ * merge session preference draft so navbar "home" links do not drop filters.
+ */
+export function enrichFeedSearchWithDraft(search: string): string {
+  const normalized = normalizeFeedSearch(search)
+  if (!normalized) {
+    return ''
+  }
+
+  const params = new URLSearchParams(normalized.startsWith('?') ? normalized.slice(1) : normalized)
+  if (hasPreferenceParamsInUrl(params)) {
+    return normalized
+  }
+
+  const draft = loadFeedPrefsDraft()
+  if (!draft || !hasNonDefaultPreferences(draft)) {
+    return normalized
+  }
+
+  const merged = mergeDraftIntoSearchParams(params, draft)
+  const qs = merged.toString()
+  return qs ? `?${qs}` : normalized
+}
+
+/**
  * Builds a feed route restoring query params (including page) from navigation state,
  * last visited feed URL, or session preference draft.
  */
 export function buildFeedReturnTo(feedSearch?: string | null): FeedReturnTo {
   const fromState = normalizeFeedSearch(feedSearch)
   if (fromState) {
-    return { pathname: '/', search: fromState }
+    const search = enrichFeedSearchWithDraft(fromState)
+    return search ? { pathname: '/', search } : { pathname: '/' }
   }
 
   const fromLastVisit = loadLastFeedSearch()
   if (fromLastVisit) {
-    return { pathname: '/', search: fromLastVisit }
+    const search = enrichFeedSearchWithDraft(fromLastVisit)
+    return search ? { pathname: '/', search } : { pathname: '/' }
   }
 
   const draft = loadFeedPrefsDraft()
