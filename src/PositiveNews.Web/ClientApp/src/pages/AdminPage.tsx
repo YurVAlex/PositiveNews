@@ -3,6 +3,7 @@ import { fetchAdminStatus } from '../api/admin-api'
 import { IngestionRuns } from '../components/admin/IngestionRuns'
 import { ManageSources } from '../components/admin/ManageSources'
 import { ModerateArticle } from '../components/admin/ModerateArticle'
+import { AuditLogs } from '../components/admin/AuditLogs'
 import { useAuth } from '../auth/AuthProvider'
 
 export function AdminPage() {
@@ -44,6 +45,7 @@ export function AdminPage() {
         <>
           <ManageSources />
           <ModerateArticle />
+              <AuditLogs />
           <IngestionRuns />
         </>
       ) : null}
