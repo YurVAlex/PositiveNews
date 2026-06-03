@@ -3,6 +3,7 @@ import { putFeedPreferences } from '../api/preferences-api'
 import {
   preferencesFromSearchParams,
   serializePreferenceParams,
+  shouldHydrateFeedFromDraft,
   snapshotToApiRequest,
 } from '../utils/feed-preferences-url'
 
@@ -14,11 +15,15 @@ export function usePersistFeedPreferences(
   isAuthenticated: boolean,
   onSaveError: (message: string) => void,
 ) {
-  const lastSavedRef = useRef<string>('')
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedRef = React.useRef<string>('')
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isAuthenticated || !token) {
+      return
+    }
+
+    if (shouldHydrateFeedFromDraft(searchParams)) {
       return
     }
 

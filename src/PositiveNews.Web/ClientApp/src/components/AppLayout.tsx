@@ -31,8 +31,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const feedHomeTo = useMemo(() => {
     const state = location.state as FeedNavigationState | null
+    if (location.pathname === '/') {
+      return buildFeedReturnTo(location.search || state?.feedSearch)
+    }
     return buildFeedReturnTo(state?.feedSearch)
-  }, [location.state])
+  }, [location.pathname, location.search, location.state])
 
   const feedSearchForPrivacy = useMemo(() => {
     if (location.pathname !== '/') {
