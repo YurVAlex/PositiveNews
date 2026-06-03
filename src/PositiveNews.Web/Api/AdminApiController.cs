@@ -130,6 +130,19 @@ public sealed class AdminApiController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Returns recent audit logs for administrative review.
+    /// </summary>
+    [HttpGet("audit-logs")]
+    [ProducesResponseType(typeof(IReadOnlyList<AuditLogAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AuditLogAdminItemResponse>>> GetAuditLogs([FromQuery] int limit = 100, CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new PositiveNews.Application.Queries.Admin.GetAuditLogsQuery(limit), cancellationToken);
+        return result
+            .Map(items => items.ToAuditLogAdminItemResponses())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
     /// Returns article data for admin moderation.
     /// </summary>
     [HttpGet("articles/{articleId:long}")]
