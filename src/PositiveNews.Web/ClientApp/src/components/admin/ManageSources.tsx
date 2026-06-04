@@ -123,7 +123,7 @@ export function ManageSources() {
   return (
     <section className="card mb-4">
       <div className="card-body">
-        <h2 className="h5 card-title mb-3">Manage sources</h2>
+        <h2 className="h5 card-title mb-3">Moderation of sources</h2>
 
         {error ? (
           <div className="alert alert-danger py-2" role="alert">

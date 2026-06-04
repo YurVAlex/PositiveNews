@@ -12,6 +12,8 @@ import { useAuth } from '../auth/AuthProvider'
 import { usePersistFeedPreferences } from '../hooks/usePersistFeedPreferences'
 import {
   applyPreferencesToSearchParams,
+  buildDefaultFeedSearchParams,
+  hasPreferenceParamsInUrl,
   isSettingsOpen,
   loadFeedPrefsDraft,
   mergeDraftIntoSearchParams,
@@ -43,7 +45,7 @@ function feedTitle(topics: string[], sourceCount: number, singleSourceName: stri
 }
 
 export function FeedPage() {
-  const { token, isAuthenticated, pendingServerPreferences, clearPendingServerPreferences } = useAuth()
+  const { token, isAuthenticated, user, pendingServerPreferences, clearPendingServerPreferences } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = useMemo(() => parsePage(searchParams.get('page')), [searchParams])
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
@@ -67,6 +69,7 @@ export function FeedPage() {
   const [error, setError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const didHydrateFromDraft = useRef(false)
+  const wasAuthenticatedRef = useRef(isAuthenticated)
 
   const commitSearchParams = useCallback(
     (next: URLSearchParams, options?: { replace?: boolean }) => {
@@ -75,6 +78,14 @@ export function FeedPage() {
     },
     [setSearchParams],
   )
+
+  useEffect(() => {
+    const wasAuthenticated = wasAuthenticatedRef.current
+    wasAuthenticatedRef.current = isAuthenticated
+    if (wasAuthenticated && !isAuthenticated && hasPreferenceParamsInUrl(searchParams)) {
+      setSearchParams(buildDefaultFeedSearchParams(), { replace: true })
+    }
+  }, [isAuthenticated, searchParams, setSearchParams])
 
   useEffect(() => {
     if (!pendingServerPreferences) return
@@ -105,7 +116,7 @@ export function FeedPage() {
     saveFeedPrefsDraft(snapshot)
   }, [searchParams])
 
-  usePersistFeedPreferences(searchParams, token, isAuthenticated, setSaveError)
+  usePersistFeedPreferences(searchParams, token, isAuthenticated, user?.id ?? null, setSaveError)
 
   useEffect(() => {
     let cancelled = false
