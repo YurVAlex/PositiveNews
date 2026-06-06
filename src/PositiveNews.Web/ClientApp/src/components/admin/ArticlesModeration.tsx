@@ -5,23 +5,24 @@ import {
   moderateArticle,
   type AdminArticleDetail,
   type AdminArticleItem,
-  type ModerateArticleRequest,
+  type ArticleModerationRequest,
 } from '../../api/admin-articles-api'
 import { useAuth } from '../../auth/AuthProvider'
 import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
 
-export function ModerateArticle() {
+export function ArticlesModeration() {
   const { token } = useAuth()
   const [articles, setArticles] = useState<AdminArticleItem[]>([])
   const [selectedArticleId, setSelectedArticleId] = useState<number | null>(null)
   const [selectedArticleDetail, setSelectedArticleDetail] = useState<AdminArticleDetail | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [searchPerformed, setSearchPerformed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitMessage, setSubmitMessage] = useState<string | null>(null)
-  const [formState, setFormState] = useState<ModerateArticleRequest>({
+  const [formState, setFormState] = useState<ArticleModerationRequest>({
     isActive: false,
     title: '',
     imageTag: '',
@@ -31,16 +32,6 @@ export function ModerateArticle() {
     reason: '',
     note: '',
   })
-
-  useEffect(() => {
-    if (!token) return
-    setError(null)
-    setLoading(true)
-    void fetchAdminArticles(token)
-      .then((items) => setArticles(items))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load articles'))
-      .finally(() => setLoading(false))
-  }, [token])
 
   useEffect(() => {
     if (selectedArticleId === null || !token) {
@@ -82,6 +73,7 @@ export function ModerateArticle() {
       setArticles(items)
       setSelectedArticleId(null)
       setSelectedArticleDetail(null)
+      setSearchPerformed(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search request failed')
     } finally {
@@ -95,14 +87,14 @@ export function ModerateArticle() {
     setError(null)
   }
 
-  const handleClearSelection = async () => {
-    if (!token) return
-
+  const handleClearSelection = () => {
     setError(null)
     setSubmitMessage(null)
     setSearchTerm('')
+    setSearchPerformed(false)
     setSelectedArticleId(null)
     setSelectedArticleDetail(null)
+    setArticles([])
     setFormState({
       isActive: false,
       title: '',
@@ -113,16 +105,6 @@ export function ModerateArticle() {
       reason: '',
       note: '',
     })
-
-    setLoading(true)
-    try {
-      const items = await fetchAdminArticles(token)
-      setArticles(items)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load articles')
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleCancel = () => {
@@ -195,7 +177,7 @@ export function ModerateArticle() {
       <div className="card-body">
         <div className="d-flex align-items-start justify-content-between mb-3">
           <div>
-            <h2 className="h5 card-title mb-1">Moderate articles</h2>
+            <h2 className="h5 card-title mb-1">Moderation of articles</h2>
             <p className="small text-muted mb-0">Search by title or id and update article active state.</p>
           </div>
         </div>
@@ -226,11 +208,22 @@ export function ModerateArticle() {
             </button>
           </div>
         </form>
+        <div className="mb-3">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={handleClearSelection}
+            disabled={!token || loading}
+          >
+            Clear
+          </button>
+        </div>
 
-        <div className="row g-3">
-          <div className="col-12">
-            <div className="table-responsive border rounded mb-3" style={{ maxHeight: '26rem', overflowY: 'auto' }}>
-              <table className="table table-sm table-hover mb-0">
+        {searchPerformed ? (
+          <div className="row g-3">
+            <div className="col-12">
+              <div className="table-responsive border rounded mb-3" style={{ maxHeight: '26rem', overflowY: 'auto' }}>
+                <table className="table table-sm table-hover mb-0">
                 <thead className="table-light">
                   <tr>
                     <th scope="col">Id</th>
@@ -271,16 +264,6 @@ export function ModerateArticle() {
                   )}
                 </tbody>
               </table>
-            </div>
-            <div className="mb-3">
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={handleClearSelection}
-                disabled={!token || loading}
-              >
-                Clear
-              </button>
             </div>
             <div className="border rounded p-3 mt-3">
               <div className="d-flex align-items-center justify-content-between mb-3">
@@ -346,7 +329,7 @@ export function ModerateArticle() {
                       max="1"
                       step="0.01"
                       className="form-control"
-                      value={formState.positivityScore ?? ''}
+                      value={formState.positivityScore != null ? formState.positivityScore.toFixed(2) : ''}
                       onChange={handleFormChange}
                     />
                   </div>
@@ -430,6 +413,7 @@ export function ModerateArticle() {
             </div>
           </div>
         </div>
+        ) : null}
       </div>
     </section>
   )

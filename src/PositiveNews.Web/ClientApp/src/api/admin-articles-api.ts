@@ -20,7 +20,7 @@ export type AdminArticleDetail = AdminArticleItem & {
   contentRaw: string | null
 }
 
-export type ModerateArticleRequest = {
+export type ArticleModerationRequest = {
   isActive: boolean
   title?: string | null
   imageTag?: string | null
@@ -67,7 +67,7 @@ export async function fetchAdminArticleDetail(token: string, articleId: number):
 export async function moderateArticle(
   token: string,
   articleId: number,
-  payload: ModerateArticleRequest,
+  payload: ArticleModerationRequest,
 ): Promise<void> {
   const res = await fetch(apiUrl(`/api/admin/articles/${articleId}`), {
     method: 'PUT',

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { fetchAdminStatus } from '../api/admin-api'
 import { IngestionRuns } from '../components/admin/IngestionRuns'
-import { ManageSources } from '../components/admin/ManageSources'
-import { ModerateArticle } from '../components/admin/ModerateArticle'
+import { SourcesModeration } from '../components/admin/SourcesModeration'
+import { ArticlesModeration } from '../components/admin/ArticlesModeration'
 import { AuditLogs } from '../components/admin/AuditLogs'
 import { useAuth } from '../auth/AuthProvider'
 
@@ -31,21 +31,23 @@ export function AdminPage() {
 
   return (
     <main role="main" className="pb-3 mt-4">
-      <h1 className="h3 mb-3">Admin panel</h1>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+  <h1 className="h3 mb-0">Admin panel</h1>
 
-      {error ? (
-        <div className="alert alert-danger mb-3">{error}</div>
-      ) : accessOk ? (
-        <p className="text-muted small mb-3">Admin API access confirmed.</p>
-      ) : (
-        <p className="text-muted small mb-3">Checking admin API access…</p>
-      )}
+  {error ? (
+    <div className="alert alert-danger mb-0">{error}</div>
+  ) : accessOk ? (
+    <p className="text-muted small mb-0">Admin API access confirmed.</p>
+  ) : (
+    <p className="text-muted small mb-0">Checking admin API access…</p>
+  )}
+</div>
 
       {accessOk ? (
         <>
-          <ManageSources />
-          <ModerateArticle />
-              <AuditLogs />
+          <SourcesModeration />
+          <ArticlesModeration />
+          <AuditLogs />
           <IngestionRuns />
         </>
       ) : null}

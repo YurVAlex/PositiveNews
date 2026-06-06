@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ModerateArticle } from './ModerateArticle'
+import { ArticlesModeration } from './ArticlesModeration'
 
 const mockArticles = [
   {
@@ -42,7 +42,7 @@ vi.mock('../../api/admin-articles-api', () => ({
   moderateArticle: vi.fn(),
 }))
 
-describe('ModerateArticle', () => {
+describe('ArticlesModeration', () => {
   let api: {
     fetchAdminArticles: ReturnType<typeof vi.fn>
     fetchAdminArticleDetail: ReturnType<typeof vi.fn>
@@ -57,51 +57,51 @@ describe('ModerateArticle', () => {
     api.moderateArticle.mockResolvedValue(undefined)
   })
 
-  it('renders article columns and loads details with raw HTML textarea', async () => {
+  it('shows search UI and loads article table after search', async () => {
     const user = userEvent.setup()
 
-    render(<ModerateArticle />)
+    render(<ArticlesModeration />)
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
     expect(screen.getByRole('columnheader', { name: 'Positivity' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Active' })).toBeInTheDocument()
-    expect(api.fetchAdminArticles).toHaveBeenCalledWith('test-token')
-
-    await user.click(screen.getByText('Article One'))
-
-    await waitFor(() => expect(api.fetchAdminArticleDetail).toHaveBeenCalledWith('test-token', 1))
-    expect(screen.getByLabelText('Raw HTML content')).toHaveValue('<p>Raw content</p>')
-    expect(screen.getByRole('checkbox', { name: 'Is active' })).toBeChecked()
+    expect(api.fetchAdminArticles).toHaveBeenCalledWith('test-token', '')
   })
 
-  it('clears selection and reloads the list when Clear is clicked', async () => {
+  it('clears search results and selection when Clear is clicked', async () => {
     const user = userEvent.setup()
 
-    render(<ModerateArticle />)
+    render(<ArticlesModeration />)
 
+    await user.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
     await user.click(screen.getByText('Article One'))
     await waitFor(() => expect(screen.getByLabelText('Title')).toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: 'Clear' }))
 
-    await waitFor(() => expect(screen.getByText('Select an article to review and update its active state.')).toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('table')).not.toBeInTheDocument())
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
-    expect(api.fetchAdminArticles).toHaveBeenCalledTimes(2)
   })
 
   it('cancels selection and resets the moderation details section', async () => {
     const user = userEvent.setup()
 
-    render(<ModerateArticle />)
+    render(<ArticlesModeration />)
 
+    await user.click(screen.getByRole('button', { name: 'Search' }))
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
     await user.click(screen.getByText('Article One'))
     await waitFor(() => expect(screen.getByLabelText('Title')).toBeInTheDocument())
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(screen.getByText('Select an article to review and update its active state.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
   })
 })
