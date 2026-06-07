@@ -13,8 +13,11 @@ import { getFeedPreferences, putFeedPreferences } from '../api/preferences-api'
 import type { UserProfileResponse } from '../api/types'
 import {
   clearFeedPrefsDraft,
+  clearLocalFeedPreferences,
   loadFeedPrefsDraft,
   preferencesFromApiResponse,
+  saveLastSavedPreferenceParams,
+  serializePreferenceSnapshot,
   snapshotToApiRequest,
   type FeedPreferencesSnapshot,
 } from '../utils/feed-preferences-url'
@@ -50,9 +53,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setPendingServerPreferences(null)
   }, [])
 
-  const loadServerPreferences = useCallback(async (accessToken: string) => {
+  const loadServerPreferences = useCallback(async (accessToken: string, userId: number) => {
     const prefs = await getFeedPreferences(accessToken)
-    setPendingServerPreferences(preferencesFromApiResponse(prefs))
+    const snapshot = preferencesFromApiResponse(prefs)
+    setPendingServerPreferences(snapshot)
+    saveLastSavedPreferenceParams(userId, serializePreferenceSnapshot(snapshot))
   }, [])
 
   const refreshTokens = useCallback(async () => {
@@ -119,7 +124,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     getCurrentUser(storedToken)
       .then(async (profile) => {
         setUser(profile)
-        await loadServerPreferences(storedToken)
+        await loadServerPreferences(storedToken, profile.id)
       })
       .catch(async () => {
         // If current user fails, try to refresh the token
@@ -130,7 +135,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             if (newToken) {
               const profile = await getCurrentUser(newToken)
               setUser(profile)
-              await loadServerPreferences(newToken)
+              await loadServerPreferences(newToken, profile.id)
             }
           } catch {
             // Refresh failed, clear tokens
@@ -159,7 +164,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setToken(response.accessToken)
       setRefreshToken(response.refreshToken)
       setUser(response.user)
-      await loadServerPreferences(response.accessToken)
+      await loadServerPreferences(response.accessToken, response.user.id)
     },
     [loadServerPreferences],
   )
@@ -178,9 +183,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (draft) {
         await putFeedPreferences(response.accessToken, snapshotToApiRequest(draft))
         setPendingServerPreferences(draft)
+        saveLastSavedPreferenceParams(response.user.id, serializePreferenceSnapshot(draft))
         clearFeedPrefsDraft()
       } else {
-        await loadServerPreferences(response.accessToken)
+        await loadServerPreferences(response.accessToken, response.user.id)
       }
     },
     [loadServerPreferences],
@@ -194,7 +200,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setRefreshToken(null)
     setUser(null)
     setPendingServerPreferences(null)
-    clearFeedPrefsDraft()
+    clearLocalFeedPreferences()
   }, [])
 
   const value = useMemo<AuthContextValue>(

@@ -69,7 +69,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     logout()
-    navigate('/', { replace: true })
+    navigate({ pathname: '/', search: '' }, { replace: true })
   }
 
   const settingsActive =

@@ -1,6 +1,8 @@
 import { putFeedPreferences } from '../api/preferences-api'
 import {
+  loadLastSavedPreferenceParams,
   preferencesFromSearchParams,
+  saveLastSavedPreferenceParams,
   serializePreferenceParams,
   shouldHydrateFeedFromDraft,
   snapshotToApiRequest,
@@ -13,13 +15,13 @@ export function usePersistFeedPreferences(
   searchParams: URLSearchParams,
   token: string | null,
   isAuthenticated: boolean,
+  userId: number | null,
   onSaveError: (message: string) => void,
 ) {
-  const lastSavedRef = React.useRef<string>('')
-  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  React.useEffect(() => {
-    if (!isAuthenticated || !token) {
+  useEffect(() => {
+    if (!isAuthenticated || !token || userId == null) {
       return
     }
 
@@ -28,7 +30,7 @@ export function usePersistFeedPreferences(
     }
 
     const serialized = serializePreferenceParams(searchParams)
-    if (serialized === lastSavedRef.current) {
+    if (serialized === loadLastSavedPreferenceParams(userId)) {
       return
     }
 
@@ -40,7 +42,7 @@ export function usePersistFeedPreferences(
       const snapshot = preferencesFromSearchParams(searchParams)
       putFeedPreferences(token, snapshotToApiRequest(snapshot))
         .then(() => {
-          lastSavedRef.current = serialized
+          saveLastSavedPreferenceParams(userId, serialized)
         })
         .catch((e) => {
           onSaveError(e instanceof Error ? e.message : 'Failed to save preferences')
@@ -52,5 +54,5 @@ export function usePersistFeedPreferences(
         clearTimeout(timerRef.current)
       }
     }
-  }, [searchParams, token, isAuthenticated, onSaveError])
+  }, [searchParams, token, isAuthenticated, userId, onSaveError])
 }

@@ -4,6 +4,12 @@ import type { UserFeedPreferencesResponse } from '../api/types'
 export const DEFAULT_MIN_POSITIVITY = 0.5
 export const FEED_PREFS_DRAFT_KEY = 'positiveNews.feedPrefsDraft'
 export const LAST_FEED_SEARCH_KEY = 'positiveNews.lastFeedSearch'
+export const FEED_PREFS_LAST_SAVED_KEY = 'positiveNews.feedPrefsLastSaved'
+
+type StoredLastSavedFeedPrefs = {
+  userId: number
+  serialized: string
+}
 
 export type FeedReturnTo = {
   pathname: '/'
@@ -15,6 +21,13 @@ export type FeedPreferencesSnapshot = {
   sourceIds: number[]
   sort: FeedSortParam
   minPositivity: number
+}
+
+export const EMPTY_FEED_PREFERENCES: FeedPreferencesSnapshot = {
+  topics: [],
+  sourceIds: [],
+  sort: 'date',
+  minPositivity: DEFAULT_MIN_POSITIVITY,
 }
 
 export function parsePage(raw: string | null): number {
@@ -108,9 +121,45 @@ export function preferenceKeysEqual(a: URLSearchParams, b: URLSearchParams): boo
 
 export function serializePreferenceParams(params: URLSearchParams): string {
   const snapshot = preferencesFromSearchParams(params)
+  return serializePreferenceSnapshot(snapshot)
+}
+
+/** Canonical serialized preference params (excludes page and settings). */
+export function serializePreferenceSnapshot(snapshot: FeedPreferencesSnapshot): string {
   const next = new URLSearchParams()
   applyPreferencesToSearchParams(next, snapshot, { includeSettings: false })
   return next.toString()
+}
+
+export function loadLastSavedPreferenceParams(userId: number): string | null {
+  try {
+    const raw = sessionStorage.getItem(FEED_PREFS_LAST_SAVED_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<StoredLastSavedFeedPrefs>
+    if (parsed.userId !== userId || typeof parsed.serialized !== 'string') {
+      return null
+    }
+    return parsed.serialized
+  } catch {
+    return null
+  }
+}
+
+export function saveLastSavedPreferenceParams(userId: number, serialized: string): void {
+  try {
+    const payload: StoredLastSavedFeedPrefs = { userId, serialized }
+    sessionStorage.setItem(FEED_PREFS_LAST_SAVED_KEY, JSON.stringify(payload))
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function clearLastSavedPreferenceParams(): void {
+  try {
+    sessionStorage.removeItem(FEED_PREFS_LAST_SAVED_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 export function applyPreferencesToSearchParams(
@@ -196,6 +245,29 @@ export function clearFeedPrefsDraft(): void {
   } catch {
     // ignore
   }
+}
+
+export function clearLastFeedSearch(): void {
+  try {
+    sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+/** Clears session-scoped feed preference storage (draft, last visit, and last server sync fingerprint). */
+export function clearLocalFeedPreferences(): void {
+  clearFeedPrefsDraft()
+  clearLastFeedSearch()
+  clearLastSavedPreferenceParams()
+}
+
+export function buildDefaultFeedSearchParams(options?: { settingsOpen?: boolean }): URLSearchParams {
+  return applyPreferencesToSearchParams(new URLSearchParams(), EMPTY_FEED_PREFERENCES, {
+    includeSettings: true,
+    settingsOpen: options?.settingsOpen ?? false,
+    page: 1,
+  })
 }
 
 /** Persists the latest feed URL query (including page) for "Back to feed" when navigation state is lost. */

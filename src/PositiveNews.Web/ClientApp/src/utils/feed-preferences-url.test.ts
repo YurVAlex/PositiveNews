@@ -4,13 +4,18 @@ import {
   buildFeedReturnTo,
   DEFAULT_MIN_POSITIVITY,
   FEED_PREFS_DRAFT_KEY,
+  FEED_PREFS_LAST_SAVED_KEY,
   LAST_FEED_SEARCH_KEY,
+  loadLastSavedPreferenceParams,
+  saveLastSavedPreferenceParams,
+  serializePreferenceSnapshot,
   hasNonDefaultPreferences,
   hasPreferenceParamsInUrl,
   mergeDraftIntoSearchParams,
   parseMinPositivity,
   parseSort,
   preferencesFromSearchParams,
+  clearLocalFeedPreferences,
   saveFeedPrefsDraft,
   saveLastFeedSearch,
   serializePreferenceParams,
@@ -165,6 +170,35 @@ describe('feed-preferences-url', () => {
     expect(merged.get('page')).toBe('3')
     expect(merged.get('settings')).toBe('1')
     expect(merged.getAll('topic')).toEqual(['Science'])
+  })
+
+  it('clearLocalFeedPreferences removes draft and last feed search', () => {
+    saveFeedPrefsDraft({
+      topics: ['Health'],
+      sourceIds: [],
+      sort: 'date',
+      minPositivity: DEFAULT_MIN_POSITIVITY,
+    })
+    saveLastFeedSearch('?topic=Health&page=2')
+    saveLastSavedPreferenceParams(1, 'topic=Health')
+    clearLocalFeedPreferences()
+    expect(sessionStorage.getItem(FEED_PREFS_DRAFT_KEY)).toBeNull()
+    expect(sessionStorage.getItem(LAST_FEED_SEARCH_KEY)).toBeNull()
+    expect(sessionStorage.getItem(FEED_PREFS_LAST_SAVED_KEY)).toBeNull()
+    expect(buildFeedReturnTo()).toEqual({ pathname: '/' })
+  })
+
+  it('stores and loads last saved preference params per user', () => {
+    saveLastSavedPreferenceParams(1, 'topic=Health')
+    expect(loadLastSavedPreferenceParams(1)).toBe('topic=Health')
+    expect(loadLastSavedPreferenceParams(2)).toBeNull()
+    sessionStorage.removeItem(FEED_PREFS_LAST_SAVED_KEY)
+  })
+
+  it('serializePreferenceSnapshot matches URL serialization', () => {
+    const params = new URLSearchParams('topic=Health&source=2&sort=positivity&minPositivity=0.6')
+    const snapshot = preferencesFromSearchParams(params)
+    expect(serializePreferenceSnapshot(snapshot)).toBe(serializePreferenceParams(params))
   })
 
   it('hasNonDefaultPreferences is false for empty snapshot', () => {
