@@ -103,6 +103,49 @@ public class ModerateArticleCommandHandlerTests
             log.ChangedField == nameof(ArticleContent.ContentRaw)
             && log.OldValue == "<p>Old body</p>"
             && log.NewValue == "<p>New body</p>"));
+        article.ModeratedBy.Should().Be(42);
+    }
+
+    [Fact]
+    public async Task Handle_Should_SetModeratedBy_When_MetadataChangesAndActiveStateUnchanged()
+    {
+        var article = ArticleMetadata.Create(
+            sourceId: 5,
+            title: "Old title",
+            url: "https://example.com/article",
+            externalId: "ext-1",
+            publishedAt: DateTime.UtcNow.AddDays(-1),
+            languageCode: "en",
+            positivityScore: 0.25m,
+            author: "Author",
+            summaryShort: "Short summary",
+            imageTag: "<img src=\"old.jpg\" />");
+        typeof(ArticleMetadata).GetProperty(nameof(ArticleMetadata.Id))!.SetValue(article, 10L);
+        article.AttachContent(ArticleContent.Create("<p>Old body</p>", "<p>Old body</p>"));
+
+        var articleWriteRepository = Substitute.For<IArticleWriteRepository>();
+        articleWriteRepository.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(article);
+        var auditLogWriteRepository = Substitute.For<IAuditLogWriteRepository>();
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        var handler = new ModerateArticleCommandHandler(articleWriteRepository, auditLogWriteRepository, unitOfWork);
+
+        var result = await handler.Handle(
+            new ModerateArticleCommand(
+                10,
+                true,
+                "New title",
+                null,
+                null,
+                null,
+                null,
+                "moderation-reason",
+                "moderation-note",
+                42),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        article.ModeratedBy.Should().Be(42);
+        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

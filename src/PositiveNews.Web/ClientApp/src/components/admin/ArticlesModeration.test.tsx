@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ArticlesModeration } from './ArticlesModeration'
 
@@ -72,6 +72,26 @@ describe('ArticlesModeration', () => {
     expect(screen.getByRole('columnheader', { name: 'Positivity' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Active' })).toBeInTheDocument()
     expect(api.fetchAdminArticles).toHaveBeenCalledWith('test-token', '')
+  })
+
+  it('shows Yes in the Moderated column when the article has been moderated', async () => {
+    const user = userEvent.setup()
+    api.fetchAdminArticles.mockResolvedValue([
+      {
+        ...mockArticles[0],
+        moderatedBy: 42,
+      },
+    ])
+
+    render(<ArticlesModeration />)
+
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
+
+    const row = screen.getByText('Article One').closest('tr')
+    expect(row).not.toBeNull()
+    expect(within(row!).getAllByRole('cell')[5]).toHaveTextContent('Yes')
   })
 
   it('clears search results and selection when Clear is clicked', async () => {

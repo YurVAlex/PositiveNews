@@ -7,7 +7,7 @@ import {
   shouldHydrateFeedFromDraft,
   snapshotToApiRequest,
 } from '../utils/feed-preferences-url'
-import React from 'react'
+import { useEffect, useRef } from 'react'
 
 const SAVE_DEBOUNCE_MS = 500
 

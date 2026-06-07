@@ -59,7 +59,7 @@ public class ArticleMetadata
     /// <summary>When false, the article is hidden from public feeds.</summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>Moderator who deactivated the article, if any.</summary>
+    /// <summary>Moderator who last modified or deactivated the article, if any.</summary>
     public long? ModeratedBy { get; private set; }
 
     /// <summary>Short plain-text summary for cards and listings.</summary>
@@ -152,6 +152,17 @@ public class ArticleMetadata
         if (IsActive)
             throw new InvalidArticleStateException("Article is already active.");
         IsActive = true;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Marks the article as modified by a moderator without changing its active state.
+    /// </summary>
+    public void ApplyModeration(long moderatorId)
+    {
+        if (moderatorId <= 0)
+            throw new InvalidArticleStateException("ModeratorId must be a valid user identifier.");
+
         ModeratedBy = moderatorId;
     }
 

@@ -153,6 +153,11 @@ public sealed class ModerateArticleCommandHandler(
             }
         }
 
+        if (hasChange && !activeChanged)
+        {
+            article.ApplyModeration(request.ModeratorId);
+        }
+
         if (!hasChange)
         {
             return Result.Failure(new Error(
