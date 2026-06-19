@@ -27,6 +27,14 @@ public interface IArticleReadRepository
     Task<ArticleDetailDto?> GetDetailAsync(long id, CancellationToken ct);
 
     /// <summary>
+    /// Checks whether an active article exists for the given identifier.
+    /// </summary>
+    /// <param name="id">Article primary key.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><see langword="true"/> when an active article with this id exists.</returns>
+    Task<bool> ExistsActiveAsync(long id, CancellationToken ct);
+
+    /// <summary>
     /// Returns articles available for admin moderation, optionally filtered by title or identifier.
     /// </summary>
     /// <param name="searchTerm">Optional title substring search term.</param>

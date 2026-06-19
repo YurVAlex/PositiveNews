@@ -1,6 +1,6 @@
 const apiBase = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
-function apiUrl(path: string) {
+export function apiUrl(path: string) {
   return `${apiBase}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
@@ -14,5 +14,3 @@ export function authTokenHeader(token: string | null): HeadersInit {
     Authorization: `Bearer ${token}`,
   }
 }
-
-export { apiUrl }

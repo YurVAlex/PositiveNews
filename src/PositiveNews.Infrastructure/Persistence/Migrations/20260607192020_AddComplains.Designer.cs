@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PositiveNews.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using PositiveNews.Infrastructure.Persistence;
 namespace PositiveNews.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260607192020_AddComplains")]
+    partial class AddComplains
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -273,6 +276,9 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<long>("ArticleId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("CommentId")
                         .HasColumnType("bigint");
 
@@ -290,6 +296,8 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
 
                     b.HasIndex("CommentId");
 
@@ -737,6 +745,12 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("PositiveNews.Domain.Entities.Complaint", b =>
                 {
+                    b.HasOne("PositiveNews.Domain.Entities.ArticleMetadata", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("PositiveNews.Domain.Entities.Comment", "Comment")
                         .WithMany("Complaints")
                         .HasForeignKey("CommentId")
@@ -748,6 +762,8 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("Article");
 
                     b.Navigation("Comment");
 

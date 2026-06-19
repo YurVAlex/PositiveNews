@@ -51,6 +51,18 @@ export type ArticleDetailResponse = {
   contentHtml: string | null
 }
 
+export type CommentResponse = {
+  id: number
+  userId: number
+  userName: string
+  content: string
+  createdAt: string
+}
+
+export type ArticleCommentsListResponse = {
+  comments: CommentResponse[]
+}
+
 export type UserProfileResponse = {
   id: number
   email: string

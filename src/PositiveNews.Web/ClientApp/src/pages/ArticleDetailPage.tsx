@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { fetchArticleDetail } from '../api/articles-api'
 import type { ArticleDetailResponse } from '../api/types'
 import { useAuth } from '../auth/AuthProvider'
+import { ArticleCommentsSection } from '../components/comments/ArticleCommentsSection'
 import { buildFeedReturnTo } from '../utils/feed-preferences-url'
 
 type ArticleDetailLocationState = {
@@ -142,6 +143,8 @@ export function ArticleDetailPage() {
           ) : (
             <div className="alert alert-warning">Full content is not available for this article yet.</div>
           )}
+
+          <ArticleCommentsSection articleId={numericId} />
 
           <div className="mt-4 pt-3 border-top">
             <BackToFeedLink />

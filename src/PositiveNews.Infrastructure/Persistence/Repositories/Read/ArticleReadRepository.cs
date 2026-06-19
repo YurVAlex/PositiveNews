@@ -241,6 +241,12 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
     }
 
     /// <inheritdoc />
+    public Task<bool> ExistsActiveAsync(long id, CancellationToken ct)
+        => db.ArticlesMetadata
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == id && a.IsActive, ct);
+
+    /// <inheritdoc />
     public async Task<ExistingArticleKeys> FindExistingKeysAsync(
         IReadOnlyCollection<string?> externalIds,
         IReadOnlyCollection<string> urls,

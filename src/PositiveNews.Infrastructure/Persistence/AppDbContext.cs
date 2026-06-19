@@ -45,6 +45,9 @@ public class AppDbContext : DbContext
     /// <summary>User comments on articles.</summary>
     public DbSet<Comment> Comments => Set<Comment>();
 
+    /// <summary>User complaints about comments.</summary>
+    public DbSet<Complaint> Complains => Set<Complaint>();
+
     /// <summary>Administrative audit trail.</summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
