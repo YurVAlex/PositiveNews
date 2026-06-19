@@ -37,7 +37,7 @@ export function CommentCard({ comment, isAuthenticated, onComplain }: CommentCar
             Complain
           </button>
         ) : null}
-        <span className="small text-muted ms-auto">Comment #{comment.id}</span>
+        <span className="small text-muted ms-auto">Comment id:{comment.id}</span>
       </div>
     </div>
   )
