@@ -1,4 +1,5 @@
 using PositiveNews.Domain.Entities;
+using PositiveNews.Application.DTOs.Admin;
 
 namespace PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 
@@ -30,4 +31,14 @@ public interface IUserReadRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The user with roles, or <see langword="null"/>.</returns>
     Task<User?> FindByIdWithRolesAsync(long id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns users for the admin management table, optionally filtered by id or name.
+    /// </summary>
+    Task<IReadOnlyList<UserAdminItemDto>> SearchAdminUsersAsync(string? searchTerm, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns detailed user metadata for the admin management UI.
+    /// </summary>
+    Task<UserAdminDetailDto?> GetAdminUserDetailAsync(long userId, CancellationToken cancellationToken = default);
 }

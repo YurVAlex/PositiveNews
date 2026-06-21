@@ -1,3 +1,4 @@
+using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Comments;
 
 namespace PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
@@ -25,5 +26,14 @@ public interface ICommentReadRepository
     Task<ActiveCommentDto?> GetActiveByIdForArticleAsync(
         long commentId,
         long articleId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Loads comment detail for admin moderation, including complaints.
+    /// </summary>
+    /// <param name="commentId">Comment primary key.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<CommentAdminDetailDto?> GetAdminDetailByIdAsync(
+        long commentId,
         CancellationToken cancellationToken = default);
 }

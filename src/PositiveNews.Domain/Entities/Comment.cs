@@ -105,4 +105,19 @@ public class Comment
         IsActive = false;
         ModeratedBy = moderatorId;
     }
+
+    /// <summary>
+    /// Updates active state and records the moderator.
+    /// </summary>
+    public void SetActive(bool isActive, long moderatorId)
+    {
+        if (IsActive == isActive)
+        {
+            ModeratedBy = moderatorId;
+            return;
+        }
+
+        IsActive = isActive;
+        ModeratedBy = moderatorId;
+    }
 }

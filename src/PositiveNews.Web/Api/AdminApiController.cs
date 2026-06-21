@@ -129,6 +129,66 @@ public sealed class AdminApiController(IMediator mediator) : ControllerBase
             .ToActionResult(this);
     }
 
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(IReadOnlyList<UserAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<UserAdminItemResponse>>> GetUsers(
+        [FromQuery(Name = "q")] string? searchTerm,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminUsersQuery(searchTerm), cancellationToken);
+        return Ok(result.ToUserAdminItemResponses());
+    }
+
+    [HttpGet("users/{userId:long}")]
+    [ProducesResponseType(typeof(UserAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserAdminDetailResponse>> GetUserDetail(long userId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminUserDetailQuery(userId), cancellationToken);
+        return result.Map(user => user.ToUserAdminDetailResponse()).ToActionResult(this);
+    }
+
+    [HttpPut("users/{userId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateUser(long userId, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var result = await mediator.Send(new UpdateUserCommand(userId, request.IsActive, request.EmailConfirmed, request.Reason, request.Note, moderatorId), cancellationToken);
+        return result.IsFailure ? result.ToActionResult(this) : NoContent();
+    }
+
+    [HttpGet("comments/{commentId:long}")]
+    [ProducesResponseType(typeof(CommentAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CommentAdminDetailResponse>> GetCommentDetail(long commentId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminCommentDetailQuery(commentId), cancellationToken);
+        return result.Map(comment => comment.ToCommentAdminDetailResponse()).ToActionResult(this);
+    }
+
+    [HttpPut("comments/{commentId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateComment(long commentId, [FromBody] UpdateCommentRequest request, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var result = await mediator.Send(new ModerateCommentCommand(commentId, request.IsActive, request.Reason, request.Note, moderatorId), cancellationToken);
+        return result.IsFailure ? result.ToActionResult(this) : NoContent();
+    }
+
     /// <summary>
     /// Returns recent audit logs for administrative review.
     /// </summary>

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Infrastructure.Persistence;
@@ -9,4 +10,8 @@ internal sealed class CommentWriteRepository(AppDbContext db) : ICommentWriteRep
 {
     /// <inheritdoc />
     public void Add(Comment comment) => db.Comments.Add(comment);
+
+    /// <inheritdoc />
+    public Task<Comment?> GetByIdAsync(long commentId, CancellationToken cancellationToken = default)
+        => db.Comments.FirstOrDefaultAsync(c => c.Id == commentId, cancellationToken);
 }

@@ -149,6 +149,30 @@ public class User
         ModeratedBy = moderatorId;
     }
 
+    /// <summary>
+    /// Updates the active flag without anonymizing profile data.
+    /// </summary>
+    public void SetActive(bool isActive, long moderatorId)
+    {
+        if (IsActive == isActive)
+        {
+            ModeratedBy = moderatorId;
+            return;
+        }
+
+        IsActive = isActive;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Updates email confirmation state and records the moderator.
+    /// </summary>
+    public void SetEmailConfirmed(bool emailConfirmed, long moderatorId)
+    {
+        EmailConfirmed = emailConfirmed;
+        ModeratedBy = moderatorId;
+    }
+
     private static string ToDeletedEmail(string email)
     {
         if (email.EndsWith(DeletedEmailSuffix, StringComparison.Ordinal))

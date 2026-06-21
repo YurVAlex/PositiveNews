@@ -93,4 +93,38 @@ public class CommentTests
 
         act.Should().Throw<DomainException>();
     }
+
+    [Fact]
+    public void SetActive_Should_DeactivateComment_When_SetToFalse()
+    {
+        var c = Comment.Create(1, 2, "Valid");
+
+        c.SetActive(false, 10);
+
+        c.IsActive.Should().BeFalse();
+        c.ModeratedBy.Should().Be(10);
+    }
+
+    [Fact]
+    public void SetActive_Should_ReactivateComment_When_SetToTrueAfterDeactivate()
+    {
+        var c = Comment.Create(1, 2, "Valid");
+        c.SetActive(false, 10);
+
+        c.SetActive(true, 20);
+
+        c.IsActive.Should().BeTrue();
+        c.ModeratedBy.Should().Be(20);
+    }
+
+    [Fact]
+    public void SetActive_Should_UpdateModerator_When_ValueUnchanged()
+    {
+        var c = Comment.Create(1, 2, "Valid");
+
+        c.SetActive(true, 15);
+
+        c.IsActive.Should().BeTrue();
+        c.ModeratedBy.Should().Be(15);
+    }
 }

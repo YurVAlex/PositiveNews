@@ -12,4 +12,11 @@ public interface ICommentWriteRepository
     /// </summary>
     /// <param name="comment">Comment entity to add.</param>
     void Add(Comment comment);
+
+    /// <summary>
+    /// Loads a comment by id for updates.
+    /// </summary>
+    /// <param name="commentId">Comment primary key.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<Comment?> GetByIdAsync(long commentId, CancellationToken cancellationToken = default);
 }
