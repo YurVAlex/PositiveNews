@@ -1,3 +1,6 @@
+/**
+ * Previous/next controls and a direct page-number input for the article feed.
+ */
 import { useCallback, useEffect, useState } from 'react'
 
 type FeedPaginationProps = {
@@ -8,6 +11,7 @@ type FeedPaginationProps = {
   listClassName?: string
 }
 
+/** Keeps typed page numbers within [1, totalPages]. */
 function clampPage(value: number, totalPages: number) {
   return Math.min(Math.max(1, value), totalPages)
 }
@@ -25,6 +29,7 @@ export function FeedPagination({
     setPageInput(String(currentPage))
   }, [currentPage])
 
+  /** Validates and applies the page input on blur or Enter. */
   const commitPageInput = useCallback(() => {
     const parsed = Number.parseInt(pageInput.trim(), 10)
     const next = Number.isFinite(parsed) ? clampPage(parsed, totalPages) : currentPage

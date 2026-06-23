@@ -1,4 +1,8 @@
+/**
+ * Single comment display with author, timestamp, and optional complain action.
+ */
 import type { CommentResponse } from '../../api/types'
+
 
 type CommentCardProps = {
   comment: CommentResponse
@@ -6,6 +10,7 @@ type CommentCardProps = {
   onComplain: (comment: CommentResponse) => void
 }
 
+/** Formats comment created-at for the card header. */
 function formatCommentDate(iso: string) {
   const d = new Date(iso)
   return d.toLocaleString(undefined, {

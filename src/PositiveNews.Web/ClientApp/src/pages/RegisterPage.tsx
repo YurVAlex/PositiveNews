@@ -1,3 +1,4 @@
+/** Account registration with client-side password rules before calling the API. */
 import { type FormEvent, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -21,6 +22,7 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
 
   if (isAuthenticated) {
+    // Signed-in users land on the feed instead of creating a duplicate account.
     return <Navigate to="/" replace />
   }
 
@@ -28,6 +30,7 @@ export function RegisterPage() {
     e.preventDefault()
     setError(null)
 
+    // Validate locally first so the server only receives well-formed passwords.
     const passwordErrors = getPasswordValidationErrors(password)
     const confirmError = getConfirmPasswordError(password, confirmPassword)
 
@@ -98,6 +101,7 @@ export function RegisterPage() {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
+                  // Re-validate on change only after the user has seen an error (less noisy UX).
                   if (passwordError) {
                     setPasswordError(getPasswordValidationErrors(e.target.value)[0] ?? null)
                   }

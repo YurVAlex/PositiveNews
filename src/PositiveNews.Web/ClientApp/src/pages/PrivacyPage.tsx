@@ -1,3 +1,4 @@
+/** Static privacy copy; signed-in users can permanently deactivate their account here. */
 import { useEffect, useState, type MouseEvent } from 'react'
 import { deactivateAccount } from '../api/auth-api'
 import { useAuth } from '../auth/AuthProvider'
@@ -11,6 +12,7 @@ export function PrivacyPage() {
     document.title = 'Privacy Policy - PositiveNews.Web'
   }, [])
 
+  // Soft-delete on the server, then clear local auth so the user cannot keep using the old token.
   const onDeactivateClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     if (!token || isDeactivating) {

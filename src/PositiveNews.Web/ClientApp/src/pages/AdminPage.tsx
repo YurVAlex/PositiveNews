@@ -1,3 +1,4 @@
+/** Admin dashboard: verifies API access, then renders moderation and ops panels. */
 import { useEffect, useState } from 'react'
 import { fetchAdminStatus } from '../api/admin-api'
 import { IngestionRuns } from '../components/admin/IngestionRuns'
@@ -13,6 +14,7 @@ export function AdminPage() {
   const [accessOk, setAccessOk] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Route may be reachable in the SPA; this call confirms the token has admin rights on the server.
   useEffect(() => {
     if (!token) {
       setError('Unauthorized')

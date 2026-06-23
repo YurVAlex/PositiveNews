@@ -1,3 +1,5 @@
+/** Admin comment review, including linked user complaints. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type CommentComplaintAdminItem = {
@@ -26,6 +28,7 @@ export type UpdateCommentRequest = {
   note?: string | null
 }
 
+// Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string; title?: string }
@@ -35,6 +38,7 @@ async function parseProblem(res: Response): Promise<string> {
   }
 }
 
+/** Loads a comment with its complaints so moderators can decide hide/restore actions. */
 export async function fetchAdminCommentDetail(token: string, commentId: number): Promise<AdminCommentDetail> {
   const res = await fetch(apiUrl(`/api/admin/comments/${commentId}`), { headers: authTokenHeader(token) })
 
@@ -46,6 +50,7 @@ export async function fetchAdminCommentDetail(token: string, commentId: number):
   return res.json() as Promise<AdminCommentDetail>
 }
 
+/** Updates comment visibility and records moderation reason/note for the audit log. */
 export async function updateAdminComment(token: string, commentId: number, payload: UpdateCommentRequest): Promise<void> {
   const res = await fetch(apiUrl(`/api/admin/comments/${commentId}`), {
     method: 'PUT',

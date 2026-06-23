@@ -1,3 +1,5 @@
+/** Admin RSS source configuration and trust-score management. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type SourceAdminItem = {
@@ -25,6 +27,7 @@ export type UpdateSourceRequest = {
   note?: string | null
 }
 
+// Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string; title?: string }
@@ -34,6 +37,7 @@ async function parseProblem(res: Response): Promise<string> {
   }
 }
 
+/** Lists all ingestion sources with summary fields for the admin table. */
 export async function fetchAdminSources(token: string): Promise<SourceAdminItem[]> {
   const res = await fetch(apiUrl('/api/admin/sources'), {
     headers: authTokenHeader(token),
@@ -46,6 +50,7 @@ export async function fetchAdminSources(token: string): Promise<SourceAdminItem[
   return res.json() as Promise<SourceAdminItem[]>
 }
 
+/** Loads feed URL and moderation metadata for editing a single source. */
 export async function fetchSourceDetail(token: string, sourceId: number): Promise<SourceAdminDetail> {
   const res = await fetch(apiUrl(`/api/admin/sources/${sourceId}`), {
     headers: authTokenHeader(token),
@@ -59,6 +64,7 @@ export async function fetchSourceDetail(token: string, sourceId: number): Promis
   return res.json() as Promise<SourceAdminDetail>
 }
 
+/** Updates trust score, feed URL, or active flag; changes affect future ingestion runs. */
 export async function updateSource(token: string, sourceId: number, payload: UpdateSourceRequest): Promise<void> {
   const res = await fetch(apiUrl(`/api/admin/sources/${sourceId}`), {
     method: 'PUT',

@@ -1,3 +1,6 @@
+/**
+ * Banner listing currently preferred topics; clicking a chip removes it from the filter.
+ */
 import { Link } from 'react-router-dom'
 
 export type FeedActiveTopicsProps = {

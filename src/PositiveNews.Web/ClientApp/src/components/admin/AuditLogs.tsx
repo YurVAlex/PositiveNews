@@ -1,4 +1,8 @@
+/**
+ * Admin panel: browse recent moderation audit log entries and view change details.
+ */
 import { useCallback, useState } from 'react'
+
 import { fetchAuditLogs, type AuditLogAdminItem } from '../../api/admin-audit-logs-api'
 import { useAuth } from '../../auth/AuthProvider'
 import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
@@ -11,6 +15,7 @@ export function AuditLogs() {
   const [items, setItems] = useState<AuditLogAdminItem[]>([])
   const [selected, setSelected] = useState<AuditLogAdminItem | null>(null)
 
+  /** Fetches audit log rows from the API (used by Show and Refresh). */
   const load = useCallback(async (limit = 100) => {
     if (!token) return
     setLoading(true)

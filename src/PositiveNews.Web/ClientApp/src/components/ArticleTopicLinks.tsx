@@ -1,3 +1,6 @@
+/**
+ * Topic chips on an article card; each link toggles that topic in the feed filter.
+ */
 import { Link } from 'react-router-dom'
 
 type ArticleTopicLinksProps = {
@@ -6,6 +9,7 @@ type ArticleTopicLinksProps = {
   buildTopicToggleUrl: (topic: string) => string
 }
 
+/** Case-insensitive check whether a topic is in the active feed filter. */
 function isTopicSelected(topic: string, selectedTopics: string[]): boolean {
   const lower = topic.toLowerCase()
   return selectedTopics.some((t) => t.toLowerCase() === lower)

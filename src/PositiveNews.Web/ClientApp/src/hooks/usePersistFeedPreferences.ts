@@ -1,3 +1,6 @@
+/**
+ * Auto-saves feed URL preferences to the server for signed-in users (debounced).
+ */
 import { putFeedPreferences } from '../api/preferences-api'
 import {
   loadLastSavedPreferenceParams,
@@ -11,6 +14,10 @@ import { useEffect, useRef } from 'react'
 
 const SAVE_DEBOUNCE_MS = 500
 
+/**
+ * Watches search params and PUTs changes to /api/preferences when they differ from the last saved snapshot.
+ * Skips while hydrating from a session draft to avoid overwriting server data with stale local state.
+ */
 export function usePersistFeedPreferences(
   searchParams: URLSearchParams,
   token: string | null,

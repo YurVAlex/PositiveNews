@@ -1,3 +1,5 @@
+/** Admin RSS ingestion monitoring and manual cycle trigger. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type IngestionCycleStatus = {
@@ -14,6 +16,7 @@ export type IngestionRunListItem = {
   itemsFetched: number
 }
 
+// Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string; title?: string }
@@ -23,6 +26,7 @@ async function parseProblem(res: Response): Promise<string> {
   }
 }
 
+/** Reports whether a cycle is in progress and when the scheduler will run next. */
 export async function fetchIngestionStatus(token: string): Promise<IngestionCycleStatus> {
   const res = await fetch(apiUrl('/api/admin/ingestion/status'), {
     headers: authTokenHeader(token),
@@ -35,6 +39,7 @@ export async function fetchIngestionStatus(token: string): Promise<IngestionCycl
   return res.json() as Promise<IngestionCycleStatus>
 }
 
+/** Returns recent per-source ingestion runs for the admin activity log. */
 export async function fetchIngestionRuns(token: string): Promise<IngestionRunListItem[]> {
   const res = await fetch(apiUrl('/api/admin/ingestion/runs'), {
     headers: authTokenHeader(token),
@@ -47,6 +52,7 @@ export async function fetchIngestionRuns(token: string): Promise<IngestionRunLis
   return res.json() as Promise<IngestionRunListItem[]>
 }
 
+/** Starts an on-demand ingestion cycle; no-ops on 202, rejects if a cycle is already running (409). */
 export async function triggerIngestionCycle(token: string): Promise<void> {
   const res = await fetch(apiUrl('/api/admin/ingestion/trigger'), {
     method: 'POST',

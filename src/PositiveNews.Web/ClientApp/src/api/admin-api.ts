@@ -1,3 +1,5 @@
+/** Lightweight admin access check used before loading the admin UI. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 type AdminStatusResponse = {
@@ -5,6 +7,7 @@ type AdminStatusResponse = {
   message: string
 }
 
+/** Verifies the caller has admin privileges; throws on 401/403 so the UI can redirect early. */
 export async function fetchAdminStatus(token: string): Promise<AdminStatusResponse> {
   const res = await fetch(apiUrl('/api/admin/status'), {
     headers: authTokenHeader(token),

@@ -1,4 +1,8 @@
+/**
+ * Modal form for posting a new comment on an article.
+ */
 import { type FormEvent, useState } from 'react'
+
 import { COMMENT_MAX_LENGTH, getCommentContentError } from '../../utils/comment-validation'
 
 type AddCommentModalProps = {
@@ -17,12 +21,14 @@ export function AddCommentModal({ isOpen, isSubmitting, error, onClose, onSubmit
     return null
   }
 
+  /** Clears local state and notifies parent to close the modal. */
   const handleClose = () => {
     setContent('')
     setContentError(null)
     onClose()
   }
 
+  /** Validates content length and delegates to parent onSubmit. */
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const validationError = getCommentContentError(content)

@@ -1,3 +1,6 @@
+/**
+ * Renders article preview images parsed from HTML img tags with lazy loading and source fallbacks.
+ */
 import { useEffect, useState } from 'react'
 
 type ArticleImageProps = {
@@ -13,6 +16,7 @@ type ParsedImg = {
   className: string
 }
 
+/** Extracts src, alt, and class from a stored HTML img tag string. */
 function parseImgFromTag(imageTag: string | null | undefined): ParsedImg | null {
   if (!imageTag?.trim()) {
     return null
@@ -32,14 +36,12 @@ function parseImgFromTag(imageTag: string | null | undefined): ParsedImg | null 
   }
 }
 
-/**
- * Renders the article hero image with loading hints and a source default fallback.
- */
 export function ArticleImage({ imageTag, fallbackImageTag, index }: ArticleImageProps) {
   const primary = parseImgFromTag(imageTag)
   const fallback = parseImgFromTag(fallbackImageTag)
   const [useFallback, setUseFallback] = useState(false)
 
+  // Reset fallback when the article image changes (e.g. navigating between cards).
   useEffect(() => {
     setUseFallback(false)
   }, [imageTag, fallbackImageTag])
@@ -60,6 +62,7 @@ export function ArticleImage({ imageTag, fallbackImageTag, index }: ArticleImage
       loading={loading}
       decoding={decoding}
       onError={() => {
+        // Swap to source default image when the primary preview fails to load.
         if (fallback && active.src !== fallback.src) {
           setUseFallback(true)
         }

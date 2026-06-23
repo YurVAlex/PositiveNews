@@ -1,3 +1,8 @@
+/**
+ * Password strength and confirmation checks for registration forms.
+ * Rules align with server-side {@link RegisterUserCommandValidator}.
+ */
+
 export const PASSWORD_MIN_LENGTH = 8
 export const PASSWORD_MAX_LENGTH = 128
 
@@ -37,10 +42,12 @@ export function getPasswordValidationErrors(password: string): string[] {
   return errors
 }
 
+/** Returns true when password and confirmation strings are identical. */
 export function passwordsMatch(password: string, confirmPassword: string): boolean {
   return password === confirmPassword
 }
 
+/** Returns a user-facing error for the confirm-password field, or null when valid. */
 export function getConfirmPasswordError(password: string, confirmPassword: string): string | null {
   if (!confirmPassword.length) {
     return 'Please confirm your password.'

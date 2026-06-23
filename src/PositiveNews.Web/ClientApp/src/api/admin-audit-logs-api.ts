@@ -1,3 +1,5 @@
+/** Admin moderation audit trail for accountability and review. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type AuditLogAdminItem = {
@@ -13,6 +15,7 @@ export type AuditLogAdminItem = {
   note?: string | null
 }
 
+/** Fetches recent moderation actions; limit caps payload size for the admin dashboard. */
 export async function fetchAuditLogs(token: string, limit = 100): Promise<AuditLogAdminItem[]> {
   const res = await fetch(apiUrl(`/api/admin/audit-logs?limit=${limit}`), {
     headers: authTokenHeader(token),

@@ -1,3 +1,5 @@
+/** Admin user listing, detail, and account moderation. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type AdminUserItem = {
@@ -29,6 +31,7 @@ export type UpdateUserRequest = {
   note?: string | null
 }
 
+// Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string; title?: string }
@@ -38,6 +41,7 @@ async function parseProblem(res: Response): Promise<string> {
   }
 }
 
+/** Lists users for the admin table; optional search narrows by name or email. */
 export async function fetchAdminUsers(token: string, searchTerm?: string): Promise<AdminUserItem[]> {
   const uri = searchTerm ? apiUrl(`/api/admin/users?q=${encodeURIComponent(searchTerm)}`) : apiUrl('/api/admin/users')
   const res = await fetch(uri, { headers: authTokenHeader(token) })
@@ -49,6 +53,7 @@ export async function fetchAdminUsers(token: string, searchTerm?: string): Promi
   return res.json() as Promise<AdminUserItem[]>
 }
 
+/** Loads PII and login history for the admin user detail view. */
 export async function fetchAdminUserDetail(token: string, userId: number): Promise<AdminUserDetail> {
   const res = await fetch(apiUrl(`/api/admin/users/${userId}`), { headers: authTokenHeader(token) })
 
@@ -60,6 +65,7 @@ export async function fetchAdminUserDetail(token: string, userId: number): Promi
   return res.json() as Promise<AdminUserDetail>
 }
 
+/** Activates/deactivates a user or toggles email confirmation with audit metadata. */
 export async function updateAdminUser(token: string, userId: number, payload: UpdateUserRequest): Promise<void> {
   const res = await fetch(apiUrl(`/api/admin/users/${userId}`), {
     method: 'PUT',

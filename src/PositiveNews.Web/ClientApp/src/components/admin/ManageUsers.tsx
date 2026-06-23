@@ -1,4 +1,8 @@
+/**
+ * Admin panel: search users and update account active/confirmed state.
+ */
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+
 import {
   fetchAdminUserDetail,
   fetchAdminUsers,
@@ -29,6 +33,7 @@ export function ManageUsers() {
     note: '',
   })
 
+  // Load user detail and reset moderation form when selection changes.
   useEffect(() => {
     if (selectedUserId === null || !token) {
       setSelectedUserDetail(null)
@@ -52,6 +57,7 @@ export function ManageUsers() {
       .finally(() => setDetailLoading(false))
   }, [selectedUserId, token])
 
+  /** Searches users by id or name. */
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token) return
@@ -79,6 +85,7 @@ export function ManageUsers() {
     setError(null)
   }
 
+  /** Clears search results and resets all panel state. */
   const handleClearSelection = () => {
     setError(null)
     setSubmitMessage(null)
@@ -120,6 +127,7 @@ export function ManageUsers() {
     }))
   }
 
+  /** Persists user moderation changes and refreshes list and detail. */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token || selectedUserId === null) return

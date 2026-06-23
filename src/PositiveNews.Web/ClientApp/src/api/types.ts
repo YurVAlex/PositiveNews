@@ -1,3 +1,4 @@
+/** Shared API response shapes used by fetch helpers and UI components. */
 export type SourceFilterItem = {
   id: number
   name: string

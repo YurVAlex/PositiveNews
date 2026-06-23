@@ -1,4 +1,8 @@
 /**
+ * Fallback hero images for articles when the source has no thumbnail in the feed.
+ */
+
+/**
  * Default hero images served from wwwroot/Defaults/ (see SeedData.DefaultThumbnailHtml).
  * Keys are normalized source display names from the database.
  */

@@ -1,4 +1,8 @@
+/**
+ * Modal form for filing a complaint against a comment.
+ */
 import { type FormEvent, useState } from 'react'
+
 import { COMPLAINT_REASON_MAX_LENGTH, getComplaintReasonError } from '../../utils/comment-validation'
 
 type ComplainModalProps = {
@@ -25,12 +29,14 @@ export function ComplainModal({
     return null
   }
 
+  /** Clears local state and notifies parent to close the modal. */
   const handleClose = () => {
     setReason('')
     setReasonError(null)
     onClose()
   }
 
+  /** Validates reason length and delegates to parent onSubmit. */
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const validationError = getComplaintReasonError(reason)

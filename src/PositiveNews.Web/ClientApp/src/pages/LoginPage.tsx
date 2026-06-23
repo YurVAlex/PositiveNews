@@ -1,3 +1,4 @@
+/** Sign-in form; redirects authenticated users and honors a post-login return path. */
 import { FormEvent, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -10,6 +11,7 @@ export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  // Protected routes set location.state.from so login sends the user back where they came from.
   const state = (location.state as LoginLocationState | null) ?? null
   const redirectTo = state?.from ?? '/'
 
@@ -19,11 +21,13 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
 
   if (isAuthenticated) {
+    // Already signed in—skip the form and go to the intended destination.
     return <Navigate to={redirectTo} replace />
   }
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // AuthProvider stores the token; navigate completes the redirect after a successful login.
     setError(null)
     setIsSubmitting(true)
     try {

@@ -1,3 +1,4 @@
+/** App shell: navbar, footer, and feed-aware navigation around routed page content. */
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
@@ -29,6 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
 
+  // Brand link should return to the feed with the user's last filters, not always bare "/".
   const feedHomeTo = useMemo(() => {
     const state = location.state as FeedNavigationState | null
     if (location.pathname === '/') {
@@ -37,6 +39,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return buildFeedReturnTo(state?.feedSearch)
   }, [location.pathname, location.search, location.state])
 
+  // Stash current feed query in link state so Privacy → back navigation can restore it.
   const feedSearchForPrivacy = useMemo(() => {
     if (location.pathname !== '/') {
       return undefined
@@ -45,6 +48,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     return qs ? qs : undefined
   }, [location.pathname, location.search])
 
+  // On the feed, toggle ?settings=1 in place; elsewhere, jump to feed with saved prefs and settings open.
   const handleSettingsClick = () => {
     if (location.pathname === '/') {
       const params = new URLSearchParams(location.search)
@@ -67,6 +71,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     navigate(`/${search}`, { replace: false })
   }
 
+  // Clear feed filters from the URL on logout so the next visitor sees the default feed.
   const handleLogout = () => {
     logout()
     navigate({ pathname: '/', search: '' }, { replace: true })

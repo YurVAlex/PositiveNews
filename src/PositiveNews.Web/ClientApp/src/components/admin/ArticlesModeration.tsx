@@ -1,4 +1,8 @@
+/**
+ * Admin panel: search articles, review details, and apply moderation changes.
+ */
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+
 import {
   fetchAdminArticles,
   fetchAdminArticleDetail,
@@ -33,6 +37,7 @@ export function ArticlesModeration() {
     note: '',
   })
 
+  // Load full article detail and reset the moderation form when selection changes.
   useEffect(() => {
     if (selectedArticleId === null || !token) {
       setSelectedArticleDetail(null)
@@ -60,6 +65,7 @@ export function ArticlesModeration() {
       .finally(() => setDetailLoading(false))
   }, [selectedArticleId, token])
 
+  /** Searches articles by title or id and populates the results table. */
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token) return
@@ -87,6 +93,7 @@ export function ArticlesModeration() {
     setError(null)
   }
 
+  /** Resets search, selection, and form state to initial values. */
   const handleClearSelection = () => {
     setError(null)
     setSubmitMessage(null)
@@ -107,6 +114,7 @@ export function ArticlesModeration() {
     })
   }
 
+  /** Deselects the current article without clearing search results. */
   const handleCancel = () => {
     setSelectedArticleId(null)
     setSelectedArticleDetail(null)
@@ -124,6 +132,7 @@ export function ArticlesModeration() {
     })
   }
 
+  /** Syncs controlled form fields from input change events. */
   const handleFormChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = event.target as HTMLInputElement | HTMLTextAreaElement
     const value = target.type === 'checkbox'
@@ -140,6 +149,7 @@ export function ArticlesModeration() {
     }))
   }
 
+  /** Persists moderation changes and refreshes list and detail from the server. */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token || selectedArticleId === null) return

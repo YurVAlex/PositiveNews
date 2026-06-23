@@ -1,3 +1,4 @@
+/** Full article view: loads by route id, renders HTML body, and hosts comments. */
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { fetchArticleDetail } from '../api/articles-api'
@@ -15,6 +16,7 @@ function formatDetailDate(iso: string) {
   return d.toLocaleString(undefined, { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+/** Link that returns to the feed with the same filters the user had when they opened the article. */
 function BackToFeedLink({ className }: { className?: string }) {
   const location = useLocation()
   const feedReturnTo = useMemo(() => {
@@ -37,6 +39,7 @@ export function ArticleDetailPage() {
   const { id } = useParams()
   const numericId = Number(id)
 
+  // undefined = loading, null = not found or invalid, object = loaded article.
   const [article, setArticle] = useState<ArticleDetailResponse | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,6 +49,7 @@ export function ArticleDetailPage() {
       return
     }
 
+    // Token is optional: guests can read articles; signed-in users may get extra fields from the API.
     let cancelled = false
     setError(null)
 

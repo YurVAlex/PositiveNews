@@ -1,3 +1,7 @@
+/**
+ * Parses and displays UTC timestamps from the API in the user's local timezone.
+ */
+
 const localDateTimeOptions: Intl.DateTimeFormatOptions = {
   year: 'numeric',
   month: 'short',

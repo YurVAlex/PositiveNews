@@ -1,3 +1,6 @@
+/**
+ * Mobile listbox for multi-select feed preferences (topics or sources).
+ */
 import { useCallback } from 'react'
 
 type FeedPreferenceMobileSelectProps<T extends string | number> = {
@@ -35,6 +38,7 @@ export function FeedPreferenceMobileSelect<T extends string | number>({
     [selectedValues, onChange, equals],
   )
 
+  /** Adds or removes a value from the selected preference list. */
   const toggleValue = useCallback(
     (value: T) => {
       if (isSelected(value)) {

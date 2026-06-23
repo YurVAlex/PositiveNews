@@ -1,4 +1,8 @@
+/**
+ * Admin panel: browse sources, edit trust score/feed URL, and toggle active state.
+ */
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+
 import {
   fetchAdminSources,
   fetchSourceDetail,
@@ -33,6 +37,7 @@ export function SourcesModeration() {
     [selectedSourceId, sources],
   )
 
+  // Fetch source list when the panel is expanded.
   useEffect(() => {
     if (!token || !isExpanded) return
     setLoading(true)
@@ -43,6 +48,7 @@ export function SourcesModeration() {
       .finally(() => setLoading(false))
   }, [token, isExpanded])
 
+  // Load editable source detail when a row is selected.
   useEffect(() => {
     if (selectedSourceId === null || !token) {
       setDetail(null)
@@ -72,6 +78,7 @@ export function SourcesModeration() {
     setSubmitMessage(null)
   }
 
+  /** Expands the panel and loads the source list. */
   const handleShowSources = () => {
     setIsExpanded(true)
     setSelectedSourceId(null)
@@ -80,6 +87,7 @@ export function SourcesModeration() {
     setError(null)
   }
 
+  /** Collapses the panel and clears selection state. */
   const handleCollapse = () => {
     setIsExpanded(false)
     setSelectedSourceId(null)
@@ -111,6 +119,7 @@ export function SourcesModeration() {
     }))
   }
 
+  /** Saves trust score, active flag, and feed URL for the selected source. */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token || selectedSourceId === null) return

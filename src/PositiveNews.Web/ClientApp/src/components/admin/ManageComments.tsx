@@ -1,4 +1,8 @@
+/**
+ * Admin panel: look up a comment by id and toggle its active state.
+ */
 import { useState, type ChangeEvent, type FormEvent } from 'react'
+
 import {
   fetchAdminCommentDetail,
   type AdminCommentDetail,
@@ -8,6 +12,7 @@ import {
 import { useAuth } from '../../auth/AuthProvider'
 import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
 
+/** Validates and parses a positive integer comment id from search input. */
 function parseCommentId(value: string): number | null {
   const trimmed = value.trim()
   if (!trimmed || !/^\d+$/.test(trimmed)) return null
@@ -29,6 +34,7 @@ export function ManageComments() {
     note: '',
   })
 
+  /** Loads comment detail by id for moderation. */
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token) return
@@ -83,6 +89,7 @@ export function ManageComments() {
     }))
   }
 
+  /** Saves isActive and audit fields, then reloads comment detail. */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!token || commentDetail === null) return

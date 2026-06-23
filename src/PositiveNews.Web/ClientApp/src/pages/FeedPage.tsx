@@ -1,3 +1,4 @@
+/** Home feed: article list driven by URL query params (topics, sources, sort, page). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { fetchArticleFeed, type FeedSortParam } from '../api/articles-api'
@@ -28,6 +29,7 @@ import {
   topicsFromSearchParams,
 } from '../utils/feed-preferences-url'
 
+/** Picks a heading that reflects active topic/source filters, or "Latest News" when none. */
 function feedTitle(topics: string[], sourceCount: number, singleSourceName: string | null): string {
   const hasTopics = topics.length > 0
   const hasSources = sourceCount > 0
@@ -54,6 +56,7 @@ export function FeedPage() {
   const minPositivity = useMemo(() => parseMinPositivity(searchParams.get('minPositivity')), [searchParams])
   const settingsOpen = useMemo(() => isSettingsOpen(searchParams), [searchParams])
   const hasPreferences = topics.length > 0 || sourceIds.length > 0
+  // Serialized query string passed to article links so "Back to Feed" restores this view.
   const feedReturnSearch = useMemo(() => {
     const params = new URLSearchParams(searchParams)
     params.set('page', String(page))
@@ -61,6 +64,7 @@ export function FeedPage() {
     return qs ? `?${qs}` : ''
   }, [searchParams, page])
 
+  // Remember last feed URL for navigation from other routes (e.g. layout brand link).
   useEffect(() => {
     saveLastFeedSearch(feedReturnSearch)
   }, [feedReturnSearch])
@@ -71,6 +75,7 @@ export function FeedPage() {
   const didHydrateFromDraft = useRef(false)
   const wasAuthenticatedRef = useRef(isAuthenticated)
 
+  // Every URL change also updates the session draft so prefs survive refresh and cross-route nav.
   const commitSearchParams = useCallback(
     (next: URLSearchParams, options?: { replace?: boolean }) => {
       saveFeedPrefsDraft(preferencesFromSearchParams(next))
@@ -79,6 +84,7 @@ export function FeedPage() {
     [setSearchParams],
   )
 
+  // Logout clears personalized filters from the URL; guests use the default feed.
   useEffect(() => {
     const wasAuthenticated = wasAuthenticatedRef.current
     wasAuthenticatedRef.current = isAuthenticated
@@ -87,6 +93,7 @@ export function FeedPage() {
     }
   }, [isAuthenticated, searchParams, setSearchParams])
 
+  // After login, apply preferences fetched from the server (overrides local draft once).
   useEffect(() => {
     if (!pendingServerPreferences) return
     const next = applyPreferencesToSearchParams(new URLSearchParams(), pendingServerPreferences, {
@@ -100,6 +107,7 @@ export function FeedPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply server snapshot once when auth provides it
   }, [pendingServerPreferences, clearPendingServerPreferences, setSearchParams])
 
+  // On first visit to bare "/", restore filters from session draft if the URL has no prefs yet.
   useEffect(() => {
     if (pendingServerPreferences) return
     if (didHydrateFromDraft.current) return
@@ -111,13 +119,16 @@ export function FeedPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate bare / from session draft once on first feed mount
   }, [pendingServerPreferences, searchParams, commitSearchParams])
 
+  // Keep session draft in sync when the URL changes (e.g. browser back/forward).
   useEffect(() => {
     const snapshot = preferencesFromSearchParams(searchParams)
     saveFeedPrefsDraft(snapshot)
   }, [searchParams])
 
+  // Debounced sync of URL preferences to the server for signed-in users.
   usePersistFeedPreferences(searchParams, token, isAuthenticated, user?.id ?? null, setSaveError)
 
+  // Refetch articles whenever filters or auth token change; ignore stale responses.
   useEffect(() => {
     let cancelled = false
     setError(null)
@@ -140,6 +151,7 @@ export function FeedPage() {
     }
   }, [page, topics, sourceIds, sortMode, minPositivity, token])
 
+  // Merge a partial preference change into the URL and reset to page 1.
   const updatePreferences = useCallback(
     (patch: Partial<{ topics: string[]; sourceIds: number[]; sort: FeedSortParam; minPositivity: number }>) => {
       const current = preferencesFromSearchParams(searchParams)
@@ -159,6 +171,7 @@ export function FeedPage() {
     [searchParams, commitSearchParams, settingsOpen],
   )
 
+  // Build a feed URL that adds/removes one topic—used by topic chips on cards without inline navigation logic.
   const buildTopicToggleUrl = useCallback(
     (topicName: string) => {
       const trimmed = topicName.trim()
@@ -180,6 +193,7 @@ export function FeedPage() {
     [searchParams, settingsOpen],
   )
 
+  // Same pattern as buildTopicToggleUrl, but for source filters.
   const buildSourceToggleUrl = useCallback(
     (sourceId: number) => {
       if (!Number.isInteger(sourceId) || sourceId < 1) return `/?${searchParams.toString()}`
@@ -213,6 +227,7 @@ export function FeedPage() {
     document.title = `${documentTitle} - PositiveNews.Web`
   }, [documentTitle])
 
+  // Scroll to top only after the fetched page matches the requested page (avoids jumping during load).
   useEffect(() => {
     if (data?.currentPage === page) {
       window.scrollTo(0, 0)

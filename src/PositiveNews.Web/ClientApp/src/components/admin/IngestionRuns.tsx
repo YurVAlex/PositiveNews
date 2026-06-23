@@ -1,4 +1,8 @@
+/**
+ * Admin panel: monitor ingestion schedule, trigger cycles, and review run history.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import {
   fetchIngestionRuns,
   fetchIngestionStatus,
@@ -11,6 +15,7 @@ import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
 
 const STATUS_POLL_MS = 15_000
 
+/** Formats next-run time or an in-progress label for the status banner. */
 function nextRunLabel(status: IngestionCycleStatus | null): string {
   if (!status) return 'Loading…'
   if (status.isRunning) return 'In progress'
@@ -30,6 +35,7 @@ export function IngestionRuns() {
   const [triggerLoading, setTriggerLoading] = useState(false)
   const previousStatusRef = useRef<IngestionCycleStatus | null>(null)
 
+  /** Polls ingestion cycle status on a fixed interval. */
   const refreshStatus = useCallback(async () => {
     if (!token) return
     try {
@@ -47,6 +53,7 @@ export function IngestionRuns() {
     return () => window.clearInterval(id)
   }, [refreshStatus])
 
+  /** Fetches and displays the ingestion run history table. */
   const handleShowRuns = useCallback(async () => {
     if (!token) return
     setRunsLoading(true)
@@ -62,6 +69,7 @@ export function IngestionRuns() {
     }
   }, [token])
 
+  // Auto-refresh run history when a triggered cycle finishes.
   useEffect(() => {
     const previousStatus = previousStatusRef.current
     if (previousStatus?.isRunning && status && !status.isRunning) {
@@ -73,6 +81,7 @@ export function IngestionRuns() {
     previousStatusRef.current = status
   }, [status, tableVisible, handleShowRuns])
 
+  /** Manually starts an ingestion cycle when none is running. */
   const handleTrigger = async () => {
     if (!token || status?.isRunning) return
     setTriggerLoading(true)

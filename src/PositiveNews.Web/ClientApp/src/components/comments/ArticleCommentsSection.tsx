@@ -1,4 +1,8 @@
+/**
+ * Article detail comments list with add and complain flows for authenticated users.
+ */
 import { useCallback, useEffect, useState } from 'react'
+
 import { Link } from 'react-router-dom'
 import { createArticleComment, fetchArticleComments, submitCommentComplaint } from '../../api/comments-api'
 import type { CommentResponse } from '../../api/types'
@@ -27,6 +31,7 @@ export function ArticleCommentsSection({ articleId }: ArticleCommentsSectionProp
   const [complainError, setComplainError] = useState<string | null>(null)
   const [complainSuccess, setComplainSuccess] = useState<string | null>(null)
 
+  /** Loads active comments for the current article. */
   const loadComments = useCallback(async () => {
     setIsLoading(true)
     setLoadError(null)
@@ -45,6 +50,7 @@ export function ArticleCommentsSection({ articleId }: ArticleCommentsSectionProp
     void loadComments()
   }, [loadComments])
 
+  /** Posts a new comment and appends it to the local list. */
   const handleAddComment = async (content: string) => {
     if (!token) {
       return
@@ -75,6 +81,7 @@ export function ArticleCommentsSection({ articleId }: ArticleCommentsSectionProp
     setComplainSuccess(null)
   }
 
+  /** Submits a complaint for the selected comment. */
   const handleSubmitComplaint = async (reason: string) => {
     if (!token || !complainTarget) {
       return

@@ -1,3 +1,5 @@
+/** Admin article listing, detail, and moderation updates. */
+
 import { apiUrl, authTokenHeader } from './http'
 
 export type AdminArticleItem = {
@@ -31,6 +33,7 @@ export type ArticleModerationRequest = {
   note?: string | null
 }
 
+// Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
     const body = (await res.json()) as { detail?: string; title?: string }
@@ -40,6 +43,7 @@ async function parseProblem(res: Response): Promise<string> {
   }
 }
 
+/** Lists articles for the admin table; optional search narrows by title. */
 export async function fetchAdminArticles(token: string, searchTerm?: string): Promise<AdminArticleItem[]> {
   const uri = searchTerm ? apiUrl(`/api/admin/articles?q=${encodeURIComponent(searchTerm)}`) : apiUrl('/api/admin/articles')
   const res = await fetch(uri, { headers: authTokenHeader(token) })
@@ -51,6 +55,7 @@ export async function fetchAdminArticles(token: string, searchTerm?: string): Pr
   return res.json() as Promise<AdminArticleItem[]>
 }
 
+/** Loads full article content and moderation metadata for the admin detail view. */
 export async function fetchAdminArticleDetail(token: string, articleId: number): Promise<AdminArticleDetail> {
   const res = await fetch(apiUrl(`/api/admin/articles/${articleId}`), {
     headers: authTokenHeader(token),
@@ -64,6 +69,7 @@ export async function fetchAdminArticleDetail(token: string, articleId: number):
   return res.json() as Promise<AdminArticleDetail>
 }
 
+/** Applies moderation changes (visibility, content edits, scores) and records audit metadata. */
 export async function moderateArticle(
   token: string,
   articleId: number,

@@ -1,3 +1,6 @@
+/**
+ * Feed card for a single article preview: source/topic toggles, scores, image, and expandable summary.
+ */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ArticlePreviewResponse } from '../api/types'
@@ -8,6 +11,7 @@ import positivityIcon from '../assets/ui/positivity.png'
 import viewIcon from '../assets/ui/view.png'
 import { resolveSourceDefaultImageTag } from '../utils/source-default-image'
 
+/** Formats ISO publish date for display in the card subtitle. */
 function formatPublishedAt(iso: string) {
     const d = new Date(iso)
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -29,6 +33,7 @@ function formatViewCount(count: number): string {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(count)
 }
 
+/** Maps positivity score to Bootstrap badge color classes (danger / warning / success). */
 function positivityBadgeClassName(score: number): string {
     const base = 'd-inline-flex align-items-center gap-1 text-nowrap small fw-semibold border rounded px-2 py-1'
     if (score < 0.49) return `${base} text-danger border-danger-subtle bg-danger-subtle`

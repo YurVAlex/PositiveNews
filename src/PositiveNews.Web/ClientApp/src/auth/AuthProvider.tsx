@@ -1,3 +1,7 @@
+/**
+ * Global authentication state: JWT tokens, user profile, and feed-preference sync on login.
+ * Wraps the app in main.tsx so any component can call useAuth().
+ */
 import {
   createContext,
   useCallback,
@@ -42,6 +46,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+/** Provides auth state and actions to the component tree. */
 export function AuthProvider({ children }: PropsWithChildren) {
   const [token, setToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
@@ -49,10 +54,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true)
   const [pendingServerPreferences, setPendingServerPreferences] = useState<FeedPreferencesSnapshot | null>(null)
 
+  /** Clears prefs queued for FeedPage after they have been applied to the URL. */
   const clearPendingServerPreferences = useCallback(() => {
     setPendingServerPreferences(null)
   }, [])
 
+  /** Fetches saved feed filters from the API and exposes them to FeedPage via pendingServerPreferences. */
   const loadServerPreferences = useCallback(async (accessToken: string, userId: number) => {
     const prefs = await getFeedPreferences(accessToken)
     const snapshot = preferencesFromApiResponse(prefs)
@@ -60,6 +67,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     saveLastSavedPreferenceParams(userId, serializePreferenceSnapshot(snapshot))
   }, [])
 
+  /** Exchanges the stored refresh token for a new access token; logs out on failure. */
   const refreshTokens = useCallback(async () => {
     const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
     if (!storedRefreshToken) {
@@ -87,7 +95,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
-  // Check if token is about to expire and refresh it
+  // Proactively refresh before expiry so API calls do not start failing mid-session.
   useEffect(() => {
     if (!token) return
 
@@ -111,6 +119,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => clearInterval(interval)
   }, [token, refreshTokens])
 
+  // On first load, restore session from localStorage and validate with /api/auth/me.
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
@@ -155,6 +164,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .finally(() => setIsLoading(false))
   }, [loadServerPreferences, refreshTokens])
 
+  /** Signs in, persists tokens, and loads server-side feed preferences. */
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await loginApi(email, password)
@@ -169,6 +179,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [loadServerPreferences],
   )
 
+  /**
+   * Creates an account and signs in. If the user configured feed filters while
+   * anonymous (session draft), those are uploaded instead of loading from the server.
+   */
   const register = useCallback(
     async (email: string, name: string, password: string) => {
       const response = await registerApi(email, name, password)
@@ -192,6 +206,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [loadServerPreferences],
   )
 
+  /** Clears tokens, user state, and all session-scoped feed preference storage. */
   const logout = useCallback(() => {
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
@@ -203,6 +218,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     clearLocalFeedPreferences()
   }, [])
 
+  // Stable context object reference avoids re-rendering all useAuth() consumers on unrelated provider renders.
   const value = useMemo<AuthContextValue>(
     () => ({
       isLoading,
@@ -234,6 +250,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
+/** Hook to read auth state and actions; must be used inside AuthProvider. */
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {

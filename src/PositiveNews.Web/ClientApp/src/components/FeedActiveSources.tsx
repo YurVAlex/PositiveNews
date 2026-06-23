@@ -1,3 +1,6 @@
+/**
+ * Banner listing currently preferred sources; clicking a chip removes it from the filter.
+ */
 import { Link } from 'react-router-dom'
 import type { SourceFilterItem } from '../api/types'
 

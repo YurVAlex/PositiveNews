@@ -1,3 +1,8 @@
+/**
+ * Feed filter/sort preferences as URL query params, sessionStorage drafts, and API payloads.
+ * Keeps the home feed URL, browser session, and saved user settings in sync.
+ */
+
 import type { FeedSortParam } from '../api/articles-api'
 import type { UserFeedPreferencesResponse } from '../api/types'
 
@@ -11,11 +16,13 @@ type StoredLastSavedFeedPrefs = {
   serialized: string
 }
 
+/** React Router location for returning to the feed with restored query params. */
 export type FeedReturnTo = {
   pathname: '/'
   search?: string
 }
 
+/** In-memory shape of feed filters shared by URL, session draft, and API. */
 export type FeedPreferencesSnapshot = {
   topics: string[]
   sourceIds: number[]
@@ -30,6 +37,7 @@ export const EMPTY_FEED_PREFERENCES: FeedPreferencesSnapshot = {
   minPositivity: DEFAULT_MIN_POSITIVITY,
 }
 
+/** Parses a page query value; falls back to 1 for missing or invalid input. */
 export function parsePage(raw: string | null): number {
   const n = Number(raw ?? '1')
   if (!Number.isFinite(n) || n < 1) {
@@ -38,6 +46,7 @@ export function parsePage(raw: string | null): number {
   return Math.floor(n)
 }
 
+/** Collects unique topic names from repeated `topic` query params, preserving order. */
 export function topicsFromSearchParams(searchParams: URLSearchParams): string[] {
   const ordered: string[] = []
   const seen = new Set<string>()
@@ -52,6 +61,7 @@ export function topicsFromSearchParams(searchParams: URLSearchParams): string[] 
   return ordered
 }
 
+/** Collects unique source IDs from repeated `source` query params, preserving order. */
 export function sourceIdsFromSearchParams(searchParams: URLSearchParams): number[] {
   const ordered: number[] = []
   const seen = new Set<number>()
@@ -65,6 +75,7 @@ export function sourceIdsFromSearchParams(searchParams: URLSearchParams): number
   return ordered
 }
 
+/** Parses sort query value; unknown values default to date order. */
 export function parseSort(raw: string | null): FeedSortParam {
   const value = raw?.toLowerCase()
   if (value === 'positivity') return 'positivity'
@@ -72,6 +83,7 @@ export function parseSort(raw: string | null): FeedSortParam {
   return 'date'
 }
 
+/** Parses minPositivity query value, clamped to [0, 1] with a default of 0.5. */
 export function parseMinPositivity(raw: string | null): number {
   if (!raw?.trim()) {
     return DEFAULT_MIN_POSITIVITY
@@ -83,10 +95,12 @@ export function parseMinPositivity(raw: string | null): number {
   return Math.min(1, Math.max(0, n))
 }
 
+/** True when the feed settings panel should be open (`settings=1`). */
 export function isSettingsOpen(searchParams: URLSearchParams): boolean {
   return searchParams.get('settings') === '1'
 }
 
+/** Builds a preference snapshot from the current URL search params. */
 export function preferencesFromSearchParams(searchParams: URLSearchParams): FeedPreferencesSnapshot {
   return {
     topics: topicsFromSearchParams(searchParams),
@@ -96,6 +110,7 @@ export function preferencesFromSearchParams(searchParams: URLSearchParams): Feed
   }
 }
 
+/** Maps a client snapshot to the API request body for saving user feed preferences. */
 export function snapshotToApiRequest(snapshot: FeedPreferencesSnapshot): UserFeedPreferencesResponse {
   return {
     topicNames: snapshot.topics,
@@ -105,6 +120,7 @@ export function snapshotToApiRequest(snapshot: FeedPreferencesSnapshot): UserFee
   }
 }
 
+/** Maps a saved API response back into the client preference snapshot shape. */
 export function preferencesFromApiResponse(response: UserFeedPreferencesResponse): FeedPreferencesSnapshot {
   return {
     topics: [...response.topicNames],
@@ -119,6 +135,7 @@ export function preferenceKeysEqual(a: URLSearchParams, b: URLSearchParams): boo
   return serializePreferenceParams(a) === serializePreferenceParams(b)
 }
 
+/** Serializes only preference-related query keys for comparison and storage fingerprints. */
 export function serializePreferenceParams(params: URLSearchParams): string {
   const snapshot = preferencesFromSearchParams(params)
   return serializePreferenceSnapshot(snapshot)
@@ -131,6 +148,7 @@ export function serializePreferenceSnapshot(snapshot: FeedPreferencesSnapshot): 
   return next.toString()
 }
 
+/** Loads the last server-synced preference fingerprint for the given user, if any. */
 export function loadLastSavedPreferenceParams(userId: number): string | null {
   try {
     const raw = sessionStorage.getItem(FEED_PREFS_LAST_SAVED_KEY)
@@ -145,6 +163,7 @@ export function loadLastSavedPreferenceParams(userId: number): string | null {
   }
 }
 
+/** Persists the canonical preference fingerprint after a successful server save. */
 export function saveLastSavedPreferenceParams(userId: number, serialized: string): void {
   try {
     const payload: StoredLastSavedFeedPrefs = { userId, serialized }
@@ -154,6 +173,7 @@ export function saveLastSavedPreferenceParams(userId: number, serialized: string
   }
 }
 
+/** Clears the stored server-sync fingerprint (e.g. on logout). */
 export function clearLastSavedPreferenceParams(): void {
   try {
     sessionStorage.removeItem(FEED_PREFS_LAST_SAVED_KEY)
@@ -162,6 +182,7 @@ export function clearLastSavedPreferenceParams(): void {
   }
 }
 
+/** Writes snapshot fields into URLSearchParams, optionally including page and settings UI state. */
 export function applyPreferencesToSearchParams(
   params: URLSearchParams,
   snapshot: FeedPreferencesSnapshot,
@@ -198,6 +219,7 @@ export function applyPreferencesToSearchParams(
   return params
 }
 
+/** Builds a full feed query string (`?topic=…&page=…`) from a preference snapshot. */
 export function buildSearchFromSnapshot(
   snapshot: FeedPreferencesSnapshot,
   options?: { settingsOpen?: boolean; page?: number },
@@ -211,6 +233,7 @@ export function buildSearchFromSnapshot(
   return qs ? `?${qs}` : ''
 }
 
+/** Stores unsaved preference edits in sessionStorage while the settings panel is open. */
 export function saveFeedPrefsDraft(snapshot: FeedPreferencesSnapshot): void {
   try {
     sessionStorage.setItem(FEED_PREFS_DRAFT_KEY, JSON.stringify(snapshot))
@@ -219,6 +242,7 @@ export function saveFeedPrefsDraft(snapshot: FeedPreferencesSnapshot): void {
   }
 }
 
+/** Loads and sanitizes the session preference draft, or null when absent or corrupt. */
 export function loadFeedPrefsDraft(): FeedPreferencesSnapshot | null {
   try {
     const raw = sessionStorage.getItem(FEED_PREFS_DRAFT_KEY)
@@ -239,6 +263,7 @@ export function loadFeedPrefsDraft(): FeedPreferencesSnapshot | null {
   }
 }
 
+/** Removes the session preference draft. */
 export function clearFeedPrefsDraft(): void {
   try {
     sessionStorage.removeItem(FEED_PREFS_DRAFT_KEY)
@@ -247,6 +272,7 @@ export function clearFeedPrefsDraft(): void {
   }
 }
 
+/** Removes the stored last-visited feed URL from sessionStorage. */
 export function clearLastFeedSearch(): void {
   try {
     sessionStorage.removeItem(LAST_FEED_SEARCH_KEY)
@@ -262,6 +288,7 @@ export function clearLocalFeedPreferences(): void {
   clearLastSavedPreferenceParams()
 }
 
+/** Builds default feed query params (no filters, page 1, optional settings panel). */
 export function buildDefaultFeedSearchParams(options?: { settingsOpen?: boolean }): URLSearchParams {
   return applyPreferencesToSearchParams(new URLSearchParams(), EMPTY_FEED_PREFERENCES, {
     includeSettings: true,
@@ -284,6 +311,7 @@ export function saveLastFeedSearch(feedSearch: string): void {
   }
 }
 
+/** Loads the last visited feed query string, normalized with a leading `?`. */
 export function loadLastFeedSearch(): string | null {
   try {
     const raw = sessionStorage.getItem(LAST_FEED_SEARCH_KEY)
@@ -300,6 +328,7 @@ function normalizeFeedSearch(feedSearch?: string | null): string {
   return trimmed.startsWith('?') ? trimmed : `?${trimmed}`
 }
 
+/** True when the snapshot differs from the default feed (any active filter or non-default sort). */
 export function hasNonDefaultPreferences(snapshot: FeedPreferencesSnapshot): boolean {
   return (
     snapshot.topics.length > 0 ||

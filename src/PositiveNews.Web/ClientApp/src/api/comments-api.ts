@@ -1,3 +1,5 @@
+/** Article comment reads and authenticated write/complaint actions. */
+
 import { apiUrl, authTokenHeader } from './http'
 import type { ArticleCommentsListResponse, CommentResponse } from './types'
 
@@ -6,6 +8,7 @@ type ApiProblemDetails = {
   detail?: string
 }
 
+// Prefer server ProblemDetails detail/title over generic status-based fallbacks.
 async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   try {
     const data = (await res.json()) as ApiProblemDetails
@@ -22,6 +25,7 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
   return fallback
 }
 
+/** Lists public comments for an article; no auth required. */
 export async function fetchArticleComments(articleId: number): Promise<ArticleCommentsListResponse> {
   const res = await fetch(apiUrl(`/api/articles/${articleId}/comments`), {
     headers: { Accept: 'application/json' },
@@ -34,6 +38,7 @@ export async function fetchArticleComments(articleId: number): Promise<ArticleCo
   return res.json() as Promise<ArticleCommentsListResponse>
 }
 
+/** Posts a new comment on behalf of the signed-in user. */
 export async function createArticleComment(
   articleId: number,
   content: string,
@@ -64,6 +69,7 @@ export async function createArticleComment(
   return res.json() as Promise<CommentResponse>
 }
 
+/** Reports a comment for moderator review; duplicate complaints per user are rejected (409). */
 export async function submitCommentComplaint(
   articleId: number,
   commentId: number,

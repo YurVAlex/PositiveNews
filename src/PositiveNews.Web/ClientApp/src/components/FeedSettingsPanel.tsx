@@ -1,3 +1,6 @@
+/**
+ * Collapsible panel for editing feed topics, sources, and minimum positivity threshold.
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchSources } from '../api/sources-api'
 import { fetchTopics } from '../api/topics-api'
@@ -53,6 +56,7 @@ export function FeedSettingsPanel({
     setSliderValue(minPositivity)
   }, [minPositivity])
 
+  // Load topic and source catalogs when the panel opens.
   useEffect(() => {
     let cancelled = false
     setLoadError(null)
@@ -79,6 +83,7 @@ export function FeedSettingsPanel({
     }
   }, [token])
 
+  /** Toggles a topic in the feed filter (case-insensitive). */
   const toggleTopic = useCallback(
     (topicName: string) => {
       const trimmed = topicName.trim()
@@ -94,6 +99,7 @@ export function FeedSettingsPanel({
     [selectedTopics, onTopicsChange],
   )
 
+  /** Toggles a source id in the feed filter. */
   const toggleSource = useCallback(
     (sourceId: number) => {
       if (!Number.isInteger(sourceId) || sourceId < 1) return
@@ -107,6 +113,7 @@ export function FeedSettingsPanel({
     [selectedSourceIds, onSourcesChange],
   )
 
+  /** Pushes the slider value to the parent when the user finishes adjusting it. */
   const commitSlider = useCallback(() => {
     const clamped = Math.min(1, Math.max(0, sliderValue))
     onMinPositivityCommit(clamped)
