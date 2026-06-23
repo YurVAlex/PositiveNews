@@ -20,9 +20,9 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     private readonly TimeSpan _interval;
 
     /// <summary>
-    /// Initial delay before the first run so the application has time to fully start.
+    /// Brief delay before the first run so the host can finish starting.
     /// </summary>
-    private static readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(1);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IngestionBackgroundService"/> class.

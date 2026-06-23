@@ -12,7 +12,6 @@ using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Configuration;
 using PositiveNews.Infrastructure.Ingestion;
 using PositiveNews.Infrastructure.Persistence;
-using PositiveNews.Infrastructure.Persistence.Connection;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;
 using PositiveNews.Infrastructure.Persistence.Repositories.Write;
 using PositiveNews.Infrastructure.Persistence.UnitOfWork;
@@ -37,7 +36,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = ConnectionStringResolver.Resolve(configuration);
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
         services.AddDbContext<AppDbContext>(options =>
                options.UseSqlServer(connectionString, sqlOptions =>

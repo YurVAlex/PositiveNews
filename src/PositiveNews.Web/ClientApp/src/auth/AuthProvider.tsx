@@ -30,6 +30,10 @@ const AUTH_TOKEN_KEY = 'positiveNews.accessToken'
 const REFRESH_TOKEN_KEY = 'positiveNews.refreshToken'
 const TOKEN_EXPIRY_KEY = 'positiveNews.tokenExpiry'
 
+function readStoredToken(key: string): string | null {
+  return localStorage.getItem(key)
+}
+
 type AuthContextValue = {
   isLoading: boolean
   token: string | null
@@ -48,8 +52,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 /** Provides auth state and actions to the component tree. */
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [token, setToken] = useState<string | null>(null)
-  const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(() => readStoredToken(AUTH_TOKEN_KEY))
+  const [refreshToken, setRefreshToken] = useState<string | null>(() => readStoredToken(REFRESH_TOKEN_KEY))
   const [user, setUser] = useState<UserProfileResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingServerPreferences, setPendingServerPreferences] = useState<FeedPreferencesSnapshot | null>(null)
@@ -128,8 +132,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return
     }
 
-    setToken(storedToken)
-    setRefreshToken(storedRefreshToken)
     getCurrentUser(storedToken)
       .then(async (profile) => {
         setUser(profile)

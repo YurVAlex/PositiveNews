@@ -21,8 +21,9 @@ export function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isSubmitting) {
     // Already signed in—skip the form and go to the intended destination.
+    // Do not redirect while login() is still loading prefs (token/user are set first).
     return <Navigate to={redirectTo} replace />
   }
 

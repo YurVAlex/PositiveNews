@@ -23,8 +23,9 @@ export function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isSubmitting) {
     // Signed-in users land on the feed instead of creating a duplicate account.
+    // Do not redirect while register() is still uploading prefs (token/user are set first).
     return <Navigate to="/" replace />
   }
 

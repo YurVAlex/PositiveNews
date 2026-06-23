@@ -16,7 +16,7 @@ const SAVE_DEBOUNCE_MS = 500
 
 /**
  * Watches search params and PUTs changes to /api/preferences when they differ from the last saved snapshot.
- * Skips while hydrating from a session draft to avoid overwriting server data with stale local state.
+ * Skips while hydrating from a session draft or until server preferences are reflected in the URL.
  */
 export function usePersistFeedPreferences(
   searchParams: URLSearchParams,
@@ -24,11 +24,12 @@ export function usePersistFeedPreferences(
   isAuthenticated: boolean,
   userId: number | null,
   onSaveError: (message: string) => void,
+  enabled = true,
 ) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated || !token || userId == null) {
+    if (!enabled || !isAuthenticated || !token || userId == null) {
       return
     }
 
@@ -61,5 +62,5 @@ export function usePersistFeedPreferences(
         clearTimeout(timerRef.current)
       }
     }
-  }, [searchParams, token, isAuthenticated, userId, onSaveError])
+  }, [searchParams, token, isAuthenticated, userId, onSaveError, enabled])
 }

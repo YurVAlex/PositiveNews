@@ -24,6 +24,8 @@ import {
   preferencesFromSearchParams,
   saveFeedPrefsDraft,
   saveLastFeedSearch,
+  serializePreferenceParams,
+  serializePreferenceSnapshot,
   shouldHydrateFeedFromDraft,
   sourceIdsFromSearchParams,
   topicsFromSearchParams,
@@ -47,7 +49,7 @@ function feedTitle(topics: string[], sourceCount: number, singleSourceName: stri
 }
 
 export function FeedPage() {
-  const { token, isAuthenticated, user, pendingServerPreferences, clearPendingServerPreferences } = useAuth()
+  const { token, isLoading, isAuthenticated, user, pendingServerPreferences, clearPendingServerPreferences } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = useMemo(() => parsePage(searchParams.get('page')), [searchParams])
   const topics = useMemo(() => topicsFromSearchParams(searchParams), [searchParams])
@@ -93,9 +95,19 @@ export function FeedPage() {
     }
   }, [isAuthenticated, searchParams, setSearchParams])
 
-  // After login, apply preferences fetched from the server (overrides local draft once).
+  // After login/register, apply server prefs to the URL; clear pending only once the URL matches.
   useEffect(() => {
     if (!pendingServerPreferences) return
+
+    const expectedSerialized = serializePreferenceSnapshot(pendingServerPreferences)
+    const currentSerialized = serializePreferenceParams(searchParams)
+
+    if (currentSerialized === expectedSerialized) {
+      didHydrateFromDraft.current = true
+      clearPendingServerPreferences()
+      return
+    }
+
     const next = applyPreferencesToSearchParams(new URLSearchParams(), pendingServerPreferences, {
       includeSettings: true,
       settingsOpen: isSettingsOpen(searchParams),
@@ -103,9 +115,7 @@ export function FeedPage() {
     })
     saveFeedPrefsDraft(preferencesFromSearchParams(next))
     setSearchParams(next, { replace: true })
-    clearPendingServerPreferences()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply server snapshot once when auth provides it
-  }, [pendingServerPreferences, clearPendingServerPreferences, setSearchParams])
+  }, [pendingServerPreferences, searchParams, clearPendingServerPreferences, setSearchParams])
 
   // On first visit to bare "/", restore filters from session draft if the URL has no prefs yet.
   useEffect(() => {
@@ -125,11 +135,24 @@ export function FeedPage() {
     saveFeedPrefsDraft(snapshot)
   }, [searchParams])
 
+  // Fetch and auto-save only after the URL reflects pending server prefs (avoids stale-query requests).
+  const prefsReady = useMemo(() => {
+    if (!pendingServerPreferences) {
+      return true
+    }
+    return (
+      serializePreferenceParams(searchParams) ===
+      serializePreferenceSnapshot(pendingServerPreferences)
+    )
+  }, [pendingServerPreferences, searchParams])
+
   // Debounced sync of URL preferences to the server for signed-in users.
-  usePersistFeedPreferences(searchParams, token, isAuthenticated, user?.id ?? null, setSaveError)
+  usePersistFeedPreferences(searchParams, token, isAuthenticated, user?.id ?? null, setSaveError, prefsReady)
 
   // Refetch articles whenever filters or auth token change; ignore stale responses.
   useEffect(() => {
+    if (isLoading || !prefsReady) return
+
     let cancelled = false
     setError(null)
 
@@ -149,7 +172,7 @@ export function FeedPage() {
     return () => {
       cancelled = true
     }
-  }, [page, topics, sourceIds, sortMode, minPositivity, token])
+  }, [page, topics, sourceIds, sortMode, minPositivity, token, isLoading, prefsReady])
 
   // Merge a partial preference change into the URL and reset to page 1.
   const updatePreferences = useCallback(
