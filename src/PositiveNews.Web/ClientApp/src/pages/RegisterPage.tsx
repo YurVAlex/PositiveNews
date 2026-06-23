@@ -16,6 +16,8 @@ export function RegisterPage() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -90,28 +92,39 @@ export function RegisterPage() {
               <label htmlFor="register-password" className="form-label">
                 Password
               </label>
-              <input
-                id="register-password"
-                type="password"
-                className={`form-control${passwordError ? ' is-invalid' : ''}`}
-                required
-                minLength={PASSWORD_MIN_LENGTH}
-                maxLength={PASSWORD_MAX_LENGTH}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                  // Re-validate on change only after the user has seen an error (less noisy UX).
-                  if (passwordError) {
-                    setPasswordError(getPasswordValidationErrors(e.target.value)[0] ?? null)
-                  }
-                  if (confirmPasswordError) {
-                    setConfirmPasswordError(getConfirmPasswordError(e.target.value, confirmPassword))
-                  }
-                }}
-                aria-invalid={passwordError ? true : undefined}
-                aria-describedby={passwordError ? 'register-password-error' : 'register-password-hint'}
-              />
+              <div className="input-group">
+                <input
+                  id="register-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`form-control${passwordError ? ' is-invalid' : ''}`}
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    // Re-validate on change only after the user has seen an error (less noisy UX).
+                    if (passwordError) {
+                      setPasswordError(getPasswordValidationErrors(e.target.value)[0] ?? null)
+                    }
+                    if (confirmPasswordError) {
+                      setConfirmPasswordError(getConfirmPasswordError(e.target.value, confirmPassword))
+                    }
+                  }}
+                  aria-invalid={passwordError ? true : undefined}
+                  aria-describedby={passwordError ? 'register-password-error' : 'register-password-hint'}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <div id="register-password-hint" className="form-text">
                 8–128 characters, with uppercase, lowercase, digit, and special character.
               </div>
@@ -126,24 +139,35 @@ export function RegisterPage() {
               <label htmlFor="register-confirm-password" className="form-label">
                 Confirm password
               </label>
-              <input
-                id="register-confirm-password"
-                type="password"
-                className={`form-control${confirmPasswordError ? ' is-invalid' : ''}`}
-                required
-                minLength={PASSWORD_MIN_LENGTH}
-                maxLength={PASSWORD_MAX_LENGTH}
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value)
-                  if (confirmPasswordError) {
-                    setConfirmPasswordError(getConfirmPasswordError(password, e.target.value))
-                  }
-                }}
-                aria-invalid={confirmPasswordError ? true : undefined}
-                aria-describedby={confirmPasswordError ? 'register-confirm-password-error' : undefined}
-              />
+              <div className="input-group">
+                <input
+                  id="register-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className={`form-control${confirmPasswordError ? ' is-invalid' : ''}`}
+                  required
+                  minLength={PASSWORD_MIN_LENGTH}
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value)
+                    if (confirmPasswordError) {
+                      setConfirmPasswordError(getConfirmPasswordError(password, e.target.value))
+                    }
+                  }}
+                  aria-invalid={confirmPasswordError ? true : undefined}
+                  aria-describedby={confirmPasswordError ? 'register-confirm-password-error' : undefined}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-pressed={showConfirmPassword}
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               {confirmPasswordError ? (
                 <div id="register-confirm-password-error" className="invalid-feedback d-block">
                   {confirmPasswordError}
