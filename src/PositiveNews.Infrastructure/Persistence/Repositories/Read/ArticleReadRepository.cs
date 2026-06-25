@@ -39,7 +39,7 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
         if (filter.MinPositivity.HasValue)
         {
             var threshold = filter.MinPositivity.Value;
-            query = query.Where(a => a.PositivityScore == null || a.PositivityScore >= threshold);
+            query = query.Where(a => a.PositivityScore != null && a.PositivityScore >= threshold);
         }
 
         query = filter.SortBy switch

@@ -4,19 +4,29 @@ namespace PositiveNews.Application.Tests.TestSupport;
 
 internal static class IngestionTestData
 {
+    public static PositivityAnalizerKeyPhrases EmptyPositivityLexicon()
+        => new(
+            PositiveWords: new HashSet<string>(),
+            NegativeWords: new HashSet<string>(),
+            PositivePhrases: new HashSet<string>(),
+            NegativePhrases: new HashSet<string>(),
+            NegationWords: new HashSet<string>(),
+            IntensifierWords: new HashSet<string>(),
+            NegationLookbackTokens: 1,
+            IntensifierLookbackTokens: 1,
+            IntensifierMultiplier: 1m,
+            PhrasePolarityWeight: 1m,
+            MitigationWords: new HashSet<string>(),
+            MitigationPhrases: new HashSet<string>(),
+            MitigationLookbackTokens: 1,
+            TitleWeight: 0.15m,
+            LedeWeight: 0.35m,
+            BodyWeight: 0.50m,
+            LedeCharCount: 500);
+
     public static IngestionSettingsSnapshot MinimalSettings()
         => new(
-            new PositivityAnalizerKeyPhrases(
-                PositiveWords: new HashSet<string>(),
-                NegativeWords: new HashSet<string>(),
-                PositivePhrases: new HashSet<string>(),
-                NegativePhrases: new HashSet<string>(),
-                NegationWords: new HashSet<string>(),
-                IntensifierWords: new HashSet<string>(),
-                NegationLookbackTokens: 1,
-                IntensifierLookbackTokens: 1,
-                IntensifierMultiplier: 1m,
-                PhrasePolarityWeight: 1m),
+            EmptyPositivityLexicon(),
             new CleanerRules(
                 StopProcessingPatterns: [],
                 RemoveNodePatterns: [],

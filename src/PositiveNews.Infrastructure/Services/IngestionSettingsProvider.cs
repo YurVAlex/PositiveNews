@@ -38,6 +38,20 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
     public IngestionSettingsSnapshot GetCurrentSettings()
     {
         var pa = _config.Common.PositivityAnalizerKeyPhrases;
+        var titleWeight = (decimal)Math.Clamp(pa.TitleWeight, 0.0, 1.0);
+        var ledeWeight = (decimal)Math.Clamp(pa.LedeWeight, 0.0, 1.0);
+        var bodyWeight = (decimal)Math.Clamp(pa.BodyWeight, 0.0, 1.0);
+        var segmentTotal = ledeWeight + bodyWeight;
+        if (segmentTotal <= 0m)
+        {
+            ledeWeight = 0.35m;
+            bodyWeight = 0.50m;
+            segmentTotal = ledeWeight + bodyWeight;
+        }
+
+        ledeWeight /= segmentTotal;
+        bodyWeight /= segmentTotal;
+
         var positivity = new PositivityAnalizerKeyPhrases(
             PositiveWords: new HashSet<string>(pa.PositiveWords, StringComparer.OrdinalIgnoreCase),
             NegativeWords: new HashSet<string>(pa.NegativeWords, StringComparer.OrdinalIgnoreCase),
@@ -48,7 +62,14 @@ public class IngestionSettingsProvider : IIngestionSettingsProvider
             NegationLookbackTokens: Math.Clamp(pa.NegationLookbackTokens, 1, 12),
             IntensifierLookbackTokens: Math.Clamp(pa.IntensifierLookbackTokens, 1, 8),
             IntensifierMultiplier: (decimal)Math.Clamp(pa.IntensifierMultiplier, 1.0, 3.0),
-            PhrasePolarityWeight: (decimal)Math.Clamp(pa.PhrasePolarityWeight, 0.5, 10.0));
+            PhrasePolarityWeight: (decimal)Math.Clamp(pa.PhrasePolarityWeight, 0.5, 10.0),
+            MitigationWords: new HashSet<string>(pa.MitigationWords, StringComparer.OrdinalIgnoreCase),
+            MitigationPhrases: NormalizePhraseSet(pa.MitigationPhrases),
+            MitigationLookbackTokens: Math.Clamp(pa.MitigationLookbackTokens, 1, 8),
+            TitleWeight: titleWeight,
+            LedeWeight: ledeWeight,
+            BodyWeight: bodyWeight,
+            LedeCharCount: Math.Clamp(pa.LedeCharCount, 100, 4000));
 
         var cleaner = new CleanerRules(
             StopProcessingPatterns: _config.Common.CleanerRules.StopProcessingPatterns,

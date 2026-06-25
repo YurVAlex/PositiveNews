@@ -8,9 +8,8 @@ namespace PositiveNews.Infrastructure.Services;
 
 /// <summary>
 /// Lexicon-based sentiment: multi-word phrase matching (longest-first, non-overlapping),
-/// Unicode word tokens, negation windows (odd number of negation cues flips polarity),
-/// intensifier compounding, contraction expansion, and tanh normalization to (0,1) around 0.5.
-/// This is a configurable rule-based model (not an external ML or LLM).
+/// Unicode word tokens, negation windows, intensifier compounding, mitigation of negative cues,
+/// lede/title-weighted blending for long articles, and tanh normalization to (0,1) around 0.5.
 /// </summary>
 public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
 {
@@ -37,7 +36,27 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
     ];
 
     /// <inheritdoc />
-    public decimal AnalyzeSentiment(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases)
+    public decimal AnalyzeSentiment(
+        string? plainTextContent,
+        PositivityAnalizerKeyPhrases keyPhrases,
+        string? title = null)
+    {
+        if (string.IsNullOrWhiteSpace(plainTextContent) && string.IsNullOrWhiteSpace(title))
+            return 0.5000m;
+
+        var contentScore = ScoreContentSegments(plainTextContent, keyPhrases);
+        if (string.IsNullOrWhiteSpace(title))
+            return contentScore;
+
+        var titleNorm = NormalizeText(title);
+        if (titleNorm.Length == 0)
+            return contentScore;
+
+        var titleScore = ComputeSegmentScore(titleNorm, keyPhrases);
+        return BlendScores(titleScore, contentScore, keyPhrases.TitleWeight, 1m - keyPhrases.TitleWeight);
+    }
+
+    private static decimal ScoreContentSegments(string? plainTextContent, PositivityAnalizerKeyPhrases keyPhrases)
     {
         if (string.IsNullOrWhiteSpace(plainTextContent))
             return 0.5000m;
@@ -46,9 +65,31 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
         if (norm.Length == 0)
             return 0.5000m;
 
+        if (norm.Length <= keyPhrases.LedeCharCount)
+            return ComputeSegmentScore(norm, keyPhrases);
+
+        var lede = norm[..keyPhrases.LedeCharCount];
+        var ledeScore = ComputeSegmentScore(lede, keyPhrases);
+        var bodyScore = ComputeSegmentScore(norm, keyPhrases);
+        return BlendScores(ledeScore, bodyScore, keyPhrases.LedeWeight, keyPhrases.BodyWeight);
+    }
+
+    private static decimal BlendScores(decimal first, decimal second, decimal firstWeight, decimal secondWeight)
+    {
+        var total = firstWeight + secondWeight;
+        if (total <= 0m)
+            return first;
+
+        return Math.Round((first * firstWeight + second * secondWeight) / total, 3);
+    }
+
+    private static decimal ComputeSegmentScore(string norm, PositivityAnalizerKeyPhrases keyPhrases)
+    {
         var covered = new bool[norm.Length];
+        var mitigationCovered = new bool[norm.Length];
         decimal netPolarity = 0m;
 
+        MarkMitigationPhrases(norm, mitigationCovered, keyPhrases.MitigationPhrases);
         netPolarity += ScorePhrases(norm, covered, keyPhrases);
 
         var matches = WordToken.Matches(norm);
@@ -67,6 +108,9 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
             if (isPositive == isNegative)
                 continue;
 
+            if (isNegative && IsMitigated(matches, i, m.Index, m.Length, mitigationCovered, keyPhrases))
+                continue;
+
             var negations = CountCueTokens(matches, i, keyPhrases.NegationWords, keyPhrases.NegationLookbackTokens);
             var flipped = (negations & 1) == 1;
 
@@ -83,6 +127,47 @@ public class KeyPhrasePositivityAnalyzer : IPositivityAnalyzer
             return 0.5000m;
 
         return NormalizeNetToScore(netPolarity, norm.Length);
+    }
+
+    private static void MarkMitigationPhrases(string norm, bool[] mitigationCovered, IReadOnlySet<string> mitigationPhrases)
+    {
+        if (mitigationPhrases.Count == 0)
+            return;
+
+        foreach (var phrase in mitigationPhrases.OrderByDescending(static p => p.Length))
+        {
+            var pattern = BuildPhraseRegex(phrase);
+            if (pattern == null)
+                continue;
+
+            foreach (Match match in pattern.Matches(norm))
+                MarkCovered(mitigationCovered, match.Index, match.Length);
+        }
+    }
+
+    private static bool IsMitigated(
+        MatchCollection allWords,
+        int index,
+        int charIndex,
+        int charLength,
+        bool[] mitigationCovered,
+        PositivityAnalizerKeyPhrases keyPhrases)
+    {
+        if (Overlaps(charIndex, charLength, mitigationCovered))
+            return true;
+
+        if (keyPhrases.MitigationWords.Count == 0 || keyPhrases.MitigationLookbackTokens <= 0)
+            return false;
+
+        var start = Math.Max(0, index - keyPhrases.MitigationLookbackTokens);
+        for (var j = start; j < index; j++)
+        {
+            var w = allWords[j].Value.ToLowerInvariant();
+            if (keyPhrases.MitigationWords.Contains(w))
+                return true;
+        }
+
+        return false;
     }
 
     private static decimal ScorePhrases(

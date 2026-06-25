@@ -123,7 +123,10 @@ public class FeedProcessingPipeline : IFeedProcessor
         var contentClean = _cleaner.StripInnerHtmlWords(dtoItem.ContentRaw, cleanedContentNode)
             ?? _cleaner.StripInnerHtmlWords(dtoItem.Description, descriptionNode);
 
-        var positivityScore = _analyzer.AnalyzeSentiment(contentClean, settings.PositivityAnalizerKeyPhrases);
+        var positivityScore = _analyzer.AnalyzeSentiment(
+            contentClean,
+            settings.PositivityAnalizerKeyPhrases,
+            dtoItem.Title);
         var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, contentNode: cleanedContentNode,
             descriptionNode: descriptionNode, defaultThumbnailHtml: source.DefaultThumbnailHtml);
 
