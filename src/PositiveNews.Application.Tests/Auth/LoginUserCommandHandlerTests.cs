@@ -55,6 +55,7 @@ public class LoginUserCommandHandlerTests
     {
         var user = User.Create("user@example.com", "Jane");
         user.SetPasswordHash("hash");
+        typeof(User).GetProperty(nameof(User.Id))!.SetValue(user, 99L);
         user.Deactivate(99);
         var userReadRepository = Substitute.For<IUserReadRepository>();
         userReadRepository.FindByEmailWithRolesAsync("user@example.com", Arg.Any<CancellationToken>()).Returns(user);

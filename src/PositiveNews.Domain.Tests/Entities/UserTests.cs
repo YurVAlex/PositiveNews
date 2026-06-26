@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentAssertions;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Exceptions;
@@ -6,6 +7,8 @@ namespace PositiveNews.Domain.Tests.Entities;
 
 public class UserTests
 {
+    private static void SetUserId(User user, long id)
+        => typeof(User).GetProperty(nameof(User.Id))!.SetValue(user, id);
     [Fact]
     public void Create_Should_NormalizeEmailAndNameAndSetDefaults_When_InputHasWhitespaceAndMixedCase()
     {
@@ -115,16 +118,70 @@ public class UserTests
     public void Deactivate_Should_MarkInactiveAndPreventSecondCall_When_AlreadyDeactivated()
     {
         var user = User.Create("a@b.com", "Name");
+        SetUserId(user, 42);
 
         user.Deactivate(42);
 
         user.IsActive.Should().BeFalse();
         user.ModeratedBy.Should().Be(42);
-        user.Email.Should().Be("a@b.com.deleted");
+        user.Email.Should().Be("deleted42@user");
         user.Name.Should().Be("Deleted user");
 
         var act = () => user.Deactivate(42);
 
         act.Should().Throw<InvalidUserStateException>();
+    }
+
+    [Fact]
+    public void Deactivate_Should_ReplaceLongEmailWithDeletedPlaceholder_When_EmailNearMaxLength()
+    {
+        var longEmail = new string('a', 288) + "@example.com";
+        longEmail.Length.Should().Be(300);
+        var user = User.Create(longEmail, "Name");
+        SetUserId(user, 7);
+
+        user.Deactivate(1);
+
+        user.Email.Should().Be("deleted7@user");
+        user.Email.Should().NotContain("aaa");
+    }
+
+    [Fact]
+    public void Deactivate_Should_ProduceUniqueDeletedEmails_When_UsersHadCollidingLongAddresses()
+    {
+        var prefix = new string('x', 292);
+        var userA = User.Create(prefix + "11111111", "User A");
+        var userB = User.Create(prefix + "22222222", "User B");
+        SetUserId(userA, 10);
+        SetUserId(userB, 20);
+
+        userA.Deactivate(1);
+        userB.Deactivate(1);
+
+        userA.Email.Should().Be("deleted10@user");
+        userB.Email.Should().Be("deleted20@user");
+        userA.Email.Should().NotBe(userB.Email);
+    }
+
+    [Fact]
+    public void Deactivate_Should_ThrowInvalidUserStateException_When_UserIdNotAssigned()
+    {
+        var user = User.Create("a@b.com", "Name");
+
+        var act = () => user.Deactivate(1);
+
+        act.Should().Throw<InvalidUserStateException>()
+            .WithMessage("*id must be assigned*");
+    }
+
+    [Fact]
+    public void Deactivate_Should_AnonymizeEmailEndingWithDeletedDomain_When_OriginalAddressLooksLikeDeleted()
+    {
+        var user = User.Create("account@company.deleted", "Name");
+        SetUserId(user, 99);
+
+        user.Deactivate(1);
+
+        user.Email.Should().Be("deleted99@user");
     }
 }

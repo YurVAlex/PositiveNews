@@ -33,6 +33,7 @@ public class RefreshTokenCommandHandlerTests
     public async Task Handle_Should_ReturnUnauthorized_When_UserInactive()
     {
         var user = User.Create("user@example.com", "Jane");
+        typeof(User).GetProperty(nameof(User.Id))!.SetValue(user, 99L);
         user.Deactivate(99);
         var refreshToken = RefreshToken.Create("valid-token", user.Id, DateTime.UtcNow.AddDays(7));
         typeof(RefreshToken).GetProperty(nameof(RefreshToken.User))!.SetValue(refreshToken, user);

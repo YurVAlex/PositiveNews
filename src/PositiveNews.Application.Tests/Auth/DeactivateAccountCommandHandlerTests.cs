@@ -30,6 +30,7 @@ public class DeactivateAccountCommandHandlerTests
     public async Task Handle_Should_ReturnConflict_When_UserAlreadyInactive()
     {
         var user = User.Create("user@example.com", "Jane");
+        typeof(User).GetProperty(nameof(User.Id))!.SetValue(user, 1L);
         user.Deactivate(1);
         var userReadRepository = Substitute.For<IUserReadRepository>();
         userReadRepository.FindByIdWithRolesAsync(1, Arg.Any<CancellationToken>()).Returns(user);
@@ -57,7 +58,7 @@ public class DeactivateAccountCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         user.IsActive.Should().BeFalse();
         user.ModeratedBy.Should().Be(user.Id);
-        user.Email.Should().Be("user@example.com.deleted");
+        user.Email.Should().Be("deleted42@user");
         user.Name.Should().Be("Deleted user");
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }

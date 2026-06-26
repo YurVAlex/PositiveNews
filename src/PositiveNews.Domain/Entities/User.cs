@@ -131,9 +131,8 @@ public class User
         FailedLoginCount++;
     }
 
-    private const string DeletedEmailSuffix = ".deleted";
+    private const string DeletedEmailDomain = "user";
     private const string DeletedUserDisplayName = "Deleted user";
-    private const int MaxEmailLength = 300;
 
     /// <summary>
     /// Deactivates the account, anonymizes profile data, and records the acting moderator.
@@ -142,8 +141,10 @@ public class User
     {
         if (!IsActive)
             throw new InvalidUserStateException("User is already inactive.");
+        if (Id <= 0)
+            throw new InvalidUserStateException("User id must be assigned before deactivation.");
 
-        Email = ToDeletedEmail(Email);
+        Email = ToDeletedEmail(Id);
         Name = DeletedUserDisplayName;
         IsActive = false;
         ModeratedBy = moderatorId;
@@ -173,19 +174,8 @@ public class User
         ModeratedBy = moderatorId;
     }
 
-    private static string ToDeletedEmail(string email)
+    private static string ToDeletedEmail(long userId)
     {
-        if (email.EndsWith(DeletedEmailSuffix, StringComparison.Ordinal))
-        {
-            return email;
-        }
-
-        var combined = email + DeletedEmailSuffix;
-        if (combined.Length <= MaxEmailLength)
-        {
-            return combined;
-        }
-
-        return email[..(MaxEmailLength - DeletedEmailSuffix.Length)] + DeletedEmailSuffix;
+        return $"deleted{userId}@{DeletedEmailDomain}";
     }
 }
