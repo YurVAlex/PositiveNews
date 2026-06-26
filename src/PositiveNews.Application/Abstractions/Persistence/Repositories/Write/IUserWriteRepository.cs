@@ -12,4 +12,9 @@ public interface IUserWriteRepository
     /// </summary>
     /// <param name="user">User aggregate root.</param>
     void Add(User user);
+
+    /// <summary>
+    /// Loads a user for update using tracking semantics.
+    /// </summary>
+    Task<User?> GetByIdAsync(long userId, CancellationToken ct);
 }

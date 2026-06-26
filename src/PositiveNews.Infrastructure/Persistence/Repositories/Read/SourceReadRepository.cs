@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Mapping;
 using PositiveNews.Infrastructure.Persistence;
@@ -50,6 +51,41 @@ internal sealed class SourceReadRepository(AppDbContext db) : ISourceReadReposit
                 LogoUrl = s.LogoUrl
             })
             .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SourceAdminItemDto>> GetAdminSourceListAsync(CancellationToken ct)
+    {
+        return await db.Sources
+            .AsNoTracking()
+            .OrderBy(s => s.Id)
+            .Select(s => new SourceAdminItemDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                TrustScore = s.TrustScore,
+                IsActive = s.IsActive,
+                ModeratedBy = s.ModeratedBy
+            })
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<SourceAdminDetailDto?> GetAdminSourceDetailAsync(int sourceId, CancellationToken ct)
+    {
+        return await db.Sources
+            .AsNoTracking()
+            .Where(s => s.Id == sourceId)
+            .Select(s => new SourceAdminDetailDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                TrustScore = s.TrustScore,
+                IsActive = s.IsActive,
+                FeedUrl = s.FeedUrl ?? string.Empty,
+                ModeratedBy = s.ModeratedBy
+            })
+            .SingleOrDefaultAsync(ct);
     }
 
     /// <inheritdoc />

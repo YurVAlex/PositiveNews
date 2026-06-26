@@ -30,6 +30,12 @@ public class FeedItemValidator : IFeedItemValidator
             return false;
         }
 
+        foreach (var fragment in rules.InvalidLinkContains)
+        {
+            if (item.Link.Contains(fragment, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
         return true;
     }
 }

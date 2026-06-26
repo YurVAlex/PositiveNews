@@ -1,3 +1,4 @@
+/** Sign-in form; redirects authenticated users and honors a post-login return path. */
 import { FormEvent, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -10,20 +11,25 @@ export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  // Protected routes set location.state.from so login sends the user back where they came from.
   const state = (location.state as LoginLocationState | null) ?? null
   const redirectTo = state?.from ?? '/'
 
   const [email, setEmail] = useState('admin@positivenews.local')
   const [password, setPassword] = useState('Admin123!')
+  const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isSubmitting) {
+    // Already signed in—skip the form and go to the intended destination.
+    // Do not redirect while login() is still loading prefs (token/user are set first).
     return <Navigate to={redirectTo} replace />
   }
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    // AuthProvider stores the token; navigate completes the redirect after a successful login.
     setError(null)
     setIsSubmitting(true)
     try {
@@ -60,14 +66,25 @@ export function LoginPage() {
               <label htmlFor="password" className="form-label">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                className="form-control"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="input-group">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-control"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             {error ? <div className="alert alert-danger py-2">{error}</div> : null}

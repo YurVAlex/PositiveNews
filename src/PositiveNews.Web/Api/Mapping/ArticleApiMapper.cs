@@ -50,7 +50,8 @@ public static partial class ArticleApiMapper
             source.Page,
             source.Topic ?? Array.Empty<string>(),
             source.Source ?? Array.Empty<int>(),
-            SortBy: MapSort(source.Sort));
+            SortBy: MapSort(source.Sort),
+            MinPositivity: source.MinPositivity);
     }
 
     /// <summary>

@@ -27,8 +27,8 @@ describe('ArticleCard', () => {
     )
 
     expect(screen.getByTitle('Source trust score')).toHaveTextContent('1')
-    expect(screen.getByText('62% Positivity')).toHaveClass('text-success')
-    expect(screen.getByRole('link', { name: 'Health' })).toHaveClass('btn-primary')
+    expect(screen.getByTitle('Positivity score')).toHaveClass('text-success')
+    expect(screen.getByRole('link', { name: /Health/ })).toHaveClass('btn-primary')
     expect(screen.getByRole('link', { name: 'Science' })).toHaveClass('btn-outline-dark')
 
     const summary = screen.getByText('A short happy summary.').closest('div')
@@ -94,9 +94,47 @@ describe('ArticleCard', () => {
       </MemoryRouter>,
     )
 
-    const sourceLink = screen.getByRole('link', { name: 'Positive Source' })
+    const sourceLink = screen.getByRole('link', { name: /Positive Source/ })
     expect(sourceLink).toHaveAttribute('href', '/?source=5')
-    expect(sourceLink).toHaveClass('link-primary')
+    expect(sourceLink).toHaveClass('btn-outline-primary')
+    expect(sourceLink.textContent).toContain('×')
+  })
+
+  it('shows source default image when preview image is missing', () => {
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={articlePreview({ imageTag: null, sourceName: 'NASA Breaking News' })}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Read article: Good news story' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Default article image' })).toHaveAttribute(
+      'src',
+      '/Defaults/nasa.png',
+    )
+  })
+
+  it('renders view count badge with tooltip under positivity score', () => {
+    render(
+      <MemoryRouter>
+        <ArticleCard
+          article={articlePreview({ viewCount: 1234, positivityScore: 0.62 })}
+          index={0}
+          selectedTopics={[]}
+          buildTopicToggleUrl={(topic) => `/feed?topic=${topic}`}
+          {...defaultSourceProps}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByTitle('Views count').textContent?.replace(/\s/g, '')).toContain('1234')
+    expect(screen.getByTitle('Positivity score')).toBeInTheDocument()
   })
 
   it('does not render positivity badge for null score and falls back to unknown author', () => {
@@ -131,6 +169,7 @@ function articlePreview(overrides: Partial<ArticlePreviewResponse> = {}): Articl
     summaryShort: 'A short happy summary.',
     url: 'https://example.com/story',
     positivityScore: 0.5,
+    viewCount: 0,
     topics: ['Health', 'Science'],
     ...overrides,
   }

@@ -8,6 +8,7 @@ namespace PositiveNews.Domain.Entities;
 public class Comment
 {
     private readonly List<Comment> _replies = [];
+    private readonly List<Complaint> _complaints = [];
 
     /// <remarks>Used by EF Core when hydrating entities from the database.</remarks>
     private Comment() { }
@@ -54,6 +55,9 @@ public class Comment
     /// <summary>Direct replies (nested comments).</summary>
     public IReadOnlyCollection<Comment> Replies => _replies.AsReadOnly();
 
+    /// <summary>Complaints filed against this comment.</summary>
+    public IReadOnlyCollection<Complaint> Complaints => _complaints.AsReadOnly();
+
     /// <summary>
     /// Creates a new comment with trimmed content and optional parent reply id.
     /// </summary>
@@ -99,6 +103,21 @@ public class Comment
         if (!IsActive)
             throw new DomainException("Comment is already inactive.");
         IsActive = false;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Updates active state and records the moderator.
+    /// </summary>
+    public void SetActive(bool isActive, long moderatorId)
+    {
+        if (IsActive == isActive)
+        {
+            ModeratedBy = moderatorId;
+            return;
+        }
+
+        IsActive = isActive;
         ModeratedBy = moderatorId;
     }
 }

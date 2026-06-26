@@ -48,11 +48,12 @@ public class RegisterUserCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_PersistUserIssueJwtAndSaveOnce_When_RegistrationSucceeds()
+    public async Task Handle_Should_PersistUserIssueJwtAndSaveTwice_When_RegistrationSucceeds()
     {
         var userReadRepository = Substitute.For<IUserReadRepository>();
         var userWriteRepository = Substitute.For<IUserWriteRepository>();
         var userRoleWriteRepository = Substitute.For<IUserRoleWriteRepository>();
+        var userFeedPreferencesWriteRepository = Substitute.For<IUserFeedPreferencesWriteRepository>();
         var roleReadRepository = Substitute.For<IRoleReadRepository>();
         var passwordHasher = Substitute.For<IPasswordHasherService>();
         var tokenService = Substitute.For<ITokenService>();
@@ -71,9 +72,11 @@ public class RegisterUserCommandHandlerTests
             userReadRepository,
             userWriteRepository,
             userRoleWriteRepository,
+            userFeedPreferencesWriteRepository,
             roleReadRepository,
             passwordHasher,
             tokenService,
+            null,
             unitOfWork);
 
         var result = await handler.Handle(new RegisterUserCommand(" USER@example.com ", " Jane ", "Password1!"), CancellationToken.None);
@@ -90,23 +93,28 @@ public class RegisterUserCommandHandlerTests
         userRoleWriteRepository.Received(1).Add(Arg.Any<UserRole>());
         tokenService.Received(1).CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
         tokenService.Received(1).GetAccessTokenExpiryUtc();
-        await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        userFeedPreferencesWriteRepository.Received(1).AddDefault(Arg.Any<long>());
+        await unitOfWork.Received(3).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     private static RegisterUserCommandHandler CreateHandler(
         IUserReadRepository userReadRepository,
         IUserWriteRepository? userWriteRepository = null,
         IUserRoleWriteRepository? userRoleWriteRepository = null,
+        IUserFeedPreferencesWriteRepository? userFeedPreferencesWriteRepository = null,
         IRoleReadRepository? roleReadRepository = null,
         IPasswordHasherService? passwordHasher = null,
         ITokenService? tokenService = null,
+        IRefreshTokenWriteRepository? refreshTokenWriteRepository = null,
         IUnitOfWork? unitOfWork = null)
         => new(
             userReadRepository,
             userWriteRepository ?? Substitute.For<IUserWriteRepository>(),
             userRoleWriteRepository ?? Substitute.For<IUserRoleWriteRepository>(),
+            userFeedPreferencesWriteRepository ?? Substitute.For<IUserFeedPreferencesWriteRepository>(),
             roleReadRepository ?? Substitute.For<IRoleReadRepository>(),
             passwordHasher ?? Substitute.For<IPasswordHasherService>(),
             tokenService ?? Substitute.For<ITokenService>(),
+            refreshTokenWriteRepository ?? Substitute.For<IRefreshTokenWriteRepository>(),
             unitOfWork ?? Substitute.For<IUnitOfWork>());
 }

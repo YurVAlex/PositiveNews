@@ -1,4 +1,5 @@
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 
 namespace PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
@@ -27,6 +28,19 @@ public interface ISourceReadRepository
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     Task<IReadOnlyList<SourceFilterItemDto>> GetSourceFilterListAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns all sources for admin management.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<SourceAdminItemDto>> GetAdminSourceListAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Returns detailed admin metadata for the source with the given id.
+    /// </summary>
+    /// <param name="sourceId">Source identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<SourceAdminDetailDto?> GetAdminSourceDetailAsync(int sourceId, CancellationToken ct);
 
     /// <summary>
     /// Returns filter items for the given source ids, preserving <paramref name="ids"/> order.

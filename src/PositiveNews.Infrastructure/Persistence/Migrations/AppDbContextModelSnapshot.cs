@@ -265,6 +265,41 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                     b.ToTable("Comments", "Community");
                 });
 
+            modelBuilder.Entity("PositiveNews.Domain.Entities.Complaint", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("CommentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("sysutcdatetime()");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("UserId", "CommentId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Complains_User_Comment");
+
+                    b.ToTable("Complains", "Community");
+                });
+
             modelBuilder.Entity("PositiveNews.Domain.Entities.IngestionRun", b =>
                 {
                     b.Property<long>("Id")
@@ -303,6 +338,44 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Ingestion_Status", "[Status] IN ('Running', 'Success', 'Failed', 'Partial')");
                         });
+                });
+
+            modelBuilder.Entity("PositiveNews.Domain.Entities.RefreshToken", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", "Identity");
                 });
 
             modelBuilder.Entity("PositiveNews.Domain.Entities.Role", b =>
@@ -662,6 +735,25 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PositiveNews.Domain.Entities.Complaint", b =>
+                {
+                    b.HasOne("PositiveNews.Domain.Entities.Comment", "Comment")
+                        .WithMany("Complaints")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PositiveNews.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PositiveNews.Domain.Entities.IngestionRun", b =>
                 {
                     b.HasOne("PositiveNews.Domain.Entities.Source", "Source")
@@ -671,6 +763,17 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Source");
+                });
+
+            modelBuilder.Entity("PositiveNews.Domain.Entities.RefreshToken", b =>
+                {
+                    b.HasOne("PositiveNews.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PositiveNews.Domain.Entities.Source", b =>
@@ -772,6 +875,8 @@ namespace PositiveNews.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("PositiveNews.Domain.Entities.Comment", b =>
                 {
+                    b.Navigation("Complaints");
+
                     b.Navigation("Replies");
                 });
 

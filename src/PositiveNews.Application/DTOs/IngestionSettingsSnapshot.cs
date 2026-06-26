@@ -26,6 +26,13 @@ public sealed record IngestionSettingsSnapshot(
 /// <param name="IntensifierLookbackTokens">How far intensifiers may reach backward.</param>
 /// <param name="IntensifierMultiplier">Scale applied when an intensifier is active.</param>
 /// <param name="PhrasePolarityWeight">Relative weight of phrase hits versus token hits.</param>
+/// <param name="MitigationWords">Tokens that suppress nearby negative cues (e.g. zero before deaths).</param>
+/// <param name="MitigationPhrases">Phrases that mark spans where negative cues are suppressed.</param>
+/// <param name="MitigationLookbackTokens">How far mitigation words may reach before a negative cue.</param>
+/// <param name="TitleWeight">Blend weight for the article title score.</param>
+/// <param name="LedeWeight">Blend weight for the opening segment on long articles.</param>
+/// <param name="BodyWeight">Blend weight for the full body score on long articles.</param>
+/// <param name="LedeCharCount">Character length of the lede segment on long articles.</param>
 public sealed record PositivityAnalizerKeyPhrases(
     IReadOnlySet<string> PositiveWords,
     IReadOnlySet<string> NegativeWords,
@@ -36,7 +43,14 @@ public sealed record PositivityAnalizerKeyPhrases(
     int NegationLookbackTokens,
     int IntensifierLookbackTokens,
     decimal IntensifierMultiplier,
-    decimal PhrasePolarityWeight);
+    decimal PhrasePolarityWeight,
+    IReadOnlySet<string> MitigationWords,
+    IReadOnlySet<string> MitigationPhrases,
+    int MitigationLookbackTokens,
+    decimal TitleWeight,
+    decimal LedeWeight,
+    decimal BodyWeight,
+    int LedeCharCount);
 
 /// <summary>
 /// Patterns controlling HTML cleanup during ingestion.
@@ -59,8 +73,10 @@ public sealed record CleanerRules(
 /// Rules used by <see cref="PositiveNews.Application.Interfaces.IFeedItemValidator"/> before deeper processing.
 /// </summary>
 /// <param name="InvalidAuthors">Author names or patterns that disqualify an item.</param>
+/// <param name="InvalidLinkContains">Link substrings that disqualify an item when present.</param>
 public sealed record FeedItemValidationRules(
-    IReadOnlySet<string> InvalidAuthors);
+    IReadOnlySet<string> InvalidAuthors,
+    IReadOnlyList<string> InvalidLinkContains);
 
 /// <summary>
 /// Optional overrides when a feed URL matches <see cref="UrlContains"/>.

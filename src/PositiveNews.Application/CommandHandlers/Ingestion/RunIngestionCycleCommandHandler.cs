@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using PositiveNews.Application.Abstractions.Ingestion;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
@@ -16,18 +17,22 @@ namespace PositiveNews.Application.CommandHandlers.Ingestion;
 public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngestionCycleCommand, Result>
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IIngestionCycleCoordinator _coordinator;
     private readonly ILogger<RunIngestionCycleCommandHandler> _logger;
 
     /// <summary>
     /// Initializes the handler with scope creation and logging dependencies.
     /// </summary>
     /// <param name="scopeFactory">Creates scoped mediators for each processing stage.</param>
+    /// <param name="coordinator">Tracks cycle execution for concurrency and admin status.</param>
     /// <param name="logger">Logs cycle milestones.</param>
     public RunIngestionCycleCommandHandler(
         IServiceScopeFactory scopeFactory,
+        IIngestionCycleCoordinator coordinator,
         ILogger<RunIngestionCycleCommandHandler> logger)
     {
         _scopeFactory = scopeFactory;
+        _coordinator = coordinator;
         _logger = logger;
     }
 
@@ -39,6 +44,12 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
     /// <returns>Success when every source completes without fatal errors.</returns>
     public async Task<Result> Handle(RunIngestionCycleCommand request, CancellationToken cancellationToken)
     {
+        if (!_coordinator.TryBeginCycle())
+        {
+            return Result.Failure(
+                new Error("Ingestion.AlreadyRunning", "An ingestion cycle is already in progress.", ErrorType.Conflict));
+        }
+
         try
         {
             _logger.LogInformation("---=== Ingestion cycle started. ===---");
@@ -97,6 +108,10 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
             _logger.LogWarning(ex, "Domain invariant violation while running ingestion cycle.");
             return Result.Failure(
                 new Error("Ingestion.DomainInvariantViolation", ex.Message, ErrorType.Conflict));
+        }
+        finally
+        {
+            _coordinator.EndCycle();
         }
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PositiveNews.Application.Abstractions.Ingestion;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
@@ -9,8 +10,8 @@ using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Configuration;
+using PositiveNews.Infrastructure.Ingestion;
 using PositiveNews.Infrastructure.Persistence;
-using PositiveNews.Infrastructure.Persistence.Connection;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;
 using PositiveNews.Infrastructure.Persistence.Repositories.Write;
 using PositiveNews.Infrastructure.Persistence.UnitOfWork;
@@ -35,7 +36,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString = ConnectionStringResolver.Resolve(configuration);
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
         services.AddDbContext<AppDbContext>(options =>
                options.UseSqlServer(connectionString, sqlOptions =>
@@ -44,19 +46,31 @@ public static class DependencyInjection
                           sqlOptions.EnableRetryOnFailure(maxRetryCount: 3);
                       }));
 
+        services.AddSingleton<IIngestionCycleCoordinator, IngestionCycleCoordinator>();
+
         services.AddScoped<IArticleReadRepository, ArticleReadRepository>();
         services.AddScoped<ITopicReadRepository, TopicReadRepository>();
+        services.AddScoped<IAuditLogReadRepository, AuditLogReadRepository>();
         services.AddScoped<ISourceReadRepository, SourceReadRepository>();
+        services.AddScoped<IIngestionRunReadRepository, IngestionRunReadRepository>();
         services.AddScoped<IUserReadRepository, UserReadRepository>();
+        services.AddScoped<IUserFeedPreferencesReadRepository, UserFeedPreferencesReadRepository>();
         services.AddScoped<IRoleReadRepository, RoleReadRepository>();
+        services.AddScoped<IRefreshTokenReadRepository, RefreshTokenReadRepository>();
+        services.AddScoped<ICommentReadRepository, CommentReadRepository>();
 
         services.AddScoped<IArticleWriteRepository, ArticleWriteRepository>();
         services.AddScoped<IArticleTopicWriteRepository, ArticleTopicWriteRepository>();
         services.AddScoped<ITopicWriteRepository, TopicWriteRepository>();
         services.AddScoped<ISourceWriteRepository, SourceWriteRepository>();
+        services.AddScoped<IAuditLogWriteRepository, AuditLogWriteRepository>();
         services.AddScoped<IIngestionRunRepository, IngestionRunRepository>();
         services.AddScoped<IUserWriteRepository, UserWriteRepository>();
+        services.AddScoped<IUserFeedPreferencesWriteRepository, UserFeedPreferencesWriteRepository>();
         services.AddScoped<IUserRoleWriteRepository, UserRoleWriteRepository>();
+        services.AddScoped<IRefreshTokenWriteRepository, RefreshTokenWriteRepository>();
+        services.AddScoped<ICommentWriteRepository, CommentWriteRepository>();
+        services.AddScoped<IComplaintWriteRepository, ComplaintWriteRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IIngestionUnitOfWork, IngestionUnitOfWork>();

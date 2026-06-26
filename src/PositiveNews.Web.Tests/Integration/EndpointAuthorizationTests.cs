@@ -56,6 +56,69 @@ public class EndpointAuthorizationTests
     }
 
     [Fact]
+    public async Task AdminIngestionStatus_Should_Return401_When_NoBearerToken()
+    {
+        using var factory = new PositiveNewsWebApplicationFactory();
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/admin/ingestion/status");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task AdminIngestionStatus_Should_Return403_When_UserRoleOnly()
+    {
+        using var factory = new PositiveNewsWebApplicationFactory();
+        var client = factory.CreateClient();
+        var token = JwtTokenFactory.CreateAccessToken("1", ["User"]);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/admin/ingestion/status");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AdminIngestionStatus_Should_Return200_When_AdminRole()
+    {
+        using var factory = new PositiveNewsWebApplicationFactory();
+        var client = factory.CreateClient();
+        var token = JwtTokenFactory.CreateAccessToken("1", ["Admin"]);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/admin/ingestion/status");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task AdminIngestionRuns_Should_Return200_When_AdminRole()
+    {
+        using var factory = new PositiveNewsWebApplicationFactory();
+        var client = factory.CreateClient();
+        var token = JwtTokenFactory.CreateAccessToken("1", ["Admin"]);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/admin/ingestion/runs");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task AdminIngestionTrigger_Should_Return403_When_UserRoleOnly()
+    {
+        using var factory = new PositiveNewsWebApplicationFactory();
+        var client = factory.CreateClient();
+        var token = JwtTokenFactory.CreateAccessToken("1", ["User"]);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.PostAsync("/api/admin/ingestion/trigger", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task ArticlesFeed_Should_NotReturn401_When_Unauthenticated()
     {
         using var factory = new PositiveNewsWebApplicationFactory();

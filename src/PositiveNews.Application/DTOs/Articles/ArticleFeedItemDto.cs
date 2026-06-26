@@ -41,6 +41,9 @@ public sealed class ArticleFeedItemDto
     /// <summary>Optional positivity score for sorting or badges.</summary>
     public decimal? PositivityScore { get; init; }
 
+    /// <summary>Number of times the article detail page was opened.</summary>
+    public long ViewCount { get; init; }
+
     /// <summary>Topic labels displayed as chips or filters.</summary>
     public IReadOnlyList<string> Topics { get; init; } = Array.Empty<string>();
 }

@@ -63,6 +63,27 @@ public class PositivityAnalizerKeyPhrasesConfig
 
     /// <summary>Absolute weight for each phrase hit vs. 1.0 per word hit.</summary>
     public double PhrasePolarityWeight { get; set; } = 2.0;
+
+    /// <summary>Tokens that suppress negative polarity when they precede a negative cue.</summary>
+    public List<string> MitigationWords { get; set; } = [];
+
+    /// <summary>Phrases that mark spans where negative cues should be ignored.</summary>
+    public List<string> MitigationPhrases { get; set; } = [];
+
+    /// <summary>How many tokens before a negative cue a mitigation word may apply.</summary>
+    public int MitigationLookbackTokens { get; set; } = 4;
+
+    /// <summary>Weight for the article title when blending segment scores.</summary>
+    public double TitleWeight { get; set; } = 0.15;
+
+    /// <summary>Weight for the lede segment on long articles.</summary>
+    public double LedeWeight { get; set; } = 0.35;
+
+    /// <summary>Weight for the full body on long articles.</summary>
+    public double BodyWeight { get; set; } = 0.50;
+
+    /// <summary>Opening character count treated as the lede on long articles.</summary>
+    public int LedeCharCount { get; set; } = 500;
 }
 
 /// <summary>
@@ -96,6 +117,9 @@ public class FeedItemValidationRulesConfig
 {
     /// <summary>Author strings that cause an item to be rejected.</summary>
     public List<string> InvalidAuthors { get; set; } = [];
+
+    /// <summary>Link substrings that cause an item to be rejected.</summary>
+    public List<string> InvalidLinkContains { get; set; } = [];
 }
 
 /// <summary>

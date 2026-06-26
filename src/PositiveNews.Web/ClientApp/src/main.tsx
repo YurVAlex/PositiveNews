@@ -1,3 +1,4 @@
+/** Application entry point: mounts React with auth, routing, and global styles. */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -12,6 +13,7 @@ if (!el) {
   throw new Error('Root element #root not found')
 }
 
+// AuthProvider wraps BrowserRouter so route components can call useAuth().
 createRoot(el).render(
   <StrictMode>
     <AuthProvider>

@@ -15,7 +15,8 @@ describe('ArticleTopicLinks', () => {
     )
 
     expect(screen.getAllByRole('link')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'Health' })).toHaveClass('btn-primary')
+    expect(screen.getByRole('link', { name: /Health/ })).toHaveClass('btn-primary')
+    expect(screen.getByRole('link', { name: /Health/ }).textContent).toContain('×')
     expect(screen.getByRole('link', { name: 'Science' })).toHaveAttribute('href', '/feed?topic=Science')
   })
 

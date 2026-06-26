@@ -1,5 +1,6 @@
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 
 namespace PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
@@ -24,6 +25,28 @@ public interface IArticleReadRepository
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The detail DTO, or <see langword="null"/> when not found.</returns>
     Task<ArticleDetailDto?> GetDetailAsync(long id, CancellationToken ct);
+
+    /// <summary>
+    /// Checks whether an active article exists for the given identifier.
+    /// </summary>
+    /// <param name="id">Article primary key.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><see langword="true"/> when an active article with this id exists.</returns>
+    Task<bool> ExistsActiveAsync(long id, CancellationToken ct);
+
+    /// <summary>
+    /// Returns articles available for admin moderation, optionally filtered by title or identifier.
+    /// </summary>
+    /// <param name="searchTerm">Optional title substring search term.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IReadOnlyList<ArticleAdminItemDto>> SearchAdminArticlesAsync(string? searchTerm, CancellationToken ct);
+
+    /// <summary>
+    /// Loads article details used by the admin moderation UI.
+    /// </summary>
+    /// <param name="articleId">Article identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<ArticleAdminDetailDto?> GetAdminArticleDetailAsync(long articleId, CancellationToken ct);
 
     /// <summary>
     /// Returns keys already stored for the given external IDs, URLs, and titles (batch dedupe lookup).

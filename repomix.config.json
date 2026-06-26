@@ -41,6 +41,8 @@
       "**/*.cshtml",
       "**/*.sln",
       "**/*.md",
+      "**/*.test.tsx",
+      "**/*.test.ts",
       "**/*.csproj"
     ],
     "useGitignore": true,

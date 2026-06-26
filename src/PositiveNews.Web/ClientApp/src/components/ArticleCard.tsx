@@ -1,9 +1,17 @@
-﻿import { useState } from 'react'
+/**
+ * Feed card for a single article preview: source/topic toggles, scores, image, and expandable summary.
+ */
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { ArticlePreviewResponse } from '../api/types'
 import { ArticleImage } from './ArticleImage'
 import { ArticleTopicLinks } from './ArticleTopicLinks'
+import trustedIcon from '../assets/ui/trusted.jpg'
+import positivityIcon from '../assets/ui/positivity.png'
+import viewIcon from '../assets/ui/view.png'
+import { resolveSourceDefaultImageTag } from '../utils/source-default-image'
 
+/** Formats ISO publish date for display in the card subtitle. */
 function formatPublishedAt(iso: string) {
     const d = new Date(iso)
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -12,7 +20,7 @@ function formatPublishedAt(iso: string) {
 function formatPositivityScore(score: number | null): string | null {
     if (score == null || Number.isNaN(score)) return null
     const pct = Math.round(score * 100)
-    return `${pct}% Positivity`
+    return `${pct}% `
 }
 
 function formatTrustScoreMark(score: number): string {
@@ -20,11 +28,21 @@ function formatTrustScoreMark(score: number): string {
     return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(score)
 }
 
+function formatViewCount(count: number): string {
+    if (!Number.isFinite(count) || count < 0) return '0'
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(count)
+}
+
+/** Maps positivity score to Bootstrap badge color classes (danger / warning / success). */
 function positivityBadgeClassName(score: number): string {
-    const base = 'ms-auto text-nowrap small fw-semibold border rounded px-2 py-1'
+    const base = 'd-inline-flex align-items-center gap-1 text-nowrap small fw-semibold border rounded px-2 py-1'
     if (score < 0.49) return `${base} text-danger border-danger-subtle bg-danger-subtle`
     if (score <= 0.51) return `${base} text-dark border-warning-subtle bg-warning-subtle`
     return `${base} text-success border-success-subtle bg-success-subtle`
+}
+
+function viewCountBadgeClassName(): string {
+    return 'd-inline-flex align-items-center gap-1 text-nowrap small fw-semibold border rounded px-2 py-1 text-secondary border-secondary-subtle bg-light'
 }
 
 type ArticleCardProps = {
@@ -34,6 +52,8 @@ type ArticleCardProps = {
     buildTopicToggleUrl: (topic: string) => string
     selectedSourceIds: number[]
     buildSourceToggleUrl: (sourceId: number) => string
+    /** Current feed query string (e.g. "?topic=Health") preserved when opening article detail. */
+    feedReturnSearch?: string
 }
 
 export function ArticleCard({
@@ -43,9 +63,11 @@ export function ArticleCard({
     buildTopicToggleUrl,
     selectedSourceIds,
     buildSourceToggleUrl,
+    feedReturnSearch,
 }: ArticleCardProps) {
     const [summaryOpen, setSummaryOpen] = useState(false)
-    const hasPreviewImage = Boolean(article.imageTag?.trim())
+    const fallbackImageTag = resolveSourceDefaultImageTag(article.sourceName)
+    const hasPreviewImage = Boolean(article.imageTag?.trim()) || Boolean(fallbackImageTag)
     const positivityLabel = formatPositivityScore(article.positivityScore)
     const positivityBadgeClasses =
         article.positivityScore != null && !Number.isNaN(article.positivityScore)
@@ -56,7 +78,9 @@ export function ArticleCard({
     const sourceToggleTitle = isSourceSelected
         ? `Remove "${article.sourceName}" from preferred sources`
         : `Prefer articles from "${article.sourceName}"`
-    const articleDetailUrl = `/articles/${article.id}`
+    const articleDetailTo = feedReturnSearch
+        ? { pathname: `/articles/${article.id}`, state: { feedSearch: feedReturnSearch } }
+        : `/articles/${article.id}`
 
     return (
         <div className="card mb-4 shadow-sm overflow-hidden">
@@ -67,9 +91,12 @@ export function ArticleCard({
                     <div className="d-flex w-100 align-items-center gap-2 flex-wrap">
                         <Link
                             to={buildSourceToggleUrl(article.sourceId)}
-                            className={`d-inline-flex align-items-center gap-2 text-decoration-none pt-2 ${
-                                isSourceSelected ? 'link-primary' : 'link-secondary'
-                            }`}
+                            className={[
+                                'd-inline-flex align-items-center gap-2 text-decoration-none',
+                                isSourceSelected
+                                    ? 'btn btn-sm btn-outline-primary'
+                                    : 'link-secondary',
+                            ].join(' ')}
                             title={sourceToggleTitle}
                         >
                             {article.sourceLogoUrl ? (
@@ -80,30 +107,69 @@ export function ArticleCard({
                                     style={{ width: 32, height: 32, objectFit: 'cover' }}
                                 />
                             ) : null}
-                            <span className="fw-bold fs-5">{article.sourceName}</span>
+                            <span className={isSourceSelected ? 'fw-semibold' : 'fw-bold fs-5'}>
+                                {article.sourceName}
+                            </span>
+                            {isSourceSelected ? (
+                                <span className="ms-1 opacity-75" aria-hidden="true">
+                                    ×
+                                </span>
+                            ) : null}
                         </Link>
                         <span
-                            className="small fw-semibold text-secondary border border-secondary-subtle rounded-pill px-2 py-0 lh-sm"
+                            className="d-inline-flex align-items-center gap-1 small fw-semibold text-secondary border border-secondary-subtle rounded-pill ps-2 pe-1 py-0 lh-sm"
                             title="Source trust score"
                         >
                             {formatTrustScoreMark(article.sourceTrustScore)}
+                            <img
+                                src={trustedIcon}
+                                alt=""
+                                width={14}
+                                height={14}
+                                className="flex-shrink-0"
+                                aria-hidden="true"
+                            />
                         </span>
                         {positivityLabel ? (
-                            <span className={positivityBadgeClasses} title="Positivity score">
+                            <span className={`${positivityBadgeClasses} ms-auto`} title="Positivity score">
                                 {positivityLabel}
+                                <img
+                                    src={positivityIcon}
+                                    alt=""
+                                    width={18}
+                                    height={18}
+                                    className="flex-shrink-0"
+                                    aria-hidden="true"
+                                />
                             </span>
                         ) : null}
                     </div>
-                    <h6 className="card-subtitle pt-2 mb-0 text-muted">
-                        {(article.author?.trim().length ? article.author : 'Unknown Author') +
-                            ' • ' +
-                            formatPublishedAt(article.publishedAt)}
-                    </h6>
+                    <div className="d-flex w-100 align-items-center gap-2 pt-2">
+                        <h6 className="card-subtitle mb-0 text-muted">
+                            {(article.author?.trim().length ? article.author : 'Unknown Author') +
+                                ' • ' +
+                                formatPublishedAt(article.publishedAt)}
+                        </h6>
+                        <span
+                            className={`${viewCountBadgeClassName()} ms-auto flex-shrink-0`}
+                            title="Views count"
+                        >
+                            {formatViewCount(article.viewCount)}
+                            <img
+                                src={viewIcon}
+                                alt=""
+                                width={18}
+                                height={18}
+                                className="flex-shrink-0"
+                                aria-hidden="true"
+                            />
+                        </span>
+                    </div>
                 </div>
                 <div className="article-card-title card-body">
                     <h4 className="card-title fw-bold mb-0">
                         <Link
-                            to={articleDetailUrl}
+                            to={articleDetailTo}
                             className="text-decoration-none text-dark link-underline-opacity-0 link-underline-opacity-100-hover"
                         >
                             {article.title}
@@ -112,11 +178,15 @@ export function ArticleCard({
                 </div>
                 {hasPreviewImage ? (
                     <Link
-                        to={articleDetailUrl}
+                        to={articleDetailTo}
                         className="article-card-image text-decoration-none"
                         aria-label={`Read article: ${article.title}`}
                     >
-                        <ArticleImage imageTag={article.imageTag} index={index} />
+                        <ArticleImage
+                            imageTag={article.imageTag}
+                            fallbackImageTag={fallbackImageTag}
+                            index={index}
+                        />
                     </Link>
                 ) : null}
                 <div className="article-card-body card-body pt-0 border-0">
@@ -133,7 +203,7 @@ export function ArticleCard({
                         >
                             {summaryOpen ? 'Hide summary' : 'Show summary'}
                         </button>
-                        <Link to={articleDetailUrl} className="btn btn-primary">
+                        <Link to={articleDetailTo} className="btn btn-success">
                             Read article
                         </Link>
                         {originUrl ? (

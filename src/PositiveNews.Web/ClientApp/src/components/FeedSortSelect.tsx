@@ -1,4 +1,8 @@
+/**
+ * Feed sort dropdown and helpers for sort labels and preference hints.
+ */
 import type { FeedSortParam } from '../api/articles-api'
+
 
 export type FeedSortSelectProps = {
   sortMode: FeedSortParam
@@ -7,12 +11,14 @@ export type FeedSortSelectProps = {
   className?: string
 }
 
+/** Human-readable label for each feed sort mode. */
 export function feedSortModeLabel(sort: FeedSortParam): string {
   if (sort === 'positivity') return 'positivity score'
   if (sort === 'preferences') return 'your preferences'
   return 'publication date'
 }
 
+/** Explains how preferred topics/sources affect ordering for the current sort mode. */
 export function buildPreferenceSortHint(sortMode: FeedSortParam, sortLabel: string): string {
   if (sortMode === 'preferences') {
       return 'Matching preferred topics and sources are shown first, then by publication date.'

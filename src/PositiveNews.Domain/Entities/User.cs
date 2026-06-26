@@ -131,14 +131,51 @@ public class User
         FailedLoginCount++;
     }
 
+    private const string DeletedEmailDomain = "user";
+    private const string DeletedUserDisplayName = "Deleted user";
+
     /// <summary>
-    /// Deactivates the account and records the acting moderator.
+    /// Deactivates the account, anonymizes profile data, and records the acting moderator.
     /// </summary>
     public void Deactivate(long moderatorId)
     {
         if (!IsActive)
             throw new InvalidUserStateException("User is already inactive.");
+        if (Id <= 0)
+            throw new InvalidUserStateException("User id must be assigned before deactivation.");
+
+        Email = ToDeletedEmail(Id);
+        Name = DeletedUserDisplayName;
         IsActive = false;
         ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Updates the active flag without anonymizing profile data.
+    /// </summary>
+    public void SetActive(bool isActive, long moderatorId)
+    {
+        if (IsActive == isActive)
+        {
+            ModeratedBy = moderatorId;
+            return;
+        }
+
+        IsActive = isActive;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Updates email confirmation state and records the moderator.
+    /// </summary>
+    public void SetEmailConfirmed(bool emailConfirmed, long moderatorId)
+    {
+        EmailConfirmed = emailConfirmed;
+        ModeratedBy = moderatorId;
+    }
+
+    private static string ToDeletedEmail(long userId)
+    {
+        return $"deleted{userId}@{DeletedEmailDomain}";
     }
 }

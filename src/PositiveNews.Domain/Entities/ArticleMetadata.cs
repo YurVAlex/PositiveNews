@@ -59,7 +59,7 @@ public class ArticleMetadata
     /// <summary>When false, the article is hidden from public feeds.</summary>
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>Moderator who deactivated the article, if any.</summary>
+    /// <summary>Moderator who last modified or deactivated the article, if any.</summary>
     public long? ModeratedBy { get; private set; }
 
     /// <summary>Short plain-text summary for cards and listings.</summary>
@@ -142,6 +142,66 @@ public class ArticleMetadata
             throw new InvalidArticleStateException("Article is already inactive.");
         IsActive = false;
         ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Reactivates a previously inactive article and records the acting moderator.
+    /// </summary>
+    public void Activate(long moderatorId)
+    {
+        if (IsActive)
+            throw new InvalidArticleStateException("Article is already active.");
+        IsActive = true;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Marks the article as modified by a moderator without changing its active state.
+    /// </summary>
+    public void ApplyModeration(long moderatorId)
+    {
+        if (moderatorId <= 0)
+            throw new InvalidArticleStateException("ModeratorId must be a valid user identifier.");
+
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Updates the article title for administrative corrections.
+    /// </summary>
+    public void UpdateTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new InvalidArticleStateException("Article title cannot be empty.");
+
+        Title = title.Length > 500 ? title[..500] : title.Trim();
+    }
+
+    /// <summary>
+    /// Updates the preview image markup.
+    /// </summary>
+    public void UpdateImageTag(string? imageTag)
+    {
+        ImageTag = string.IsNullOrWhiteSpace(imageTag) ? null : imageTag.Trim();
+    }
+
+    /// <summary>
+    /// Updates the article positivity score.
+    /// </summary>
+    public void UpdatePositivityScore(decimal? positivityScore)
+    {
+        if (positivityScore.HasValue && (positivityScore.Value < 0m || positivityScore.Value > 1m))
+            throw new InvalidArticleStateException("PositivityScore must be between 0 and 1.");
+
+        PositivityScore = positivityScore;
+    }
+
+    /// <summary>
+    /// Updates the short summary shown in admin and listing cards.
+    /// </summary>
+    public void UpdateSummaryShort(string? summaryShort)
+    {
+        SummaryShort = string.IsNullOrWhiteSpace(summaryShort) ? null : summaryShort.Trim();
     }
 
     /// <summary>

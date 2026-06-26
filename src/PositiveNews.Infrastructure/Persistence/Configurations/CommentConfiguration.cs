@@ -49,5 +49,9 @@ internal sealed class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Navigation(c => c.Replies)
                .HasField("_replies")
                .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(c => c.Complaints)
+               .HasField("_complaints")
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

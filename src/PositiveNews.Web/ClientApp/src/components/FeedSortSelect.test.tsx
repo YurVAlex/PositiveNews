@@ -38,6 +38,6 @@ describe('feedSortModeLabel', () => {
 
 describe('buildPreferenceSortHint', () => {
   it('describes weight sort for preferences mode', () => {
-    expect(buildPreferenceSortHint('preferences', 'your preferences')).toContain('1 point')
+      expect(buildPreferenceSortHint('preferences', 'your preferences')).toContain('Matching preferred topics and sources are shown first, then by publication date.')
   })
 })

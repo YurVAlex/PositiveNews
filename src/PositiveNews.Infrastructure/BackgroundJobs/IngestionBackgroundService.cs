@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PositiveNews.Application.Abstractions.Ingestion;
 using PositiveNews.Application.Commands.Ingestion;
 
 namespace PositiveNews.Infrastructure.BackgroundJobs;
@@ -14,13 +15,14 @@ namespace PositiveNews.Infrastructure.BackgroundJobs;
 public class IngestionBackgroundService : BackgroundService // ← Implements IHostedService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IIngestionCycleCoordinator _coordinator;
     private readonly ILogger<IngestionBackgroundService> _logger;
     private readonly TimeSpan _interval;
 
     /// <summary>
-    /// Initial delay before the first run so the application has time to fully start.
+    /// Brief delay before the first run so the host can finish starting.
     /// </summary>
-    private static readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan _initialDelay = TimeSpan.FromSeconds(1);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="IngestionBackgroundService"/> class.
@@ -30,10 +32,12 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
     /// <param name="configuration">Application configuration; reads <c>Ingestion:IntervalMinutes</c> for the polling interval.</param>
     public IngestionBackgroundService(
         IServiceScopeFactory scopeFactory,
+        IIngestionCycleCoordinator coordinator,
         ILogger<IngestionBackgroundService> logger,
         IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
+        _coordinator = coordinator;
         _logger = logger;
 
         // Can't inject MediatR in class constructor because they have different lifecycle
@@ -59,6 +63,7 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
 
         // Wait for the application to fully initialize before the first run.
         await DelayInitialAsync(stoppingToken);
+        _coordinator.SetNextRunAtUtc(DateTime.UtcNow);
 
         try
         {
@@ -82,6 +87,7 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
                 // Wait for the configured interval before the next run.
                 if (!stoppingToken.IsCancellationRequested)
                 {
+                    _coordinator.SetNextRunAtUtc(DateTime.UtcNow.Add(_interval));
                     _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
                     await DelayBetweenCyclesAsync(stoppingToken);
                 }

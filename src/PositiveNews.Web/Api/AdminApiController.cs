@@ -1,5 +1,16 @@
+using System.Security.Claims;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PositiveNews.Application.Commands.Admin;
+using PositiveNews.Application.Commands.Ingestion;
+using PositiveNews.Application.Common;
+using PositiveNews.Application.DTOs.Admin;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Queries.Admin;
+using PositiveNews.Application.Queries.Ingestion;
+using PositiveNews.Web.Api.Mapping;
+using PositiveNews.Web.Api.Models;
 
 namespace PositiveNews.Web.Api;
 
@@ -9,7 +20,7 @@ namespace PositiveNews.Web.Api;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "Admin")]
-public sealed class AdminApiController : ControllerBase
+public sealed class AdminApiController(IMediator mediator) : ControllerBase
 {
     /// <summary>
     /// Simple health-style endpoint confirming administrative access.
@@ -20,5 +31,264 @@ public sealed class AdminApiController : ControllerBase
     public IActionResult GetStatus()
     {
         return Ok(new { ok = true, message = "Admin access granted." });
+    }
+
+    /// <summary>
+    /// Returns whether an ingestion cycle is running and when the next scheduled run is expected.
+    /// </summary>
+    [HttpGet("ingestion/status")]
+    [ProducesResponseType(typeof(IngestionCycleStatusDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IngestionCycleStatusDto>> GetIngestionStatus(CancellationToken cancellationToken)
+    {
+        var status = await mediator.Send(new GetIngestionCycleStatusQuery(), cancellationToken);
+        return Ok(status);
+    }
+
+    /// <summary>
+    /// Returns the latest ingestion runs for the admin table.
+    /// </summary>
+    [HttpGet("ingestion/runs")]
+    [ProducesResponseType(typeof(IReadOnlyList<IngestionRunListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<IngestionRunListItemDto>>> GetIngestionRuns(
+        CancellationToken cancellationToken)
+    {
+        var runs = await mediator.Send(new GetIngestionRunsQuery(), cancellationToken);
+        return Ok(runs);
+    }
+
+    /// <summary>
+    /// Returns the admin view of all sources.
+    /// </summary>
+    [HttpGet("sources")]
+    [ProducesResponseType(typeof(IReadOnlyList<SourceAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<SourceAdminItemResponse>>> GetSources(CancellationToken cancellationToken)
+    {
+        var sources = await mediator.Send(new GetAdminSourcesQuery(), cancellationToken);
+        return Ok(sources.ToSourceAdminItemResponses());
+    }
+
+    /// <summary>
+    /// Returns the editable admin view for a specific source.
+    /// </summary>
+    [HttpGet("sources/{sourceId:int}")]
+    [ProducesResponseType(typeof(SourceAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SourceAdminDetailResponse>> GetSourceDetail(int sourceId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetSourceDetailQuery(sourceId), cancellationToken);
+        return result
+            .Map(dto => dto.ToSourceAdminDetailResponse())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Updates an existing source with admin moderation decisions.
+    /// </summary>
+    [HttpPut("sources/{sourceId:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateSource(int sourceId, [FromBody] UpdateSourceRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var command = new UpdateSourceCommand(sourceId,
+            request.TrustScore,
+            request.IsActive,
+            request.FeedUrl,
+            request.Reason,
+            request.Note,
+            moderatorId);
+
+        var result = await mediator.Send(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.ToActionResult(this);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Searches articles available for admin moderation.
+    /// </summary>
+    [HttpGet("articles")]
+    [ProducesResponseType(typeof(IReadOnlyList<ArticleAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<ArticleAdminItemResponse>>> GetArticles(
+        [FromQuery(Name = "q")] string? searchTerm,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminArticlesQuery(searchTerm), cancellationToken);
+        return result
+            .Map(items => items.ToArticleAdminItemResponses())
+            .ToActionResult(this);
+    }
+
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(IReadOnlyList<UserAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<UserAdminItemResponse>>> GetUsers(
+        [FromQuery(Name = "q")] string? searchTerm,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminUsersQuery(searchTerm), cancellationToken);
+        return Ok(result.ToUserAdminItemResponses());
+    }
+
+    [HttpGet("users/{userId:long}")]
+    [ProducesResponseType(typeof(UserAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserAdminDetailResponse>> GetUserDetail(long userId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminUserDetailQuery(userId), cancellationToken);
+        return result.Map(user => user.ToUserAdminDetailResponse()).ToActionResult(this);
+    }
+
+    [HttpPut("users/{userId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateUser(long userId, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var result = await mediator.Send(new UpdateUserCommand(userId, request.IsActive, request.EmailConfirmed, request.Reason, request.Note, moderatorId), cancellationToken);
+        return result.IsFailure ? result.ToActionResult(this) : NoContent();
+    }
+
+    [HttpGet("comments/{commentId:long}")]
+    [ProducesResponseType(typeof(CommentAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CommentAdminDetailResponse>> GetCommentDetail(long commentId, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminCommentDetailQuery(commentId), cancellationToken);
+        return result.Map(comment => comment.ToCommentAdminDetailResponse()).ToActionResult(this);
+    }
+
+    [HttpPut("comments/{commentId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateComment(long commentId, [FromBody] UpdateCommentRequest request, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var result = await mediator.Send(new ModerateCommentCommand(commentId, request.IsActive, request.Reason, request.Note, moderatorId), cancellationToken);
+        return result.IsFailure ? result.ToActionResult(this) : NoContent();
+    }
+
+    /// <summary>
+    /// Returns recent audit logs for administrative review.
+    /// </summary>
+    [HttpGet("audit-logs")]
+    [ProducesResponseType(typeof(IReadOnlyList<AuditLogAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AuditLogAdminItemResponse>>> GetAuditLogs([FromQuery] int limit = 100, CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new PositiveNews.Application.Queries.Admin.GetAuditLogsQuery(limit), cancellationToken);
+        return result
+            .Map(items => items.ToAuditLogAdminItemResponses())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Returns article data for admin moderation.
+    /// </summary>
+    [HttpGet("articles/{articleId:long}")]
+    [ProducesResponseType(typeof(ArticleAdminDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ArticleAdminDetailResponse>> GetArticleDetail(
+        long articleId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetAdminArticleDetailQuery(articleId), cancellationToken);
+        return result
+            .Map(article => article.ToArticleAdminDetailResponse())
+            .ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Moderates the active state of a single article.
+    /// </summary>
+    [HttpPut("articles/{articleId:long}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ModerateArticle(long articleId, [FromBody] ModerateArticleRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var moderatorId))
+        {
+            return UnauthorizedProblem();
+        }
+
+        var command = new ModerateArticleCommand(
+            articleId,
+            request.IsActive,
+            request.Title,
+            request.ImageTag,
+            request.PositivityScore,
+            request.SummaryShort,
+            request.ContentRaw,
+            request.Reason,
+            request.Note,
+            moderatorId);
+        var result = await mediator.Send(command, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.ToActionResult(this);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Starts an ingestion cycle in the background when one is not already running.
+    /// </summary>
+    [HttpPost("ingestion/trigger")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> TriggerIngestionCycle(CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new TriggerIngestionCycleCommand(), cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.ToActionResult(this);
+        }
+
+        return Accepted();
+    }
+
+    private bool TryGetUserId(out long userId)
+    {
+        userId = 0;
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return long.TryParse(userIdValue, out userId);
+    }
+
+    private ObjectResult UnauthorizedProblem()
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "Unauthorized",
+            Detail = "Invalid or missing user identifier in the security context.",
+            Type = "https://tools.ietf.org/html/rfc7235#section-3.1"
+        };
+
+        ProblemDetailsTraceExtensions.EnrichWithTrace(HttpContext, problemDetails);
+        return new ObjectResult(problemDetails) { StatusCode = problemDetails.Status };
     }
 }

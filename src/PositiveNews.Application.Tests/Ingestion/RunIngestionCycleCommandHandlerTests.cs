@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -36,7 +37,10 @@ public class RunIngestionCycleCommandHandlerTests
         var factory = new TestServiceScopeFactory(
             new TestServiceScope(new TestServiceProvider(initialMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)));
-        var handler = new RunIngestionCycleCommandHandler(factory, NullLogger<RunIngestionCycleCommandHandler>.Instance);
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            new AllowingIngestionCycleCoordinator(),
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
 
         var result = await handler.Handle(new RunIngestionCycleCommand(), cts.Token);
 
@@ -71,7 +75,10 @@ public class RunIngestionCycleCommandHandlerTests
         var factory = new TestServiceScopeFactory(
             new TestServiceScope(new TestServiceProvider(initialMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)));
-        var handler = new RunIngestionCycleCommandHandler(factory, NullLogger<RunIngestionCycleCommandHandler>.Instance);
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            new AllowingIngestionCycleCoordinator(),
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
 
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
@@ -106,7 +113,10 @@ public class RunIngestionCycleCommandHandlerTests
             new TestServiceScope(new TestServiceProvider(initialMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)));
-        var handler = new RunIngestionCycleCommandHandler(factory, NullLogger<RunIngestionCycleCommandHandler>.Instance);
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            new AllowingIngestionCycleCoordinator(),
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
 
         var result = await handler.Handle(new RunIngestionCycleCommand(), cts.Token);
 
@@ -124,7 +134,10 @@ public class RunIngestionCycleCommandHandlerTests
         var factory = new TestServiceScopeFactory(
             new TestServiceScope(new TestServiceProvider(initialMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)));
-        var handler = new RunIngestionCycleCommandHandler(factory, NullLogger<RunIngestionCycleCommandHandler>.Instance);
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            new AllowingIngestionCycleCoordinator(),
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
 
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
@@ -154,11 +167,32 @@ public class RunIngestionCycleCommandHandlerTests
             new TestServiceScope(new TestServiceProvider(initialMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)),
             new TestServiceScope(new TestServiceProvider(processMediator)));
-        var handler = new RunIngestionCycleCommandHandler(factory, NullLogger<RunIngestionCycleCommandHandler>.Instance);
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            new AllowingIngestionCycleCoordinator(),
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
 
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
         await processMediator.Received(2).Send(Arg.Any<ProcessIngestionSourceCommand>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnConflict_When_CycleAlreadyRunning()
+    {
+        var coordinator = new AllowingIngestionCycleCoordinator();
+        coordinator.TryBeginCycle();
+        var factory = Substitute.For<IServiceScopeFactory>();
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            coordinator,
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
+
+        var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Ingestion.AlreadyRunning");
+        factory.DidNotReceive().CreateScope();
     }
 }

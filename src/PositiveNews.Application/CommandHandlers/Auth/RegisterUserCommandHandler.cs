@@ -18,15 +18,18 @@ namespace PositiveNews.Application.CommandHandlers.Auth;
 /// <param name="userRoleWriteRepository">Assigns roles to users.</param>
 /// <param name="roleReadRepository">Loads the default role entity.</param>
 /// <param name="passwordHasherService">Hashes passwords for storage.</param>
-/// <param name="tokenService">Issues JWT access tokens.</param>
+/// <param name="tokenService">Issues JWT access tokens and refresh tokens.</param>
+/// <param name="refreshTokenWriteRepository">Persists refresh tokens.</param>
 /// <param name="unitOfWork">Commits the transactional registration.</param>
 public sealed class RegisterUserCommandHandler(
     IUserReadRepository userReadRepository,
     IUserWriteRepository userWriteRepository,
     IUserRoleWriteRepository userRoleWriteRepository,
+    IUserFeedPreferencesWriteRepository userFeedPreferencesWriteRepository,
     IRoleReadRepository roleReadRepository,
     IPasswordHasherService passwordHasherService,
     ITokenService tokenService,
+    IRefreshTokenWriteRepository refreshTokenWriteRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<RegisterUserCommand, Result<AuthResultModel>>
 {
     /// <summary>
@@ -62,11 +65,20 @@ public sealed class RegisterUserCommandHandler(
         userRoleWriteRepository.Add(UserRole.Create(userRole.Id, user));
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        userFeedPreferencesWriteRepository.AddDefault(user.Id);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         var roles = new[] { userRole.Name };
+        var refreshTokenString = tokenService.CreateRefreshTokenString();
+        var refreshToken = RefreshToken.Create(refreshTokenString, user.Id, tokenService.GetRefreshTokenExpiryUtc());
+        refreshTokenWriteRepository.Add(refreshToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         return Result<AuthResultModel>.Success(new AuthResultModel
         {
             AccessToken = tokenService.CreateAccessToken(user, roles),
             ExpiresAtUtc = tokenService.GetAccessTokenExpiryUtc(),
+            RefreshToken = refreshTokenString,
             User = new UserProfileModel
             {
                 Id = user.Id,

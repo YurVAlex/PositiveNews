@@ -1,3 +1,4 @@
+/** Shared API response shapes used by fetch helpers and UI components. */
 export type SourceFilterItem = {
   id: number
   name: string
@@ -26,6 +27,7 @@ export type ArticlePreviewResponse = {
   summaryShort: string
   url: string
   positivityScore: number | null
+  viewCount: number
   topics: string[]
 }
 
@@ -50,6 +52,18 @@ export type ArticleDetailResponse = {
   contentHtml: string | null
 }
 
+export type CommentResponse = {
+  id: number
+  userId: number
+  userName: string
+  content: string
+  createdAt: string
+}
+
+export type ArticleCommentsListResponse = {
+  comments: CommentResponse[]
+}
+
 export type UserProfileResponse = {
   id: number
   email: string
@@ -60,5 +74,13 @@ export type UserProfileResponse = {
 export type AuthResponse = {
   accessToken: string
   expiresAtUtc: string
+  refreshToken: string
   user: UserProfileResponse
+}
+
+export type UserFeedPreferencesResponse = {
+  topicNames: string[]
+  sourceIds: number[]
+  minPositivity: number
+  sortBy: string
 }

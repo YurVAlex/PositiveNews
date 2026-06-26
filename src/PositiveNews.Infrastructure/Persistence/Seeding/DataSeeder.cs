@@ -78,18 +78,75 @@ public static class DataSeeder
 
     private static async Task SeedSourcesAsync(AppDbContext context, ILogger logger, SeedDataConfiguration seedConfig)
     {
-        if (await context.Sources.AnyAsync()) return;
-
         if (seedConfig.Sources.Count == 0)
         {
             logger.LogWarning("No sources found in SeedData configuration. Skipping source seeding.");
             return;
         }
 
-        var sources = seedConfig.Sources.Select(s => s.ToEntity()).ToList();
-        context.Sources.AddRange(sources);
+        var existingSources = await context.Sources
+            .AsNoTracking()
+            .Select(s => new { s.Name, s.FeedUrl })
+            .ToListAsync();
+
+        var existingFeedUrls = new HashSet<string>(
+            existingSources
+                .Where(s => !string.IsNullOrWhiteSpace(s.FeedUrl))
+                .Select(s => s.FeedUrl!.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+
+        var existingNames = new HashSet<string>(
+            existingSources
+                .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+                .Select(s => s.Name.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+
+        var seenFeedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var sourcesToSeed = new List<Source>();
+
+        foreach (var entry in seedConfig.Sources)
+        {
+            if (SourceExists(entry, existingFeedUrls, existingNames))
+            {
+                continue;
+            }
+
+            var feedUrl = entry.FeedUrl?.Trim();
+            if (!string.IsNullOrWhiteSpace(feedUrl))
+            {
+                if (!seenFeedUrls.Add(feedUrl))
+                    continue;
+            }
+            else
+            {
+                var name = entry.Name.Trim();
+                if (!seenNames.Add(name))
+                    continue;
+            }
+
+            sourcesToSeed.Add(entry.ToEntity());
+        }
+
+        if (sourcesToSeed.Count == 0)
+        {
+            logger.LogInformation("No new sources to seed from configuration.");
+            return;
+        }
+
+        context.Sources.AddRange(sourcesToSeed);
         await context.SaveChangesAsync();
-        logger.LogInformation("Seeded {Count} sources from configuration.", sources.Count);
+        logger.LogInformation("Seeded {Count} new source(s) from configuration.", sourcesToSeed.Count);
+    }
+
+    private static bool SourceExists(SourceEntry entry, HashSet<string> existingFeedUrls, HashSet<string> existingNames)
+    {
+        var feedUrl = entry.FeedUrl?.Trim();
+        if (!string.IsNullOrWhiteSpace(feedUrl) && existingFeedUrls.Contains(feedUrl))
+            return true;
+
+        var name = entry.Name.Trim();
+        return existingNames.Contains(name);
     }
 
     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)

@@ -1,3 +1,4 @@
+/** Top-level route table; AppLayout wraps every page with the shared navbar and footer. */
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AppLayout } from './components/AppLayout'
@@ -12,6 +13,7 @@ export function App() {
   return (
     <AppLayout>
       <Routes>
+        {/* /admin is the only role-gated route; other pages handle auth inline where needed. */}
         <Route path="/" element={<FeedPage />} />
         <Route path="/articles/:id" element={<ArticleDetailPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />

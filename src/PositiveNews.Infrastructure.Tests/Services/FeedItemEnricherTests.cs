@@ -23,10 +23,19 @@ public class FeedItemEnricherTests
 
         var emptyWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var settings = new IngestionSettingsSnapshot(
-            new PositivityAnalizerKeyPhrases(
-                emptyWords, emptyWords, emptyWords, emptyWords, emptyWords, emptyWords, 1, 1, 1m, 1m),
+            PositivityAnalyzerTestLexicon.Create(
+                positiveWords: emptyWords,
+                negativeWords: emptyWords,
+                positivePhrases: emptyWords,
+                negativePhrases: emptyWords,
+                negationWords: emptyWords,
+                intensifierWords: emptyWords,
+                negationLookbackTokens: 1,
+                intensifierLookbackTokens: 1,
+                intensifierMultiplier: 1m,
+                phrasePolarityWeight: 1m),
             new CleanerRules([], [], [], [], new HashSet<string>(), new HashSet<string>()),
-            new FeedItemValidationRules(new HashSet<string>()),
+            new FeedItemValidationRules(new HashSet<string>(), []),
             new Dictionary<string, SourceIngestionRules>(StringComparer.OrdinalIgnoreCase)
             {
                 ["s1"] = new SourceIngestionRules("news.example", ["Health"])

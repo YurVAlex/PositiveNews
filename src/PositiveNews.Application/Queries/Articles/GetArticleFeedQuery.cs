@@ -13,10 +13,12 @@ namespace PositiveNews.Application.Queries.Articles;
 /// <param name="SourceIds">Optional preferred source ids (null means no preference).</param>
 /// <param name="PageSize">Items per page.</param>
 /// <param name="SortBy">Primary sort column.</param>
+/// <param name="MinPositivity">Optional minimum positivity threshold in [0, 1].</param>
 public sealed record GetArticleFeedQuery(
         int Page = 1,
         IReadOnlyList<string>? Topics = null,
         IReadOnlyList<int>? SourceIds = null,
         int PageSize = 10,
-        ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt)
+        ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt,
+        decimal? MinPositivity = null)
     : IRequest<Result<ArticleFeedPageResult>>;

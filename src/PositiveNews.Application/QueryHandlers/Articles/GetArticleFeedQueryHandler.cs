@@ -59,7 +59,8 @@ public sealed class GetArticleFeedQueryHandler(
             request.PageSize,
             topics,
             sourceIds,
-            request.SortBy);
+            request.SortBy,
+            request.MinPositivity);
         var page = await articleReadRepository.GetFeedPageAsync(filter, cancellationToken);
         var maxPage = Math.Max(1, page.TotalPages);
 

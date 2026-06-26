@@ -125,6 +125,44 @@ public class Source
     }
 
     /// <summary>
+    /// Updates the source's trust score.
+    /// </summary>
+    public void SetTrustScore(decimal trustScore, long moderatorId)
+    {
+        if (trustScore < 0m)
+            throw new InvalidSourceStateException("TrustScore cannot be negative.");
+
+        TrustScore = trustScore;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Activates or deactivates the source and records moderation metadata.
+    /// </summary>
+    public void SetActive(bool isActive, long moderatorId)
+    {
+        if (IsActive == isActive)
+        {
+            ModeratedBy = moderatorId;
+            return;
+        }
+
+        IsActive = isActive;
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
+    /// Marks the source as modified by a moderator without changing other fields.
+    /// </summary>
+    public void ApplyModeration(long moderatorId)
+    {
+        if (moderatorId <= 0)
+            throw new InvalidSourceStateException("ModeratorId must be a valid user identifier.");
+
+        ModeratedBy = moderatorId;
+    }
+
+    /// <summary>
     /// Updates marketing/description fields without touching feed configuration.
     /// </summary>
     public void UpdateDetails(string? description, string? logoUrl)

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Ingestion;
 using PositiveNews.Application.Mapping;
@@ -35,6 +36,12 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
             .Where(a => a.IsActive)
             .AsNoTracking();
 
+        if (filter.MinPositivity.HasValue)
+        {
+            var threshold = filter.MinPositivity.Value;
+            query = query.Where(a => a.PositivityScore != null && a.PositivityScore >= threshold);
+        }
+
         query = filter.SortBy switch
         {
             ArticleFeedSortBy.Preferences => ApplyPreferenceSort(query, topicNamesLower, sourceIds),
@@ -61,6 +68,67 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
             SelectedTopics = topics,
             SelectedSources = selectedSources
         };
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ArticleAdminItemDto>> SearchAdminArticlesAsync(string? searchTerm, CancellationToken ct)
+    {
+        var query = db.ArticlesMetadata
+            .Include(a => a.Source)
+            .AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var trimmed = searchTerm.Trim();
+            var searchById = long.TryParse(trimmed, out var articleId);
+            query = query.Where(a =>
+                (searchById && a.Id == articleId)
+                || a.Title.Contains(trimmed)
+                || a.Source.Name.Contains(trimmed));
+        }
+
+        return await query
+            .OrderByDescending(a => a.PublishedAt)
+            .Take(50)
+            .Select(a => new ArticleAdminItemDto
+            {
+                Id = a.Id,
+                SourceId = a.SourceId,
+                SourceName = a.Source.Name,
+                Title = a.Title,
+                PositivityScore = a.PositivityScore,
+                IsActive = a.IsActive,
+                ModeratedBy = a.ModeratedBy,
+                PublishedAt = a.PublishedAt
+            })
+            .ToListAsync(ct);
+    }
+
+    /// <inheritdoc />
+    public async Task<ArticleAdminDetailDto?> GetAdminArticleDetailAsync(long articleId, CancellationToken ct)
+    {
+        return await db.ArticlesMetadata
+            .Include(a => a.Source)
+            .AsNoTracking()
+            .Where(a => a.Id == articleId)
+            .Select(a => new ArticleAdminDetailDto
+            {
+                Id = a.Id,
+                SourceId = a.SourceId,
+                SourceName = a.Source.Name,
+                SourceLogoUrl = a.Source.LogoUrl,
+                Title = a.Title,
+                ImageTag = a.ImageTag,
+                PositivityScore = a.PositivityScore,
+                Author = a.Author,
+                PublishedAt = a.PublishedAt,
+                Url = a.Url,
+                SummaryShort = a.SummaryShort ?? string.Empty,
+                ContentRaw = a.Content != null ? a.Content.ContentRaw : null,
+                IsActive = a.IsActive,
+                ModeratedBy = a.ModeratedBy
+            })
+            .FirstOrDefaultAsync(ct);
     }
 
     /// <summary>
@@ -171,6 +239,12 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
 
         return article.ToArticleDetailDto();
     }
+
+    /// <inheritdoc />
+    public Task<bool> ExistsActiveAsync(long id, CancellationToken ct)
+        => db.ArticlesMetadata
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == id && a.IsActive, ct);
 
     /// <inheritdoc />
     public async Task<ExistingArticleKeys> FindExistingKeysAsync(

@@ -99,6 +99,45 @@ public class AuthApiControllerTests
     }
 
     [Fact]
+    public async Task Refresh_Should_ReturnAuthResponse_When_CommandSucceeds()
+    {
+        var auth = TestDataBuilders.AuthResult();
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Any<RefreshTokenCommand>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<Result<AuthResultModel>>(auth));
+
+        var sut = new AuthApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+
+        var result = await sut.Refresh(
+            new RefreshRequest { RefreshToken = "refresh-token" },
+            CancellationToken.None);
+
+        var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        ok.Value.Should().BeOfType<AuthResponse>();
+        await mediator.Received(1).Send(
+            Arg.Is<RefreshTokenCommand>(c => c.RefreshToken == "refresh-token"),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Refresh_Should_ReturnUnauthorizedProblem_When_CommandFails()
+    {
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Any<RefreshTokenCommand>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result<AuthResultModel>.Failure(
+                new Error("Auth.InvalidRefreshToken", "invalid", ErrorType.Unauthorized))));
+
+        var sut = new AuthApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+
+        var result = await sut.Refresh(new RefreshRequest { RefreshToken = "invalid-token" }, CancellationToken.None);
+
+        var obj = result.Result.Should().BeOfType<ObjectResult>().Subject;
+        obj.StatusCode.Should().Be(StatusCodes.Status401Unauthorized);
+    }
+
+    [Fact]
     public async Task Me_Should_ReturnUnauthorizedProblem_When_UserIdClaimMissing()
     {
         var mediator = Substitute.For<IMediator>();

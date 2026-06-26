@@ -3,7 +3,7 @@ using PositiveNews.Domain.Entities;
 namespace PositiveNews.Application.Abstractions.Security;
 
 /// <summary>
-/// Issues and inspects JWT access tokens for authenticated users.
+/// Issues and inspects JWT access tokens and refresh tokens for authenticated users.
 /// </summary>
 public interface ITokenService
 {
@@ -20,4 +20,16 @@ public interface ITokenService
     /// </summary>
     /// <returns>The expiration time in UTC.</returns>
     DateTime GetAccessTokenExpiryUtc();
+
+    /// <summary>
+    /// Creates a cryptographically secure random refresh token string.
+    /// </summary>
+    /// <returns>The refresh token string.</returns>
+    string CreateRefreshTokenString();
+
+    /// <summary>
+    /// Returns the UTC expiry instant for refresh tokens produced by this service.
+    /// </summary>
+    /// <returns>The expiration time in UTC.</returns>
+    DateTime GetRefreshTokenExpiryUtc();
 }

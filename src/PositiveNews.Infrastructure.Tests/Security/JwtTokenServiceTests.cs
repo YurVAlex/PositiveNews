@@ -86,6 +86,59 @@ public class JwtTokenServiceTests
         ReadJwt(jwt).Claims.Should().NotContain(c => c.Type == ClaimTypes.Role);
     }
 
+    [Fact]
+    public void CreateRefreshTokenString_Should_ReturnNonEmptyString()
+    {
+        var sut = new JwtTokenService(Options.Create(ValidOptions()));
+
+        var token = sut.CreateRefreshTokenString();
+
+        token.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void CreateRefreshTokenString_Should_GenerateUniqueTokens()
+    {
+        var sut = new JwtTokenService(Options.Create(ValidOptions()));
+
+        var token1 = sut.CreateRefreshTokenString();
+        var token2 = sut.CreateRefreshTokenString();
+
+        token1.Should().NotBe(token2);
+    }
+
+    [Fact]
+    public void CreateRefreshTokenString_Should_GenerateBase64EncodedString()
+    {
+        var sut = new JwtTokenService(Options.Create(ValidOptions()));
+
+        var token = sut.CreateRefreshTokenString();
+
+        var bytes = Convert.FromBase64String(token);
+        bytes.Length.Should().Be(64);
+    }
+
+    [Fact]
+    public void GetRefreshTokenExpiryUtc_Should_BeWithinExpectedWindow_When_RefreshTokenDaysSet()
+    {
+        var o = ValidOptions();
+        var options = new JwtOptions
+        {
+            Issuer = o.Issuer,
+            Audience = o.Audience,
+            SecretKey = o.SecretKey,
+            AccessTokenMinutes = 60,
+            RefreshTokenDays = 7
+        };
+        var sut = new JwtTokenService(Options.Create(options));
+        var before = DateTime.UtcNow;
+
+        var expiry = sut.GetRefreshTokenExpiryUtc();
+
+        expiry.Should().BeOnOrAfter(before.AddDays(6).AddHours(23));
+        expiry.Should().BeOnOrBefore(before.AddDays(7).AddHours(1));
+    }
+
     private static ClaimsPrincipal ReadJwt(string token)
     {
         var handler = new JwtSecurityTokenHandler();

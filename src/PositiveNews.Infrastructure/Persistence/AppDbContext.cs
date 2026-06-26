@@ -26,6 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<UserSourceFilter> UserSourceFilters => Set<UserSourceFilter>();
     /// <summary>Optional per-user inclusion filters for topics.</summary>
     public DbSet<UserTopicFilter> UserTopicFilters => Set<UserTopicFilter>();
+    /// <summary>Refresh tokens for obtaining new access tokens.</summary>
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <summary>Topic taxonomy used for categorization and filtering.</summary>
     public DbSet<Topic> Topics => Set<Topic>();
@@ -42,6 +44,9 @@ public class AppDbContext : DbContext
 
     /// <summary>User comments on articles.</summary>
     public DbSet<Comment> Comments => Set<Comment>();
+
+    /// <summary>User complaints about comments.</summary>
+    public DbSet<Complaint> Complains => Set<Complaint>();
 
     /// <summary>Administrative audit trail.</summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

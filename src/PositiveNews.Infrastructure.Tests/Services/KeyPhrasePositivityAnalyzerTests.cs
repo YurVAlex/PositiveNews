@@ -8,17 +8,16 @@ public class KeyPhrasePositivityAnalyzerTests
 {
     private readonly KeyPhrasePositivityAnalyzer _sut = new();
 
-    private static PositivityAnalizerKeyPhrases KeyPhrases() => new(
-        new HashSet<string>(["good", "recovery"]),
-        new HashSet<string>(["bad", "crisis", "harm"]),
-        new HashSet<string>(["breakthrough"]),
-        new HashSet<string>(["bad news"]),
-        new HashSet<string>(["not"]),
-        new HashSet<string>(["very"]),
-        NegationLookbackTokens: 2,
-        IntensifierLookbackTokens: 1,
-        IntensifierMultiplier: 1.5m,
-        PhrasePolarityWeight: 2m);
+    private static PositivityAnalizerKeyPhrases KeyPhrases() => PositivityAnalyzerTestLexicon.Create(
+        positiveWords: new HashSet<string>(["good", "recovery"]),
+        negativeWords: new HashSet<string>(["bad", "crisis", "harm", "deaths"]),
+        positivePhrases: new HashSet<string>(["breakthrough"]),
+        negativePhrases: new HashSet<string>(["bad news"]),
+        negationWords: new HashSet<string>(["not"]),
+        intensifierWords: new HashSet<string>(["very"]),
+        mitigationWords: new HashSet<string>(["zero"]),
+        mitigationPhrases: new HashSet<string>(["zero deaths"]),
+        ledeCharCount: 80);
 
     [Fact]
     public void AnalyzeSentiment_Should_ReturnNeutral_When_TextEmpty()
@@ -61,5 +60,38 @@ public class KeyPhrasePositivityAnalyzerTests
         var score = _sut.AnalyzeSentiment("Good!!! Recovery???", KeyPhrases());
 
         score.Should().BeGreaterThan(0.5m);
+    }
+
+    [Fact]
+    public void AnalyzeSentiment_Should_SuppressNegativeCue_When_MitigationPhrasePresent()
+    {
+        var mitigated = _sut.AnalyzeSentiment("Researchers reported zero deaths in the cohort.", KeyPhrases());
+        var negative = _sut.AnalyzeSentiment("Researchers reported many deaths in the cohort.", KeyPhrases());
+
+        mitigated.Should().BeGreaterThan(negative);
+        mitigated.Should().Be(0.5000m);
+    }
+
+    [Fact]
+    public void AnalyzeSentiment_Should_WeightLedeHigher_When_LongBodyIsNegative()
+    {
+        var positiveLede = "A very good recovery and breakthrough for the community. ";
+        var negativeTail = string.Join(' ', Enumerable.Repeat("bad crisis harm", 40));
+        var score = _sut.AnalyzeSentiment(positiveLede + negativeTail, KeyPhrases());
+
+        var tailOnly = _sut.AnalyzeSentiment(negativeTail, KeyPhrases());
+
+        score.Should().BeGreaterThan(tailOnly);
+        score.Should().BeGreaterThan(0.5m * tailOnly);
+    }
+
+    [Fact]
+    public void AnalyzeSentiment_Should_BlendTitle_When_TitleProvided()
+    {
+        var body = string.Join(' ', Enumerable.Repeat("bad crisis harm", 30));
+        var withoutTitle = _sut.AnalyzeSentiment(body, KeyPhrases());
+        var withTitle = _sut.AnalyzeSentiment(body, KeyPhrases(), "A very good recovery breakthrough");
+
+        withTitle.Should().BeGreaterThan(withoutTitle);
     }
 }

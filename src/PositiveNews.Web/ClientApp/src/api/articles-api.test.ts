@@ -58,6 +58,24 @@ describe('fetchArticleFeed', () => {
     expect(new URL(url, 'http://localhost').searchParams.get('sort')).toBe('preferences')
   })
 
+  it('serializes minPositivity when provided', async () => {
+    fetchMock.mockResolvedValue(
+      okResponse({
+        articles: [],
+        currentPage: 1,
+        totalPages: 1,
+        pageSize: 10,
+        selectedTopics: [],
+        selectedSources: [],
+      }),
+    )
+
+    await fetchArticleFeed(1, [], [], 'date', null, 0.65)
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(new URL(url, 'http://localhost').searchParams.get('minPositivity')).toBe('0.65')
+  })
+
   it('omits sort when date sort is requested', async () => {
     fetchMock.mockResolvedValue(
       okResponse({
