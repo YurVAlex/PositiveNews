@@ -1,10 +1,12 @@
 /** Static privacy copy; signed-in users can permanently deactivate their account here. */
 import { useEffect, useState, type MouseEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { deactivateAccount } from '../api/auth-api'
 import { useAuth } from '../auth/AuthProvider'
 
 export function PrivacyPage() {
   const { isAuthenticated, token, logout } = useAuth()
+  const navigate = useNavigate()
   const [isDeactivating, setIsDeactivating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -12,7 +14,7 @@ export function PrivacyPage() {
     document.title = 'Privacy Policy - PositiveNews.Web'
   }, [])
 
-  // Soft-delete on the server, then clear local auth so the user cannot keep using the old token.
+  // Soft-delete on the server, then clear auth and session feed preferences and return to the default feed.
   const onDeactivateClick = async (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     if (!token || isDeactivating) {
@@ -31,6 +33,7 @@ export function PrivacyPage() {
     try {
       await deactivateAccount(token)
       logout()
+      navigate({ pathname: '/', search: '' }, { replace: true, state: null })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Account deactivation failed.')
     } finally {

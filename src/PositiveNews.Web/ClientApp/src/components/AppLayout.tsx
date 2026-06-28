@@ -152,14 +152,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <footer className="border-top footer text-muted">
         <div className="container">
-          &copy; 2026 - Positive News -{' '}
-          <Link
-            to="/privacy"
-            className="text-muted"
-            state={feedSearchForPrivacy ? { feedSearch: feedSearchForPrivacy } : undefined}
-          >
-            Privacy
-          </Link>
+          &copy; 2026 - Positive News
+          {location.pathname !== '/privacy' ? (
+            <>
+              {' '}
+              -{' '}
+              <Link
+                to="/privacy"
+                className="text-muted"
+                state={feedSearchForPrivacy ? { feedSearch: feedSearchForPrivacy } : undefined}
+              >
+                Privacy
+              </Link>
+            </>
+          ) : null}
         </div>
       </footer>
     </>
