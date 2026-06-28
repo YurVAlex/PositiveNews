@@ -13,6 +13,7 @@ import {
 } from '../../api/admin-users-api'
 import { useAuth } from '../../auth/AuthProvider'
 import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
+import { formatModeratedBy } from '../../utils/format-moderated-by'
 
 export function ManageUsers() {
   const { token } = useAuth()
@@ -157,8 +158,7 @@ export function ManageUsers() {
   }
 
   return (
-    <section className="card mb-4">
-      <div className="card-body">
+    <>
         <div className="d-flex align-items-start justify-content-between mb-3">
           <div>
             <h2 className="h5 card-title mb-1">Moderation of users</h2>
@@ -208,7 +208,7 @@ export function ManageUsers() {
                       <th scope="col">Email confirmed</th>
                       <th scope="col">FailedLogin</th>
                       <th scope="col">Registration date</th>
-                      <th scope="col">Moderated</th>
+                      <th scope="col">ModeratedBy</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,7 +225,7 @@ export function ManageUsers() {
                           <td>{user.emailConfirmed ? 'Yes' : 'No'}</td>
                           <td>{user.failedLoginCount}</td>
                           <td>{formatApiUtcAsLocal(user.createdAt)}</td>
-                          <td>{user.moderatedBy != null ? 'Yes' : 'No'}</td>
+                          <td>{formatModeratedBy(user.moderatedBy)}</td>
                         </tr>
                       ))
                     )}
@@ -288,7 +288,6 @@ export function ManageUsers() {
         ) : (
           <p className="text-muted mb-0">Search for users to manage account state.</p>
         )}
-      </div>
-    </section>
+    </>
   )
 }

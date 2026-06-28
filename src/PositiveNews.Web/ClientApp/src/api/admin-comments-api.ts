@@ -28,6 +28,15 @@ export type UpdateCommentRequest = {
   note?: string | null
 }
 
+export type CommentAdminItem = {
+  id: number
+  articleId: number
+  userId: number
+  complaintCount: number
+  isActive: boolean
+  moderatedBy: number | null
+}
+
 // Extract a human-readable message from ASP.NET ProblemDetails responses.
 async function parseProblem(res: Response): Promise<string> {
   try {
@@ -48,6 +57,16 @@ export async function fetchAdminCommentDetail(token: string, commentId: number):
   if (!res.ok) throw new Error(await parseProblem(res))
 
   return res.json() as Promise<AdminCommentDetail>
+}
+
+export async function fetchAdminComments(token: string): Promise<CommentAdminItem[]> {
+  const res = await fetch(apiUrl('/api/admin/comments'), { headers: authTokenHeader(token) })
+
+  if (res.status === 401) throw new Error('Unauthorized')
+  if (res.status === 403) throw new Error('Forbidden')
+  if (!res.ok) throw new Error(await parseProblem(res))
+
+  return res.json() as Promise<CommentAdminItem[]>
 }
 
 /** Updates comment visibility and records moderation reason/note for the audit log. */

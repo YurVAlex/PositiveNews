@@ -13,6 +13,7 @@ import {
 } from '../../api/admin-articles-api'
 import { useAuth } from '../../auth/AuthProvider'
 import { formatApiUtcAsLocal } from '../../utils/format-api-datetime'
+import { formatModeratedBy } from '../../utils/format-moderated-by'
 
 export function ArticlesModeration() {
   const { token } = useAuth()
@@ -183,8 +184,7 @@ export function ArticlesModeration() {
   }
 
   return (
-    <section className="card mb-4">
-      <div className="card-body">
+    <>
         <div className="d-flex align-items-start justify-content-between mb-3">
           <div>
             <h2 className="h5 card-title mb-1">Moderation of articles</h2>
@@ -241,7 +241,7 @@ export function ArticlesModeration() {
                     <th scope="col">Source</th>
                     <th scope="col">Positivity</th>
                     <th scope="col">Active</th>
-                    <th scope="col">Moderated</th>
+                    <th scope="col">ModeratedBy</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -268,7 +268,7 @@ export function ArticlesModeration() {
                         <td>{article.sourceName}</td>
                         <td>{article.positivityScore != null ? article.positivityScore.toFixed(2) : '-'}</td>
                         <td>{article.isActive ? 'Yes' : 'No'}</td>
-                        <td>{article.moderatedBy != null ? 'Yes' : 'No'}</td>
+                        <td>{formatModeratedBy(article.moderatedBy)}</td>
                       </tr>
                     ))
                   )}
@@ -424,7 +424,6 @@ export function ArticlesModeration() {
           </div>
         </div>
         ) : null}
-      </div>
-    </section>
+    </>
   )
 }

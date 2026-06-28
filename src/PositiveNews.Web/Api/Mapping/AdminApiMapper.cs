@@ -18,6 +18,8 @@ public static partial class AdminApiMapper
     public static partial UserAdminDetailResponse ToUserAdminDetailResponse(this UserAdminDetailDto source);
     public static partial CommentAdminDetailResponse ToCommentAdminDetailResponse(this CommentAdminDetailDto source);
     public static partial CommentComplaintAdminItemResponse ToCommentComplaintAdminItemResponse(this CommentComplaintAdminItemDto source);
+    public static partial CommentAdminItemResponse ToCommentAdminItemResponse(this CommentAdminItemDto source);
+    public static partial IReadOnlyList<CommentAdminItemResponse> ToCommentAdminItemResponses(this IReadOnlyList<CommentAdminItemDto> source);
     public static partial AuditLogAdminItemResponse ToAuditLogAdminItemResponse(this PositiveNews.Application.DTOs.Admin.AuditLogAdminItemDto source);
     public static partial IReadOnlyList<AuditLogAdminItemResponse> ToAuditLogAdminItemResponses(this IReadOnlyList<PositiveNews.Application.DTOs.Admin.AuditLogAdminItemDto> source);
 }

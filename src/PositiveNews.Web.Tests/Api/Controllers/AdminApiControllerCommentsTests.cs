@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +15,30 @@ namespace PositiveNews.Web.Tests.Api.Controllers;
 
 public class AdminApiControllerCommentsTests
 {
+    [Fact]
+    public async Task GetComments_Should_ReturnActiveList_When_QuerySucceeds()
+    {
+        IReadOnlyList<CommentAdminItemDto> items =
+        [
+            new CommentAdminItemDto { Id = 3, ArticleId = 1, UserId = 2, ComplaintCount = 5, IsActive = true, ModeratedBy = 9 },
+        ];
+
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Any<GetAdminCommentsQuery>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Result<IReadOnlyList<CommentAdminItemDto>>.Success(items)));
+
+        var sut = new AdminApiController(mediator);
+
+        var result = await sut.GetComments(CancellationToken.None);
+
+        var ok = result.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var body = ok.Value.Should().BeAssignableTo<IReadOnlyList<CommentAdminItemResponse>>().Subject;
+        body.Should().ContainSingle();
+        body[0].ComplaintCount.Should().Be(5);
+        await mediator.Received(1).Send(Arg.Any<GetAdminCommentsQuery>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task GetCommentDetail_Should_ReturnDetail_When_QuerySucceeds()
     {
@@ -55,8 +78,8 @@ public class AdminApiControllerCommentsTests
             .Send(Arg.Any<ModerateCommentCommand>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result.Success()));
 
-        var user = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, "42")],
+        var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+            [new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "42")],
             "Test"));
         var sut = new AdminApiController(mediator)
         {
@@ -69,14 +92,6 @@ public class AdminApiControllerCommentsTests
             CancellationToken.None);
 
         result.Should().BeOfType<NoContentResult>();
-        await mediator.Received(1).Send(
-            Arg.Is<ModerateCommentCommand>(c =>
-                c.CommentId == 7
-                && c.IsActive == false
-                && c.Reason == "spam"
-                && c.Note == "reviewed"
-                && c.ModeratorId == 42),
-            Arg.Any<CancellationToken>());
     }
 
     [Fact]

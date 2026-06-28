@@ -21,10 +21,11 @@ vi.mock('../../api/admin-ingestion-api', () => ({
 }))
 
 describe('IngestionRuns', () => {
-  it('hides table by default', () => {
+  it('shows ingestion runs table on mount', async () => {
     render(<IngestionRuns />)
 
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
+    expect(screen.getByText('Source A')).toBeInTheDocument()
   })
 
   it('disables launch button when cycle is running', async () => {

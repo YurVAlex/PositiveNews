@@ -164,6 +164,15 @@ public sealed class AdminApiController(IMediator mediator) : ControllerBase
         return result.IsFailure ? result.ToActionResult(this) : NoContent();
     }
 
+    [HttpGet("comments")]
+    [ProducesResponseType(typeof(IReadOnlyList<CommentAdminItemResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<CommentAdminItemResponse>>> GetComments(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new GetAdminCommentsQuery(), cancellationToken);
+        return result.Map(items => items.ToCommentAdminItemResponses()).ToActionResult(this);
+    }
+
     [HttpGet("comments/{commentId:long}")]
     [ProducesResponseType(typeof(CommentAdminDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -74,7 +74,7 @@ describe('ArticlesModeration', () => {
     expect(api.fetchAdminArticles).toHaveBeenCalledWith('test-token', '')
   })
 
-  it('shows Yes in the Moderated column when the article has been moderated', async () => {
+  it('shows moderator id in the ModeratedBy column when the article has been moderated', async () => {
     const user = userEvent.setup()
     api.fetchAdminArticles.mockResolvedValue([
       {
@@ -91,7 +91,7 @@ describe('ArticlesModeration', () => {
 
     const row = screen.getByText('Article One').closest('tr')
     expect(row).not.toBeNull()
-    expect(within(row!).getAllByRole('cell')[5]).toHaveTextContent('Yes')
+    expect(within(row!).getAllByRole('cell')[5]).toHaveTextContent('42')
   })
 
   it('clears search results and selection when Clear is clicked', async () => {

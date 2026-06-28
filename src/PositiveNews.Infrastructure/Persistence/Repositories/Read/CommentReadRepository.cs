@@ -78,4 +78,26 @@ internal sealed class CommentReadRepository(AppDbContext db) : ICommentReadRepos
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CommentAdminItemDto>> GetAdminActiveCommentsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await db.Comments
+            .AsNoTracking()
+            .Where(c => c.IsActive)
+            .OrderByDescending(c => c.Complaints.Count)
+            .ThenByDescending(c => c.Id)
+            .Take(100)
+            .Select(c => new CommentAdminItemDto
+            {
+                Id = c.Id,
+                ArticleId = c.ArticleId,
+                UserId = c.UserId,
+                ComplaintCount = c.Complaints.Count,
+                IsActive = c.IsActive,
+                ModeratedBy = c.ModeratedBy
+            })
+            .ToListAsync(cancellationToken);
+    }
 }

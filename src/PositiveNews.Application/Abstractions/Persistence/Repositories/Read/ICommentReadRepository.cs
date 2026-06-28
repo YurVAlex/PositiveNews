@@ -36,4 +36,11 @@ public interface ICommentReadRepository
     Task<CommentAdminDetailDto?> GetAdminDetailByIdAsync(
         long commentId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Loads active comments for admin list ordered by complaint count.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<CommentAdminItemDto>> GetAdminActiveCommentsAsync(
+        CancellationToken cancellationToken = default);
 }

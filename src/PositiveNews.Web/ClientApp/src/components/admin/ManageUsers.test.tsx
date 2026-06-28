@@ -51,7 +51,7 @@ describe('ManageUsers', () => {
     api.updateAdminUser.mockResolvedValue(undefined)
   })
 
-  it('shows a searchable user table and renders moderated column', async () => {
+  it('shows a searchable user table and renders ModeratedBy column', async () => {
     const user = userEvent.setup()
 
     render(<ManageUsers />)
@@ -59,7 +59,7 @@ describe('ManageUsers', () => {
     await user.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
-    expect(screen.getByRole('columnheader', { name: 'Moderated' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'ModeratedBy' })).toBeInTheDocument()
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
     expect(api.fetchAdminUsers).toHaveBeenCalledWith('test-token', '')
   })
