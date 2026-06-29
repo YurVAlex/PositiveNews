@@ -76,6 +76,7 @@ export function FeedPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const didHydrateFromDraft = useRef(false)
   const wasAuthenticatedRef = useRef(isAuthenticated)
+  const logoutUrlResetPendingRef = useRef(false)
 
   // Every URL change also updates the session draft so prefs survive refresh and cross-route nav.
   const commitSearchParams = useCallback(
@@ -90,7 +91,11 @@ export function FeedPage() {
   useEffect(() => {
     const wasAuthenticated = wasAuthenticatedRef.current
     wasAuthenticatedRef.current = isAuthenticated
-    if (wasAuthenticated && !isAuthenticated && hasPreferenceParamsInUrl(searchParams)) {
+
+    if (!hasPreferenceParamsInUrl(searchParams)) {
+      logoutUrlResetPendingRef.current = false
+    } else if (wasAuthenticated && !isAuthenticated) {
+      logoutUrlResetPendingRef.current = true
       setSearchParams(buildDefaultFeedSearchParams(), { replace: true })
     }
   }, [isAuthenticated, searchParams, setSearchParams])
@@ -149,16 +154,38 @@ export function FeedPage() {
   // Debounced sync of URL preferences to the server for signed-in users.
   usePersistFeedPreferences(searchParams, token, isAuthenticated, user?.id ?? null, setSaveError, prefsReady)
 
+  // Stable key excludes UI-only params (e.g. settings=1) so toggling the panel does not refetch.
+  const serializedFeedPrefs = useMemo(
+    () => serializePreferenceParams(searchParams),
+    [searchParams],
+  )
+  const feedFetchKey = useMemo(
+    () => `${page}|${serializedFeedPrefs}|${token ?? ''}`,
+    [page, serializedFeedPrefs, token],
+  )
+
   // Refetch articles whenever filters or auth token change; ignore stale responses.
   useEffect(() => {
     if (isLoading || !prefsReady) return
+    // Skip the transitional render after logout (auth cleared before URL prefs are reset).
+    if (logoutUrlResetPendingRef.current && hasPreferenceParamsInUrl(searchParams)) return
+
+    const { topics: feedTopics, sourceIds: feedSourceIds, sort, minPositivity: feedMinPositivity } =
+      preferencesFromSearchParams(searchParams)
 
     let cancelled = false
     setError(null)
 
     ;(async () => {
       try {
-        const res = await fetchArticleFeed(page, topics, sourceIds, sortMode, token, minPositivity)
+        const res = await fetchArticleFeed(
+          page,
+          feedTopics,
+          feedSourceIds,
+          sort,
+          token,
+          feedMinPositivity,
+        )
         if (!cancelled) {
           setData(res)
         }
@@ -172,7 +199,8 @@ export function FeedPage() {
     return () => {
       cancelled = true
     }
-  }, [page, topics, sourceIds, sortMode, minPositivity, token, isLoading, prefsReady])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- feedFetchKey captures page, prefs, and token
+  }, [feedFetchKey, isLoading, prefsReady])
 
   // Merge a partial preference change into the URL and reset to page 1.
   const updatePreferences = useCallback(

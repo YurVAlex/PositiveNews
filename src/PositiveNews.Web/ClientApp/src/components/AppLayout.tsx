@@ -7,6 +7,7 @@ import loginIcon from '../assets/ui/login.svg'
 import logoutIcon from '../assets/ui/logout.svg'
 import settingsIcon from '../assets/ui/settings.svg'
 import {
+  buildDefaultFeedSearchParams,
   buildFeedReturnTo,
   buildSearchFromSnapshot,
   DEFAULT_MIN_POSITIVITY,
@@ -74,7 +75,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // Clear feed filters from the URL on logout so the next visitor sees the default feed.
   const handleLogout = () => {
     logout()
-    navigate({ pathname: '/', search: '' }, { replace: true })
+    const defaultSearch = buildDefaultFeedSearchParams().toString()
+    navigate({ pathname: '/', search: defaultSearch }, { replace: true })
   }
 
   const settingsActive =

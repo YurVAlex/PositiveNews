@@ -3,6 +3,7 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { deactivateAccount } from '../api/auth-api'
 import { useAuth } from '../auth/AuthProvider'
+import { buildDefaultFeedSearchParams } from '../utils/feed-preferences-url'
 
 export function PrivacyPage() {
   const { isAuthenticated, token, logout } = useAuth()
@@ -33,7 +34,8 @@ export function PrivacyPage() {
     try {
       await deactivateAccount(token)
       logout()
-      navigate({ pathname: '/', search: '' }, { replace: true, state: null })
+      const defaultSearch = buildDefaultFeedSearchParams().toString()
+      navigate({ pathname: '/', search: defaultSearch }, { replace: true, state: null })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Account deactivation failed.')
     } finally {
