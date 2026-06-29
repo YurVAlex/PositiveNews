@@ -11,4 +11,7 @@ internal sealed class IngestionUnitOfWork(AppDbContext db) : IIngestionUnitOfWor
     /// <inheritdoc />
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         => db.SaveChangesAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public void ClearPendingChanges() => db.ChangeTracker.Clear();
 }

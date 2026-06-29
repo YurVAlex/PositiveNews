@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
@@ -74,6 +75,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IIngestionUnitOfWork, IngestionUnitOfWork>();
+        services.AddScoped<IIngestionArticleBatchSaver, IngestionArticleBatchSaver>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();

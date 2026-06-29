@@ -50,22 +50,21 @@ public class FeedProcessingPipeline : IFeedProcessor
     /// <summary>
     /// Walks every RSS item element, produces enriched DTOs, and counts skipped invalid entries.
     /// </summary>
-    /// <param name="feedUrl">Feed URL for logging and rule selection.</param>
     /// <param name="feed">Loaded RSS document.</param>
     /// <param name="lookup">Topic normalization indexes.</param>
     /// <param name="settings">Cleaner, validation, and positivity configuration.</param>
-    /// <param name="source">Source snapshot with defaults such as thumbnails.</param>
+    /// <param name="source">Source snapshot with feed URL and defaults such as thumbnails.</param>
     /// <param name="cancellationToken">Cancellation observed per item.</param>
     /// <returns>Accepted items and invalid-item tally.</returns>
     public FeedProcessingResult ProcessFeed(
-        string feedUrl, XDocument feed, TopicLookup lookup,
+        XDocument feed, TopicLookup lookup,
         IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
         CancellationToken cancellationToken = default)
     {
         var dtoItems = new List<RssFeedItemDto>();
         var invalidCount = 0;
 
-        _logger.LogInformation("Processing RSS feed from {FeedUrl}", feedUrl);
+        _logger.LogInformation("Processing RSS feed from {FeedUrl}", source.FeedUrl);
 
         foreach (var feedItem in feed.Descendants("item"))
         {
@@ -73,7 +72,7 @@ public class FeedProcessingPipeline : IFeedProcessor
 
             try
             {
-                if (!TryProcessFeedItem(feedUrl, feedItem, lookup, settings, source, out var dtoItem))
+                if (!TryProcessFeedItem(feedItem, lookup, settings, source, out var dtoItem))
                 {
                     invalidCount++;
                     continue;
@@ -97,7 +96,7 @@ public class FeedProcessingPipeline : IFeedProcessor
     /// Parses one item, validates, cleans, enriches topics, scores sentiment, extracts imagery, and applies hero image rules.
     /// </summary>
     private bool TryProcessFeedItem(
-        string feedUrl, XElement feedItem, TopicLookup lookup,
+        XElement feedItem, TopicLookup lookup,
         IngestionSettingsSnapshot settings, IngestionSourceSnapshot source,
         out RssFeedItemDto dtoItem)
     {
@@ -115,7 +114,7 @@ public class FeedProcessingPipeline : IFeedProcessor
         if (string.IsNullOrWhiteSpace(dtoItem.ContentRaw))
             return false;
 
-        dtoItem = _enricher.EnrichTopics(feedUrl, dtoItem, lookup, settings);
+        dtoItem = _enricher.EnrichTopics(source.FeedUrl, dtoItem, lookup, settings);
 
         var cleanedContentNode = ParseHtmlNode(dtoItem.ContentRaw);
         var descriptionNode = ParseHtmlNode(dtoItem.Description);
@@ -127,7 +126,7 @@ public class FeedProcessingPipeline : IFeedProcessor
             contentClean,
             settings.PositivityAnalizerKeyPhrases,
             dtoItem.Title);
-        var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, feedUrl, contentNode: cleanedContentNode,
+        var imageTag = _imgTagExtractor.ExtractImgTag(feedItem, source.FeedUrl, contentNode: cleanedContentNode,
             descriptionNode: descriptionNode, defaultThumbnailHtml: source.DefaultThumbnailHtml);
 
         dtoItem = dtoItem with

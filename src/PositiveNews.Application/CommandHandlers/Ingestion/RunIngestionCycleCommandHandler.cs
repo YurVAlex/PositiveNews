@@ -109,6 +109,12 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
             return Result.Failure(
                 new Error("Ingestion.DomainInvariantViolation", ex.Message, ErrorType.Conflict));
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while running ingestion cycle.");
+            return Result.Failure(
+                new Error("Ingestion.Unexpected", ex.Message, ErrorType.Unexpected));
+        }
         finally
         {
             _coordinator.EndCycle();

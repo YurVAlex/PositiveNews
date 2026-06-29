@@ -1,8 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
+using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
-using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.DTOs;
@@ -17,13 +16,11 @@ namespace PositiveNews.Application.CommandHandlers.Ingestion;
 /// Maps RSS DTOs to domain entities in bounded chunks, resolves topic IDs, and persists via the ingestion unit of work.
 /// </summary>
 /// <param name="articleWriteRepository">Stages article aggregates.</param>
-/// <param name="topicReadRepository">Resolves topic names to identifiers.</param>
-/// <param name="ingestionUnitOfWork">Commits ingestion-scoped changes.</param>
+/// <param name="ingestionArticleBatchSaver">Persists staged articles with duplicate fallback.</param>
 /// <param name="logger">Structured logging for successes and domain violations.</param>
 public sealed class PersistIngestedArticlesCommandHandler(
     IArticleWriteRepository articleWriteRepository,
-    ITopicReadRepository topicReadRepository,
-    IIngestionUnitOfWork ingestionUnitOfWork,
+    IIngestionArticleBatchSaver ingestionArticleBatchSaver,
     ILogger<PersistIngestedArticlesCommandHandler> logger)
     : IRequestHandler<PersistIngestedArticlesCommand, Result<int>>
 {
@@ -45,13 +42,6 @@ public sealed class PersistIngestedArticlesCommandHandler(
         {
             var chunk = request.Items.Skip(i).Take(chunkSize).ToList();
             var pairs = new List<(ArticleMetadata Meta, RssFeedItemDto Dto)>();
-
-            var distinctTopicNames = chunk
-                .SelectMany(dto => dto.Topics ?? Enumerable.Empty<string>())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var topicIdsByName = await topicReadRepository.GetTopicIdsByNamesAsync(distinctTopicNames, cancellationToken);
 
             foreach (var dto in chunk)
             {
@@ -77,8 +67,8 @@ public sealed class PersistIngestedArticlesCommandHandler(
                     {
                         foreach (var topicName in dto.Topics)
                         {
-                            if (topicIdsByName.TryGetValue(topicName, out var topicId))
-                                meta.AddTopic(topicId);
+                            if (request.TopicLookup.ByName.TryGetValue(topicName, out var topic))
+                                meta.AddTopic(topic.Id);
                         }
                     }
 
@@ -103,12 +93,24 @@ public sealed class PersistIngestedArticlesCommandHandler(
             if (pairs.Count == 0)
                 continue;
 
-            await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
+            var savedInChunk = await ingestionArticleBatchSaver.SaveAddedArticlesAsync(
+                pairs.Select(p => p.Meta).ToList(),
+                cancellationToken);
 
-            foreach (var (_, dto) in pairs)
-                logger.LogInformation("Ingested new article: {Title}", dto.Title);
+            if (savedInChunk == pairs.Count)
+            {
+                foreach (var (_, dto) in pairs)
+                    logger.LogInformation("Ingested new article: {Title}", dto.Title);
+            }
+            else if (savedInChunk > 0)
+            {
+                logger.LogInformation(
+                    "Ingested {SavedCount} of {TotalCount} new articles in chunk (duplicates skipped).",
+                    savedInChunk,
+                    pairs.Count);
+            }
 
-            totalSaved += pairs.Count;
+            totalSaved += savedInChunk;
         }
 
         return Result<int>.Success(totalSaved);

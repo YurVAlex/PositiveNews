@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PositiveNews.Application.Interfaces;
 using System.Xml.Linq;

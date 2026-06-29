@@ -147,6 +147,30 @@ public class RunIngestionCycleCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_Should_ReturnFailure_When_UnexpectedExceptionThrownDuringInitialPhase()
+    {
+        var initialMediator = Substitute.For<IMediator>();
+        initialMediator.Send(Arg.Any<RefreshIngestionSettingsCommand>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("settings corrupt"));
+        var processMediator = Substitute.For<IMediator>();
+        var coordinator = new AllowingIngestionCycleCoordinator();
+        var factory = new TestServiceScopeFactory(
+            new TestServiceScope(new TestServiceProvider(initialMediator)),
+            new TestServiceScope(new TestServiceProvider(processMediator)));
+        var handler = new RunIngestionCycleCommandHandler(
+            factory,
+            coordinator,
+            NullLogger<RunIngestionCycleCommandHandler>.Instance);
+
+        var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Ingestion.Unexpected");
+        coordinator.IsRunning.Should().BeFalse();
+        await processMediator.DidNotReceive().Send(Arg.Any<ProcessIngestionSourceCommand>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_Should_ProcessEveryActiveSource_When_AllSucceed()
     {
         var settings = IngestionTestData.MinimalSettings();

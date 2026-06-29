@@ -8,8 +8,10 @@ using PositiveNews.Application.DTOs;
 using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Queries.Ingestion;
 using PositiveNews.Domain.Entities;
+using PositiveNews.Domain.Enums;
 using PositiveNews.Domain.Exceptions;
 using System.Diagnostics;
+using System.Xml;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 
@@ -50,13 +52,12 @@ public sealed class ProcessIngestionSourceCommandHandler(
         await ingestionUnitOfWork.SaveChangesAsync(cancellationToken);
 
         var newArticleCount = 0;
-        var url = source.FeedUrl;
 
         try
         {
-            var doc = await feedReader.ReadFeedAsync(url, cancellationToken);
+            var doc = await feedReader.ReadFeedAsync(source.FeedUrl, cancellationToken);
             var processingResult = feedProcessor.ProcessFeed(
-                url, doc, request.TopicLookup, request.IngestionSettings, source, cancellationToken);
+                doc, request.TopicLookup, request.IngestionSettings, source, cancellationToken);
             var dtoItems = processingResult.Items;
             var invalidCount = processingResult.InvalidCount;
 
@@ -108,7 +109,7 @@ public sealed class ProcessIngestionSourceCommandHandler(
             }
 
             var persistResult = await mediator.Send(
-                new PersistIngestedArticlesCommand(source.Id, source.DefaultLanguageCode, toPersist),
+                new PersistIngestedArticlesCommand(source.Id, source.DefaultLanguageCode, request.TopicLookup, toPersist),
                 cancellationToken);
 
             if (persistResult.IsFailure)
@@ -160,13 +161,65 @@ public sealed class ProcessIngestionSourceCommandHandler(
             await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
             return Result<int>.Success(newArticleCount);
         }
+        catch (Exception ex) when (ex is HttpRequestException or XmlException or IOException)
+        {
+            logger.LogWarning(
+                ex,
+                "Feed request for {SourceName} failed. Skipping source and continuing.",
+                source.Name);
+            await TryPartialCompleteAndSaveAsync(run, newArticleCount, $"Feed request failed: {ex.Message}");
+            return Result<int>.Success(newArticleCount);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Unexpected error while ingesting source {SourceName}. Skipping source and continuing.",
+                source.Name);
+            await TryPartialCompleteAndSaveAsync(run, newArticleCount, $"Unexpected error: {ex.Message}");
+            return Result<int>.Success(newArticleCount);
+        }
         finally
         {
+            await TryFinalizeOrphanedRunAsync(run, newArticleCount);
+
             stopwatch.Stop();
             logger.LogInformation(
                 "Processing source {SourceName} finished in {ElapsedMs} ms.",
                 source.Name,
                 stopwatch.ElapsedMilliseconds);
+        }
+    }
+
+    private async Task TryPartialCompleteAndSaveAsync(IngestionRun run, int itemsFetched, string reason)
+    {
+        if (run.Status != IngestionStatus.Running)
+            return;
+
+        run.PartialComplete(itemsFetched, reason);
+        try
+        {
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to persist partial ingestion run status.");
+        }
+    }
+
+    private async Task TryFinalizeOrphanedRunAsync(IngestionRun run, int itemsFetched)
+    {
+        try
+        {
+            if (run.Status != IngestionStatus.Running)
+                return;
+
+            run.Fail("Ingestion ended without completing.", itemsFetched);
+            await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to finalize ingestion run.");
         }
     }
 

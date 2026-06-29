@@ -9,4 +9,9 @@ public interface IIngestionUnitOfWork
     /// Persists ingestion-related changes.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears tracked entities after a failed save so callers can retry with a clean change tracker.
+    /// </summary>
+    void ClearPendingChanges();
 }

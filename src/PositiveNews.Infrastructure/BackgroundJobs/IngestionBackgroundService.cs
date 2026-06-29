@@ -65,11 +65,10 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
         await DelayInitialAsync(stoppingToken);
         _coordinator.SetNextRunAtUtc(DateTime.UtcNow);
 
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested) // Infinite loop until app stops
+            try
             {
-
                 // This wraps the entire ingestion cycle. It creates a safe boundary and trigger the main
                 // Command Handler without polluting the Singleton host.
                 using var scope = _scopeFactory.CreateScope();
@@ -83,24 +82,33 @@ public class IngestionBackgroundService : BackgroundService // ← Implements IH
                         runResult.Error.Code,
                         runResult.Error.Message);
                 }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
+            }
 
-                // Wait for the configured interval before the next run.
-                if (!stoppingToken.IsCancellationRequested)
-                {
-                    _coordinator.SetNextRunAtUtc(DateTime.UtcNow.Add(_interval));
-                    _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
-                    await DelayBetweenCyclesAsync(stoppingToken);
-                }
+            if (stoppingToken.IsCancellationRequested)
+                break;
+
+            _coordinator.SetNextRunAtUtc(DateTime.UtcNow.Add(_interval));
+            _logger.LogInformation("Next ingestion cycle in {Interval}.", _interval);
+
+            try
+            {
+                await DelayBetweenCyclesAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
             }
         }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            _logger.LogInformation("Ingestion Background Service is stopping.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled exception in ingestion cycle. Will retry after interval.");
-        }
+
+        _logger.LogInformation("Ingestion Background Service is stopping.");
     }
 
     /// <summary>Delay before the first ingestion cycle (override in tests to avoid real time).</summary>

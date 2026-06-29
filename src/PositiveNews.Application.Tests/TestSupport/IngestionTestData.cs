@@ -43,6 +43,19 @@ internal static class IngestionTestData
             BySlugWord: new Dictionary<string, IReadOnlyList<TopicSnapshot>>(StringComparer.OrdinalIgnoreCase),
             ChildToParentTopics: new Dictionary<string, IReadOnlyList<TopicSnapshot>>(StringComparer.OrdinalIgnoreCase));
 
+    public static TopicLookup TopicLookupWith(params (string Name, int Id)[] topics)
+    {
+        var byName = topics.ToDictionary(
+            t => t.Name,
+            t => new TopicSnapshot(t.Id, t.Name, string.Empty, null),
+            StringComparer.OrdinalIgnoreCase);
+
+        return new TopicLookup(
+            byName,
+            new Dictionary<string, IReadOnlyList<TopicSnapshot>>(StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, IReadOnlyList<TopicSnapshot>>(StringComparer.OrdinalIgnoreCase));
+    }
+
     public static IngestionSourceSnapshot ValidSource(int id = 1)
         => new(id, "Test Source", "https://example.com/feed.xml", "en", null);
 }

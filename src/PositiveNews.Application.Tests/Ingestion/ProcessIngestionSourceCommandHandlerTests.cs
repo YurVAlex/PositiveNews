@@ -46,7 +46,6 @@ public class ProcessIngestionSourceCommandHandlerTests
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
         processor.ProcessFeed(
-                Arg.Any<string>(),
                 Arg.Any<XDocument>(),
                 Arg.Any<TopicLookup>(),
                 Arg.Any<IngestionSettingsSnapshot>(),
@@ -81,7 +80,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var itemB = RssFeedItemBuilder.Create(title: "B", link: "https://b.com", externalId: "e2");
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult([itemA, itemB], 0));
         mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
             .Returns(new ExistingArticleKeys(new HashSet<string>(), new HashSet<string>(), new HashSet<string>()));
@@ -90,8 +89,9 @@ public class ProcessIngestionSourceCommandHandlerTests
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
         var source = IngestionTestData.ValidSource();
+        var lookup = IngestionTestData.EmptyTopicLookup();
         var result = await handler.Handle(
-            new ProcessIngestionSourceCommand(source, IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
+            new ProcessIngestionSourceCommand(source, lookup, IngestionTestData.MinimalSettings()),
             CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
@@ -106,6 +106,7 @@ public class ProcessIngestionSourceCommandHandlerTests
             Arg.Is<PersistIngestedArticlesCommand>(p =>
                 p.SourceId == source.Id &&
                 p.DefaultLanguageCode == source.DefaultLanguageCode &&
+                ReferenceEquals(p.TopicLookup, lookup) &&
                 p.Items.Count == 2),
             Arg.Any<CancellationToken>());
     }
@@ -124,7 +125,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var fresh = RssFeedItemBuilder.Create(title: "Fresh", link: "https://new.com/b", externalId: "y");
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult([dup, fresh], 0));
         mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
             .Returns(new ExistingArticleKeys(new HashSet<string>(), new HashSet<string>([existingUrl]), new HashSet<string>()));
@@ -153,7 +154,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var item = RssFeedItemBuilder.Create();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult([item], 0));
         mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
             .Returns(new ExistingArticleKeys(new HashSet<string>(), new HashSet<string>(), new HashSet<string>()));
@@ -185,7 +186,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidArticleStateException("bad feed"));
         IngestionRun? run = null;
         runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
@@ -212,7 +213,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var items = Enumerable.Range(0, 3).Select(i => RssFeedItemBuilder.Create(title: $"T{i}", link: $"https://x.com/{i}", externalId: $"{i}")).ToList();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult(items, 0));
         mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
             .Returns(new ExistingArticleKeys(new HashSet<string>(), new HashSet<string>(), new HashSet<string>()));
@@ -243,7 +244,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new OperationCanceledException("timeout"));
         IngestionRun? run = null;
         runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
@@ -259,7 +260,7 @@ public class ProcessIngestionSourceCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_PropagateIOException_When_FeedReaderThrows()
+    public async Task Handle_Should_ReturnPartialSuccess_When_FeedReaderThrowsIOException()
     {
         var runRepo = Substitute.For<IIngestionRunRepository>();
         var uow = Substitute.For<IIngestionUnitOfWork>();
@@ -269,15 +270,22 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromException<XDocument>(new IOException("network")));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
-        await Assert.ThrowsAsync<IOException>(() => handler.Handle(
+        var result = await handler.Handle(
             new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
-            CancellationToken.None));
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(0);
+        run.Should().NotBeNull();
+        run!.Status.Should().Be(IngestionStatus.Partial);
     }
 
     [Fact]
-    public async Task Handle_Should_PropagateGenericException_When_ProcessFeedThrowsNonDomain()
+    public async Task Handle_Should_ReturnPartialSuccess_When_ProcessFeedThrowsNonDomain()
     {
         var runRepo = Substitute.For<IIngestionRunRepository>();
         var uow = Substitute.For<IIngestionUnitOfWork>();
@@ -287,13 +295,49 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidOperationException("parse bug"));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
         var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(
+        var result = await handler.Handle(
             new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
-            CancellationToken.None));
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(0);
+        run.Should().NotBeNull();
+        run!.Status.Should().Be(IngestionStatus.Partial);
+    }
+
+    [Fact]
+    public async Task Handle_Should_ReturnPartialSuccess_When_UnexpectedErrorOccursWhileRunStillRunning()
+    {
+        var runRepo = Substitute.For<IIngestionRunRepository>();
+        var uow = Substitute.For<IIngestionUnitOfWork>();
+        var dedup = Substitute.For<IArticleDeduplicator>();
+        var reader = Substitute.For<IFeedReader>();
+        var processor = Substitute.For<IFeedProcessor>();
+        var mediator = Substitute.For<IMediator>();
+        var item = RssFeedItemBuilder.Create(title: "A", link: "https://a.com", externalId: "e1");
+        reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new XDocument(new XElement("rss")));
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+            .Returns(new FeedProcessingResult([item], 0));
+        mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<ExistingArticleKeys>(new InvalidOperationException("db unavailable")));
+        IngestionRun? run = null;
+        runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => run = ci.Arg<IngestionRun>());
+        var handler = CreateHandler(runRepo, uow, dedup, reader, processor, mediator);
+
+        var result = await handler.Handle(
+            new ProcessIngestionSourceCommand(IngestionTestData.ValidSource(), IngestionTestData.EmptyTopicLookup(), IngestionTestData.MinimalSettings()),
+            CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        run.Should().NotBeNull();
+        run!.Status.Should().Be(IngestionStatus.Partial);
     }
 
     [Fact]
@@ -315,7 +359,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         };
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult(items, 0));
         mediator.Send(Arg.Any<FindExistingArticleKeysQuery>(), Arg.Any<CancellationToken>())
             .Returns(new ExistingArticleKeys(new HashSet<string>(), new HashSet<string>(), new HashSet<string>()));
@@ -341,7 +385,7 @@ public class ProcessIngestionSourceCommandHandlerTests
         var mediator = Substitute.For<IMediator>();
         reader.ReadFeedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new XDocument(new XElement("rss")));
-        processor.ProcessFeed(Arg.Any<string>(), Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
+        processor.ProcessFeed(Arg.Any<XDocument>(), Arg.Any<TopicLookup>(), Arg.Any<IngestionSettingsSnapshot>(), Arg.Any<IngestionSourceSnapshot>(), Arg.Any<CancellationToken>())
             .Returns(new FeedProcessingResult([], 0));
         var statusesAtAdd = new List<IngestionStatus>();
         runRepo.When(r => r.Add(Arg.Any<IngestionRun>())).Do(ci => statusesAtAdd.Add(ci.Arg<IngestionRun>().Status));

@@ -103,4 +103,17 @@ public class FeedItemValidatorTests
 
         result.Should().BeFalse();
     }
+
+    [Theory]
+    [InlineData("/relative/path")]
+    [InlineData("not-a-url")]
+    [InlineData("javascript:alert(1)")]
+    public void IsValid_Should_ReturnFalse_When_LinkIsNotAbsoluteHttpOrHttps(string link)
+    {
+        var sut = new FeedItemValidator();
+
+        var result = sut.IsValid(ValidItem() with { Link = link }, EmptyRules(), LongContentNode());
+
+        result.Should().BeFalse();
+    }
 }

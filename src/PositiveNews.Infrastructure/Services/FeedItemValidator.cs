@@ -18,6 +18,10 @@ public class FeedItemValidator : IFeedItemValidator
             string.IsNullOrWhiteSpace(item.ContentRaw))
             return false;
 
+        if (!Uri.TryCreate(item.Link.Trim(), UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            return false;
+
         if (!string.IsNullOrWhiteSpace(item.Author) &&
             rules.InvalidAuthors.Contains(item.Author))
             return false;

@@ -19,13 +19,26 @@ public class IngestionBackgroundServiceTests
         IServiceScopeFactory scopeFactory,
         IIngestionCycleCoordinator coordinator,
         ILogger<IngestionBackgroundService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        Func<CancellationToken, Task>? delayBetweenCycles = null)
         : IngestionBackgroundService(scopeFactory, coordinator, logger, configuration)
     {
         protected override Task DelayInitialAsync(CancellationToken stoppingToken) => Task.CompletedTask;
 
         protected override Task DelayBetweenCyclesAsync(CancellationToken stoppingToken)
-            => Task.Delay(Timeout.Infinite, stoppingToken);
+            => delayBetweenCycles?.Invoke(stoppingToken) ?? Task.Delay(Timeout.Infinite, stoppingToken);
+    }
+
+    private sealed class ZeroDelayIngestionBackgroundService(
+        IServiceScopeFactory scopeFactory,
+        IIngestionCycleCoordinator coordinator,
+        ILogger<IngestionBackgroundService> logger,
+        IConfiguration configuration)
+        : IngestionBackgroundService(scopeFactory, coordinator, logger, configuration)
+    {
+        protected override Task DelayInitialAsync(CancellationToken stoppingToken) => Task.CompletedTask;
+
+        protected override Task DelayBetweenCyclesAsync(CancellationToken stoppingToken) => Task.CompletedTask;
     }
 
     [Fact]
@@ -93,5 +106,55 @@ public class IngestionBackgroundServiceTests
         await sut.StopAsync(CancellationToken.None);
 
         await mediator.Received(1).Send(Arg.Any<RunIngestionCycleCommand>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Should_RetryAfterException_When_CycleThrowsOnce()
+    {
+        var callCount = 0;
+        var cts = new CancellationTokenSource();
+        var mediator = Substitute.For<IMediator>();
+        mediator.Send(Arg.Any<RunIngestionCycleCommand>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                callCount++;
+                if (callCount == 1)
+                    throw new InvalidOperationException("transient failure");
+                cts.Cancel();
+                return Task.FromResult(Result.Success());
+            });
+
+        var inner = new ServiceCollection();
+        inner.AddSingleton(mediator);
+        var innerSp = inner.BuildServiceProvider();
+
+        var scope = Substitute.For<IServiceScope>();
+        scope.ServiceProvider.Returns(innerSp);
+        var scopeFactory = Substitute.For<IServiceScopeFactory>();
+        scopeFactory.CreateScope().Returns(scope);
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Ingestion:IntervalMinutes"] = "60" }).Build();
+
+        var coordinator = new IngestionCycleCoordinator();
+        var sut = new ZeroDelayIngestionBackgroundService(
+            scopeFactory,
+            coordinator,
+            NullLogger<IngestionBackgroundService>.Instance,
+            config);
+
+        await sut.StartAsync(cts.Token);
+        try
+        {
+            await Task.Delay(2000, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        await sut.StopAsync(CancellationToken.None);
+
+        callCount.Should().BeGreaterThanOrEqualTo(2);
+        await mediator.Received(2).Send(Arg.Any<RunIngestionCycleCommand>(), Arg.Any<CancellationToken>());
     }
 }

@@ -14,6 +14,7 @@ public sealed class PersistIngestedArticlesCommandValidator : AbstractValidator<
     {
         RuleFor(x => x.SourceId).GreaterThan(0);
         RuleFor(x => x.DefaultLanguageCode).NotEmpty();
+        RuleFor(x => x.TopicLookup).NotNull();
         RuleFor(x => x.Items).NotNull();
     }
 }
