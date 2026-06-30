@@ -33,7 +33,13 @@ public static class PipelineExtensions
         }
 
         app.UseSerilogRequestLogging();
-        app.UseHttpsRedirection();
+
+        // Skip in Development so Vite (e.g. :5173) can proxy to HTTP without redirecting the browser to HTTPS (CORS).
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
+
         app.UseSpaStaticFiles();
         app.UseRouting();
         app.UseAuthentication();

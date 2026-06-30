@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-/** Dev API target: VITE_DEV_API_PROXY_TARGET override, else HTTP URL from launchSettings.json. */
+/** Dev API target: VITE_DEV_API_PROXY_TARGET override, else HTTPS URL from launchSettings.json (falls back to HTTP). */
 function resolveDevApiProxyTarget(): string {
   if (process.env.VITE_DEV_API_PROXY_TARGET) {
     return process.env.VITE_DEV_API_PROXY_TARGET
@@ -21,15 +21,27 @@ function resolveDevApiProxyTarget(): string {
     throw new Error("launchSettings.json: profile 'PositiveNews.Web' has no applicationUrl.")
   }
 
-  const httpUrl = applicationUrl.split(';').find((u) => u.trim().startsWith('http://'))
-  if (!httpUrl) {
-    throw new Error('launchSettings.json: no HTTP URL found in applicationUrl.')
+  const urls = applicationUrl.split(';').map((u) => u.trim())
+  const httpsUrl = urls.find((u) => u.startsWith('https://'))
+  const httpUrl = urls.find((u) => u.startsWith('http://'))
+  const target = httpsUrl ?? httpUrl
+  if (!target) {
+    throw new Error('launchSettings.json: no HTTP or HTTPS URL found in applicationUrl.')
   }
 
-  return httpUrl.trim()
+  return target
 }
 
-// Production build writes into wwwroot next to this file (preserves existing /lib, /css from the host).
+function createAspNetDevProxy() {
+  return {
+    target: resolveDevApiProxyTarget(),
+    changeOrigin: true,
+    // Dev HTTPS uses a self-signed cert; proxy stays server-side so the browser never needs CORS.
+    secure: false,
+  } as const
+}
+
+// Production build writes into wwwroot next to this file (preserves Logos, Defaults, and other static host files).
 export default defineConfig({
   plugins: [react()],
   appType: 'spa',
@@ -47,7 +59,11 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': { target: resolveDevApiProxyTarget(), changeOrigin: true },
+      '/api': createAspNetDevProxy(),
+      // wwwroot static assets (logos, default images) are hosted by ASP.NET, not Vite.
+      '/Logos': createAspNetDevProxy(),
+      '/Defaults': createAspNetDevProxy(),
+      '/favicon.ico': createAspNetDevProxy(),
     },
   },
 })
