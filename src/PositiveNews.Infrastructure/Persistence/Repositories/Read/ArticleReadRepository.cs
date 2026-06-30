@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs;
@@ -19,7 +20,7 @@ internal sealed class ArticleReadRepository(AppDbContext db, ISourceReadReposito
     public async Task<ArticleFeedPageResult> GetFeedPageAsync(ArticleFeedFilter filter, CancellationToken ct)
     {
         var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, 100);
+        var pageSize = Math.Clamp(filter.PageSize, 1, PaginationConstants.MaxPageSize);
         var topics = (filter.Topics ?? Array.Empty<string>())
             .Where(t => !string.IsNullOrWhiteSpace(t))
             .Select(t => t.Trim())

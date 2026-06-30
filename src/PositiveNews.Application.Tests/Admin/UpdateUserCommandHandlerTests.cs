@@ -24,7 +24,7 @@ public class UpdateUserCommandHandlerTests
         var result = await handler.Handle(new UpdateUserCommand(123, true, true, null, null, 1), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.UserNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.UserNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 
@@ -68,6 +68,6 @@ public class UpdateUserCommandHandlerTests
         var result = await handler.Handle(new UpdateUserCommand(11, true, false, null, null, 42), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.UserUnchanged");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.UserUnchanged);
     }
 }

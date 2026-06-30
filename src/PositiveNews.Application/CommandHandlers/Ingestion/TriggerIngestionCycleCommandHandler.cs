@@ -23,7 +23,7 @@ public sealed class TriggerIngestionCycleCommandHandler(
         if (coordinator.IsRunning)
         {
             return Task.FromResult(Result.Failure(
-                new Error("Ingestion.AlreadyRunning", "An ingestion cycle is already in progress.", ErrorType.Conflict)));
+                new Error(ErrorCodes.Ingestion.AlreadyRunning, "An ingestion cycle is already in progress.", ErrorType.Conflict)));
         }
 
         Task.Run(async () =>

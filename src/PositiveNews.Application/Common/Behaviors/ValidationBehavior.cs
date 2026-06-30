@@ -44,7 +44,7 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
         }
 
         var message = string.Join(" ", failures.Select(f => f.ErrorMessage));
-        var error = new Error("Validation.Failed", message, ErrorType.Validation);
+        var error = new Error(ErrorCodes.Validation.Failed, message, ErrorType.Validation);
 
         if (TryCreateResultFailure(error, out var response))
         {

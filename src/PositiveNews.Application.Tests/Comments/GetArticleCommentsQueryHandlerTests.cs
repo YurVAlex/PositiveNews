@@ -1,4 +1,5 @@
 using FluentAssertions;
+using PositiveNews.Application.Common;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs.Comments;
@@ -45,7 +46,7 @@ public class GetArticleCommentsQueryHandlerTests
         var result = await sut.Handle(new GetArticleCommentsQuery(99), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Code.Should().Be("Article.NotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Article.NotFound);
         await commentReadRepository.DidNotReceive()
             .GetActiveTopLevelByArticleIdAsync(Arg.Any<long>(), Arg.Any<CancellationToken>());
     }

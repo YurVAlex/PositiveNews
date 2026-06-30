@@ -32,7 +32,7 @@ public sealed class GetArticleFeedQueryHandler(
             {
                 return Result<ArticleFeedPageResult>.Failure(
                     new Error(
-                        "ArticleFeed.TopicNotFound",
+                        ErrorCodes.ArticleFeed.TopicNotFound,
                         $"Requested topic(s) were not found: {string.Join(", ", missingTopics)}.",
                         ErrorType.NotFound));
             }
@@ -48,7 +48,7 @@ public sealed class GetArticleFeedQueryHandler(
             {
                 return Result<ArticleFeedPageResult>.Failure(
                     new Error(
-                        "ArticleFeed.SourceNotFound",
+                        ErrorCodes.ArticleFeed.SourceNotFound,
                         $"Requested source(s) were not found: {string.Join(", ", missingSourceIds)}.",
                         ErrorType.NotFound));
             }
@@ -68,7 +68,7 @@ public sealed class GetArticleFeedQueryHandler(
         {
             return Result<ArticleFeedPageResult>.Failure(
                 new Error(
-                    "ArticleFeed.PageNotFound",
+                    ErrorCodes.ArticleFeed.PageNotFound,
                     $"Requested page '{request.Page}' does not exist for the selected filter.",
                     ErrorType.NotFound));
         }

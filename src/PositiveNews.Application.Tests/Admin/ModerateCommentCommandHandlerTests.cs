@@ -24,7 +24,7 @@ public class ModerateCommentCommandHandlerTests
         var result = await handler.Handle(new ModerateCommentCommand(123, false, null, null, 1), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.CommentNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.CommentNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 
@@ -68,6 +68,6 @@ public class ModerateCommentCommandHandlerTests
         var result = await handler.Handle(new ModerateCommentCommand(11, true, null, null, 42), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.CommentUnchanged");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.CommentUnchanged);
     }
 }

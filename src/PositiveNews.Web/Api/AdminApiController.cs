@@ -2,6 +2,7 @@ using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Application.Commands.Admin;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.Common;
@@ -19,7 +20,7 @@ namespace PositiveNews.Web.Api;
 /// </summary>
 [ApiController]
 [Route("api/admin")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = RoleNames.Admin)]
 public sealed class AdminApiController(IMediator mediator) : ControllerBase
 {
     /// <summary>

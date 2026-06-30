@@ -24,7 +24,7 @@ public sealed class UpdateSourceCommandHandler(
         if (source is null)
         {
             return Result.Failure(new Error(
-                "Admin.SourceNotFound",
+                ErrorCodes.Admin.SourceNotFound,
                 $"Source with id '{request.SourceId}' was not found.",
                 ErrorType.NotFound));
         }
@@ -93,7 +93,7 @@ public sealed class UpdateSourceCommandHandler(
         if (!changed)
         {
             return Result.Failure(new Error(
-                "Admin.SourceUnchanged",
+                ErrorCodes.Admin.SourceUnchanged,
                 "No changes were provided.",
                 ErrorType.Validation));
         }

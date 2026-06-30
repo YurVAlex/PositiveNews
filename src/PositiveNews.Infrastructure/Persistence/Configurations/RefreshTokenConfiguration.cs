@@ -19,7 +19,7 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 
         builder.Property(rt => rt.Token)
                .IsRequired()
-               .HasMaxLength(256);
+               .HasMaxLength(FieldLengths.Auth.RefreshToken);
 
         builder.Property(rt => rt.UserId)
                .IsRequired();

@@ -22,7 +22,7 @@ public class DeactivateAccountCommandHandlerTests
         var result = await handler.Handle(new DeactivateAccountCommand(5), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.UserNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.UserNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 
@@ -39,7 +39,7 @@ public class DeactivateAccountCommandHandlerTests
         var result = await handler.Handle(new DeactivateAccountCommand(1), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.AccountInactive");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.AccountInactive);
         result.Error.Type.Should().Be(ErrorType.Conflict);
     }
 

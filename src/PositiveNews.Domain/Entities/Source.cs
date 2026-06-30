@@ -1,3 +1,4 @@
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Domain.Entities;
@@ -42,7 +43,7 @@ public class Source
     public decimal TrustScore { get; private set; } = 1.0m;
 
     /// <summary>Default BCP 47 language tag for articles from this source.</summary>
-    public string DefaultLanguageCode { get; private set; } = "en";
+    public string DefaultLanguageCode { get; private set; } = LanguageDefaults.SourceDefault;
 
     /// <summary>Optional HTML snippet for default thumbnails when the feed lacks images.</summary>
     public string? DefaultThumbnailHtml { get; private set; }
@@ -96,7 +97,7 @@ public class Source
             Description = description,
             LogoUrl = logoUrl?.Trim(),
             TrustScore = trustScore,
-            DefaultLanguageCode = string.IsNullOrWhiteSpace(defaultLanguageCode) ? "en" : defaultLanguageCode.Trim(),
+            DefaultLanguageCode = string.IsNullOrWhiteSpace(defaultLanguageCode) ? LanguageDefaults.SourceDefault : defaultLanguageCode.Trim(),
             DefaultThumbnailHtml = defaultThumbnailHtml,
             CreatedAt = DateTime.UtcNow,
             IsActive = true

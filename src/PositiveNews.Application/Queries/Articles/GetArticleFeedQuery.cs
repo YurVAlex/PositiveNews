@@ -1,6 +1,7 @@
 using MediatR;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Common;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.DTOs.Articles;
 
 namespace PositiveNews.Application.Queries.Articles;
@@ -18,7 +19,7 @@ public sealed record GetArticleFeedQuery(
         int Page = 1,
         IReadOnlyList<string>? Topics = null,
         IReadOnlyList<int>? SourceIds = null,
-        int PageSize = 10,
+        int PageSize = PaginationConstants.DefaultPageSize,
         ArticleFeedSortBy SortBy = ArticleFeedSortBy.PublishedAt,
         decimal? MinPositivity = null)
     : IRequest<Result<ArticleFeedPageResult>>;

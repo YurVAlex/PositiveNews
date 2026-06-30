@@ -1,5 +1,6 @@
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.DTOs.Articles;
+using PositiveNews.Application.Options;
 using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Web.Api.Models;
 using Riok.Mapperly.Abstractions;
@@ -42,14 +43,16 @@ public static partial class ArticleApiMapper
     /// </summary>
     /// <param name="source">Inbound HTTP request model.</param>
     /// <returns>Application-layer feed query.</returns>
-    public static GetArticleFeedQuery ToGetArticleFeedQuery(this GetArticleFeedRequest source)
+    public static GetArticleFeedQuery ToGetArticleFeedQuery(this GetArticleFeedRequest source, ArticleFeedOptions options)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(options);
 
         return new GetArticleFeedQuery(
             source.Page,
             source.Topic ?? Array.Empty<string>(),
             source.Source ?? Array.Empty<int>(),
+            source.PageSize ?? options.DefaultPageSize,
             SortBy: MapSort(source.Sort),
             MinPositivity: source.MinPositivity);
     }

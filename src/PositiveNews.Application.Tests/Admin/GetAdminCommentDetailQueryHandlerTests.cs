@@ -44,7 +44,7 @@ public class GetAdminCommentDetailQueryHandlerTests
         var result = await handler.Handle(new GetAdminCommentDetailQuery(99), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.CommentNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.CommentNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 }

@@ -16,7 +16,7 @@ internal sealed class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.ToTable("Comments", SchemaNames.Community);
 
         builder.HasKey(c => c.Id);
-        builder.Property(c => c.Content).HasMaxLength(2000).IsRequired();
+        builder.Property(c => c.Content).HasMaxLength(FieldLengths.Comment.Content).IsRequired();
         builder.Property(c => c.CreatedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(c => c.IsActive).HasDefaultValue(true);
 

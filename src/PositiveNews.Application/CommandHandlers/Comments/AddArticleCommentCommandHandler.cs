@@ -27,14 +27,14 @@ public sealed class AddArticleCommentCommandHandler(
         if (!await articleReadRepository.ExistsActiveAsync(request.ArticleId, cancellationToken))
         {
             return Result<CommentCreatedDto>.Failure(
-                new Error("Article.NotFound", $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Article.NotFound, $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
         }
 
         var user = await userReadRepository.FindByIdWithRolesAsync(request.UserId, cancellationToken);
         if (user is null)
         {
             return Result<CommentCreatedDto>.Failure(
-                new Error("User.NotFound", $"User with id '{request.UserId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.User.NotFound, $"User with id '{request.UserId}' was not found.", ErrorType.NotFound));
         }
 
         var comment = Comment.Create(request.ArticleId, request.UserId, request.Content);

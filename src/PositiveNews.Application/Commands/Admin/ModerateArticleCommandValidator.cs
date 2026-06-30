@@ -1,4 +1,5 @@
 using FluentValidation;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.Commands.Admin;
 
@@ -14,7 +15,7 @@ public sealed class ModerateArticleCommandValidator : AbstractValidator<Moderate
 
         RuleFor(x => x.Title)
             .NotEmpty().When(x => x.Title is not null).WithMessage("Title cannot be empty when provided.")
-            .MaximumLength(500).WithMessage("Title must be 500 characters or fewer.");
+            .MaximumLength(FieldLengths.Article.Title).WithMessage($"Title must be {FieldLengths.Article.Title} characters or fewer.");
 
         RuleFor(x => x.ImageTag)
             .MaximumLength(2048).WithMessage("Image tag must be 2048 characters or fewer.");

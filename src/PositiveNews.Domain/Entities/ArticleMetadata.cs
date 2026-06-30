@@ -1,3 +1,4 @@
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Domain.Entities;
@@ -51,10 +52,10 @@ public class ArticleMetadata
     public long ViewCount { get; private set; }
 
     /// <summary>BCP 47 or ISO language tag (defaults to undetermined).</summary>
-    public string LanguageCode { get; private set; } = "und";
+    public string LanguageCode { get; private set; } = LanguageDefaults.Undetermined;
 
     /// <summary>Region bucket for filtering (e.g. Global).</summary>
-    public string RegionCode { get; private set; } = "Global";
+    public string RegionCode { get; private set; } = LanguageDefaults.GlobalRegion;
 
     /// <summary>When false, the article is hidden from public feeds.</summary>
     public bool IsActive { get; private set; } = true;
@@ -106,13 +107,13 @@ public class ArticleMetadata
         return new ArticleMetadata
         {
             SourceId = sourceId,
-            Title = title.Length > 500 ? title[..500] : title.Trim(),
+            Title = title.Length > FieldLengths.Article.Title ? title[..FieldLengths.Article.Title] : title.Trim(),
             Url = url.Trim(),
             ExternalId = externalId?.Trim(),
             PublishedAt = publishedAt,
             IngestedAt = DateTime.UtcNow,
-            LanguageCode = string.IsNullOrWhiteSpace(languageCode) ? "und" : languageCode.Trim(),
-            RegionCode = "Global",
+            LanguageCode = string.IsNullOrWhiteSpace(languageCode) ? LanguageDefaults.Undetermined : languageCode.Trim(),
+            RegionCode = LanguageDefaults.GlobalRegion,
             IsActive = true,
             PositivityScore = positivityScore,
             AnalyzedAt = positivityScore.HasValue ? DateTime.UtcNow : null,

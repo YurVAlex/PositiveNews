@@ -6,6 +6,7 @@ using PositiveNews.Application.Abstractions.Security;
 using PositiveNews.Application.Commands.Auth;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Application.CommandHandlers.Auth;
@@ -46,14 +47,14 @@ public sealed class RegisterUserCommandHandler(
         if (await userReadRepository.EmailExistsAsync(normalizedEmail, cancellationToken))
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.EmailAlreadyExists", "A user with this email already exists.", ErrorType.Conflict));
+                new Error(ErrorCodes.Auth.EmailAlreadyExists, "A user with this email already exists.", ErrorType.Conflict));
         }
 
-        var userRole = await roleReadRepository.FindByNameAsync("User", cancellationToken);
+        var userRole = await roleReadRepository.FindByNameAsync(RoleNames.User, cancellationToken);
         if (userRole is null)
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.RoleMissing", "Default 'User' role is missing.", ErrorType.Unexpected));
+                new Error(ErrorCodes.Auth.RoleMissing, "Default 'User' role is missing.", ErrorType.Unexpected));
         }
 
         var user = User.Create(normalizedEmail, normalizedName);

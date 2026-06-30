@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Web.Api;
 
 namespace PositiveNews.Web.Tests.Api.Controllers;
@@ -28,6 +29,6 @@ public class AdminApiControllerTests
             .OfType<AuthorizeAttribute>()
             .Single();
 
-        attr.Roles.Should().Be("Admin");
+        attr.Roles.Should().Be(RoleNames.Admin);
     }
 }

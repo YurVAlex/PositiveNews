@@ -1,3 +1,5 @@
+using PositiveNews.Domain.Constants;
+
 namespace PositiveNews.Web.Api.Models;
 
 /// <summary>
@@ -12,7 +14,7 @@ public sealed class UpdateUserFeedPreferencesRequest
     public IReadOnlyList<int> SourceIds { get; init; } = Array.Empty<int>();
 
     /// <summary>Minimum positivity score in [0, 1].</summary>
-    public decimal MinPositivity { get; init; } = 0.5m;
+    public decimal MinPositivity { get; init; } = FeedPreferenceDefaults.MinPositivity;
 
     /// <summary>Sort mode: date, positivity, or preferences.</summary>
     public string SortBy { get; init; } = "date";

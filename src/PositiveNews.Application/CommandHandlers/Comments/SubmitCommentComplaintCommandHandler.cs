@@ -26,7 +26,7 @@ public sealed class SubmitCommentComplaintCommandHandler(
         if (!await articleReadRepository.ExistsActiveAsync(request.ArticleId, cancellationToken))
         {
             return Result.Failure(
-                new Error("Article.NotFound", $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Article.NotFound, $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
         }
 
         var comment = await commentReadRepository.GetActiveByIdForArticleAsync(
@@ -36,19 +36,19 @@ public sealed class SubmitCommentComplaintCommandHandler(
         if (comment is null)
         {
             return Result.Failure(
-                new Error("Comment.NotFound", $"Comment with id '{request.CommentId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Comment.NotFound, $"Comment with id '{request.CommentId}' was not found.", ErrorType.NotFound));
         }
 
         if (comment.UserId == request.UserId)
         {
             return Result.Failure(
-                new Error("Comment.SelfComplaint", "You cannot file a complaint against your own comment.", ErrorType.Validation));
+                new Error(ErrorCodes.Comment.SelfComplaint, "You cannot file a complaint against your own comment.", ErrorType.Validation));
         }
 
         if (await complaintWriteRepository.ExistsForUserAndCommentAsync(request.UserId, request.CommentId, cancellationToken))
         {
             return Result.Failure(
-                new Error("Complaint.AlreadySubmitted", "You have already filed a complaint against this comment.", ErrorType.Conflict));
+                new Error(ErrorCodes.Complaint.AlreadySubmitted, "You have already filed a complaint against this comment.", ErrorType.Conflict));
         }
 
         var complaint = Complaint.Create(request.UserId, request.CommentId, request.Reason);

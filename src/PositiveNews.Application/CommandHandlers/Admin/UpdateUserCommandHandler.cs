@@ -20,7 +20,7 @@ public sealed class UpdateUserCommandHandler(
         if (user is null)
         {
             return Result.Failure(new Error(
-                "Admin.UserNotFound",
+                ErrorCodes.Admin.UserNotFound,
                 $"User with id '{request.UserId}' was not found.",
                 ErrorType.NotFound));
         }
@@ -62,7 +62,7 @@ public sealed class UpdateUserCommandHandler(
         if (!changed)
         {
             return Result.Failure(new Error(
-                "Admin.UserUnchanged",
+                ErrorCodes.Admin.UserUnchanged,
                 "No changes were provided.",
                 ErrorType.Validation));
         }

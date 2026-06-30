@@ -1,3 +1,4 @@
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Domain.ValueObjects;
@@ -28,7 +29,7 @@ public sealed record LanguageCode
     }
 
     /// <summary>Placeholder representing an undetermined language.</summary>
-    public static LanguageCode Und => new("und");
+    public static LanguageCode Und => new(LanguageDefaults.Undetermined);
 
     /// <summary>Implicit conversion to string.</summary>
     public static implicit operator string(LanguageCode v) => v.Value;

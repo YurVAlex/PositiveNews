@@ -16,19 +16,19 @@ internal sealed class ArticleMetadataConfiguration : IEntityTypeConfiguration<Ar
         builder.ToTable("ArticlesMetadata", SchemaNames.Catalog);
 
         builder.HasKey(a => a.Id);
-        builder.Property(a => a.ExternalId).HasMaxLength(300);
-        builder.Property(a => a.Title).HasMaxLength(500).IsRequired();
-        builder.Property(a => a.Author).HasMaxLength(300);
-        builder.Property(a => a.Url).HasMaxLength(1000).IsRequired();
+        builder.Property(a => a.ExternalId).HasMaxLength(FieldLengths.Article.ExternalId);
+        builder.Property(a => a.Title).HasMaxLength(FieldLengths.Article.Title).IsRequired();
+        builder.Property(a => a.Author).HasMaxLength(FieldLengths.Article.Author);
+        builder.Property(a => a.Url).HasMaxLength(FieldLengths.Article.Url).IsRequired();
         builder.Property(a => a.ImageTag).HasColumnType("nvarchar(max)");
         builder.Property(a => a.PublishedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.IngestedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(a => a.PositivityScore).HasColumnType("decimal(5,4)");
         builder.Property(a => a.ViewCount).HasDefaultValue(0L);
-        builder.Property(a => a.LanguageCode).HasMaxLength(10).HasDefaultValue("und");
-        builder.Property(a => a.RegionCode).HasMaxLength(10).HasDefaultValue("Global");
+        builder.Property(a => a.LanguageCode).HasMaxLength(FieldLengths.Article.LanguageCode).HasDefaultValue(LanguageDefaults.Undetermined);
+        builder.Property(a => a.RegionCode).HasMaxLength(FieldLengths.Article.RegionCode).HasDefaultValue(LanguageDefaults.GlobalRegion);
         builder.Property(a => a.IsActive).HasDefaultValue(true);
-        builder.Property(a => a.SummaryShort).HasMaxLength(2000);
+        builder.Property(a => a.SummaryShort).HasMaxLength(FieldLengths.Article.SummaryShort);
 
         // Check constraint kept as defense-in-depth alongside domain invariant
         builder.ToTable(t => t.HasCheckConstraint(

@@ -1,4 +1,5 @@
 using FluentValidation;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.Commands.Auth;
 
@@ -7,8 +8,6 @@ namespace PositiveNews.Application.Commands.Auth;
 /// </summary>
 public sealed class LoginUserCommandValidator : AbstractValidator<LoginUserCommand>
 {
-    private const int MaxEmailLength = 300;
-
     /// <summary>
     /// Initializes validation rules for <see cref="LoginUserCommand"/>.
     /// </summary>
@@ -16,13 +15,13 @@ public sealed class LoginUserCommandValidator : AbstractValidator<LoginUserComma
     {
         RuleFor(x => x.Email)
             .NotEmpty()
-            .MaximumLength(MaxEmailLength)
-            .Must(email => email.Trim().Length <= MaxEmailLength).WithMessage($"Email must be <= {MaxEmailLength} characters.")
+            .MaximumLength(FieldLengths.User.Email)
+            .Must(email => email.Trim().Length <= FieldLengths.User.Email).WithMessage($"Email must be <= {FieldLengths.User.Email} characters.")
             .Must(email => IsValidEmail(email.Trim())).WithMessage("Email must be a valid email address.");
 
         RuleFor(x => x.Password)
             .NotEmpty()
-            .MaximumLength(128);
+            .MaximumLength(FieldLengths.Auth.PasswordMax);
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Infrastructure.Configuration;
@@ -56,7 +57,7 @@ public class SourceEntry
     public decimal TrustScore { get; set; } = 1.0m;
 
     /// <summary>Default BCP 47 language tag for articles from this source.</summary>
-    public string DefaultLanguageCode { get; set; } = "en";
+    public string DefaultLanguageCode { get; set; } = LanguageDefaults.SourceDefault;
 
     /// <summary>Optional default hero thumbnail HTML when feeds omit images.</summary>
     public string? DefaultThumbnailHtml { get; set; }

@@ -47,7 +47,7 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
         if (!_coordinator.TryBeginCycle())
         {
             return Result.Failure(
-                new Error("Ingestion.AlreadyRunning", "An ingestion cycle is already in progress.", ErrorType.Conflict));
+                new Error(ErrorCodes.Ingestion.AlreadyRunning, "An ingestion cycle is already in progress.", ErrorType.Conflict));
         }
 
         try
@@ -107,13 +107,13 @@ public sealed class RunIngestionCycleCommandHandler : IRequestHandler<RunIngesti
         {
             _logger.LogWarning(ex, "Domain invariant violation while running ingestion cycle.");
             return Result.Failure(
-                new Error("Ingestion.DomainInvariantViolation", ex.Message, ErrorType.Conflict));
+                new Error(ErrorCodes.Ingestion.DomainInvariantViolation, ex.Message, ErrorType.Conflict));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error while running ingestion cycle.");
             return Result.Failure(
-                new Error("Ingestion.Unexpected", ex.Message, ErrorType.Unexpected));
+                new Error(ErrorCodes.Ingestion.Unexpected, ex.Message, ErrorType.Unexpected));
         }
         finally
         {

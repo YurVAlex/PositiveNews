@@ -6,7 +6,7 @@
 import type { FeedSortParam } from '../api/articles-api'
 import type { UserFeedPreferencesResponse } from '../api/types'
 
-export const DEFAULT_MIN_POSITIVITY = 0.5
+export const DEFAULT_MIN_POSITIVITY = 0
 export const FEED_PREFS_DRAFT_KEY = 'positiveNews.feedPrefsDraft'
 export const LAST_FEED_SEARCH_KEY = 'positiveNews.lastFeedSearch'
 export const FEED_PREFS_LAST_SAVED_KEY = 'positiveNews.feedPrefsLastSaved'
@@ -83,7 +83,7 @@ export function parseSort(raw: string | null): FeedSortParam {
   return 'date'
 }
 
-/** Parses minPositivity query value, clamped to [0, 1] with a default of 0.5. */
+/** Parses minPositivity query value, clamped to [0, 1] with a default of 0. */
 export function parseMinPositivity(raw: string | null): number {
   if (!raw?.trim()) {
     return DEFAULT_MIN_POSITIVITY

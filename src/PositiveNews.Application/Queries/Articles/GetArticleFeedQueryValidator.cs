@@ -1,4 +1,5 @@
 using FluentValidation;
+using PositiveNews.Application.Constants;
 
 namespace PositiveNews.Application.Queries.Articles;
 
@@ -13,7 +14,7 @@ public sealed class GetArticleFeedQueryValidator : AbstractValidator<GetArticleF
     public GetArticleFeedQueryValidator()
     {
         RuleFor(x => x.Page).GreaterThan(0);
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 100);
+        RuleFor(x => x.PageSize).InclusiveBetween(1, PaginationConstants.MaxPageSize);
         RuleFor(x => x.SortBy).IsInEnum();
         When(x => x.MinPositivity.HasValue, () =>
         {

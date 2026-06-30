@@ -1,4 +1,5 @@
 using FluentValidation;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.Commands.Comments;
 
@@ -7,8 +8,6 @@ namespace PositiveNews.Application.Commands.Comments;
 /// </summary>
 public sealed class SubmitCommentComplaintCommandValidator : AbstractValidator<SubmitCommentComplaintCommand>
 {
-    private const int MaxReasonLength = 500;
-
     /// <summary>
     /// Initializes validation rules for <see cref="SubmitCommentComplaintCommand"/>.
     /// </summary>
@@ -20,7 +19,7 @@ public sealed class SubmitCommentComplaintCommandValidator : AbstractValidator<S
         RuleFor(x => x.Reason)
             .NotEmpty()
             .Must(reason => !string.IsNullOrWhiteSpace(reason)).WithMessage("Complaint reason cannot be empty.")
-            .Must(reason => reason.Trim().Length <= MaxReasonLength)
-            .WithMessage($"Complaint reason cannot exceed {MaxReasonLength} characters.");
+            .Must(reason => reason.Trim().Length <= FieldLengths.Complaint.Reason)
+            .WithMessage($"Complaint reason cannot exceed {FieldLengths.Complaint.Reason} characters.");
     }
 }

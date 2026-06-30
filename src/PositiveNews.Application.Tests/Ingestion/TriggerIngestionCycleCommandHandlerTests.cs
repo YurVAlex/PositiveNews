@@ -26,7 +26,7 @@ public class TriggerIngestionCycleCommandHandlerTests
         var result = await handler.Handle(new TriggerIngestionCycleCommand(), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.AlreadyRunning");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.AlreadyRunning);
         scopeFactory.DidNotReceive().CreateScope();
     }
 

@@ -142,7 +142,7 @@ public class RunIngestionCycleCommandHandlerTests
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.DomainInvariantViolation");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.DomainInvariantViolation);
         await processMediator.DidNotReceive().Send(Arg.Any<ProcessIngestionSourceCommand>(), Arg.Any<CancellationToken>());
     }
 
@@ -165,7 +165,7 @@ public class RunIngestionCycleCommandHandlerTests
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.Unexpected");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.Unexpected);
         coordinator.IsRunning.Should().BeFalse();
         await processMediator.DidNotReceive().Send(Arg.Any<ProcessIngestionSourceCommand>(), Arg.Any<CancellationToken>());
     }
@@ -216,7 +216,7 @@ public class RunIngestionCycleCommandHandlerTests
         var result = await handler.Handle(new RunIngestionCycleCommand(), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.AlreadyRunning");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.AlreadyRunning);
         factory.DidNotReceive().CreateScope();
     }
 }

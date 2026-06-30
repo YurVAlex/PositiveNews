@@ -20,7 +20,7 @@ public sealed class ModerateCommentCommandHandler(
         if (comment is null)
         {
             return Result.Failure(new Error(
-                "Admin.CommentNotFound",
+                ErrorCodes.Admin.CommentNotFound,
                 $"Comment with id '{request.CommentId}' was not found.",
                 ErrorType.NotFound));
         }
@@ -46,7 +46,7 @@ public sealed class ModerateCommentCommandHandler(
         if (!changed)
         {
             return Result.Failure(new Error(
-                "Admin.CommentUnchanged",
+                ErrorCodes.Admin.CommentUnchanged,
                 "No changes were provided.",
                 ErrorType.Validation));
         }

@@ -139,7 +139,7 @@ public sealed class ProcessIngestionSourceCommandHandler(
             await ingestionUnitOfWork.SaveChangesAsync(CancellationToken.None);
             return Result<int>.Failure(
                 new Error(
-                    "Ingestion.DomainInvariantViolation",
+                    ErrorCodes.Ingestion.DomainInvariantViolation,
                     $"Domain invariant violation for source '{source.Name}': {ex.Message}",
                     ErrorType.Conflict));
         }

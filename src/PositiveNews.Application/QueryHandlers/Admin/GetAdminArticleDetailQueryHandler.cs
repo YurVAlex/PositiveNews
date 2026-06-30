@@ -21,7 +21,7 @@ public sealed class GetAdminArticleDetailQueryHandler(IArticleReadRepository art
         {
             return Result<ArticleAdminDetailDto>.Failure(
                 new Error(
-                    "Admin.ArticleNotFound",
+                    ErrorCodes.Admin.ArticleNotFound,
                     $"Article with id '{request.ArticleId}' was not found.",
                     ErrorType.NotFound));
         }

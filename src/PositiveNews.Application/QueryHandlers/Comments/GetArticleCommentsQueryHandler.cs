@@ -22,7 +22,7 @@ public sealed class GetArticleCommentsQueryHandler(
         if (!await articleReadRepository.ExistsActiveAsync(request.ArticleId, cancellationToken))
         {
             return Result<IReadOnlyList<CommentListItemDto>>.Failure(
-                new Error("Article.NotFound", $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Article.NotFound, $"Article with id '{request.ArticleId}' was not found.", ErrorType.NotFound));
         }
 
         var comments = await commentReadRepository.GetActiveTopLevelByArticleIdAsync(request.ArticleId, cancellationToken);

@@ -25,7 +25,7 @@ public class RefreshTokenCommandHandlerTests
         var result = await handler.Handle(new RefreshTokenCommand("invalid-token"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.InvalidRefreshToken");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.InvalidRefreshToken);
         result.Error.Type.Should().Be(ErrorType.Unauthorized);
     }
 
@@ -45,7 +45,7 @@ public class RefreshTokenCommandHandlerTests
         var result = await handler.Handle(new RefreshTokenCommand("valid-token"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.UserInactive");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.UserInactive);
         result.Error.Type.Should().Be(ErrorType.Unauthorized);
     }
 

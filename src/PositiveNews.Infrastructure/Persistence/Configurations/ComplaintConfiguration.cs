@@ -16,7 +16,7 @@ internal sealed class ComplaintConfiguration : IEntityTypeConfiguration<Complain
         builder.ToTable("Complains", SchemaNames.Community);
 
         builder.HasKey(c => c.Id);
-        builder.Property(c => c.Reason).HasMaxLength(500).IsRequired();
+        builder.Property(c => c.Reason).HasMaxLength(FieldLengths.Complaint.Reason).IsRequired();
         builder.Property(c => c.CreatedAt).HasDefaultValueSql("sysutcdatetime()");
 
         builder.HasOne(c => c.Comment)

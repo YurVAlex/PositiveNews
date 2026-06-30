@@ -84,7 +84,7 @@ public sealed class PersistIngestedArticlesCommandHandler(
 
                     return Result<int>.Failure(
                         new Error(
-                            "Ingestion.DomainInvariantViolation",
+                            ErrorCodes.Ingestion.DomainInvariantViolation,
                             $"Domain invariant violation for article '{dto.ExternalId ?? dto.Title}': {ex.Message}",
                             ErrorType.Conflict));
                 }

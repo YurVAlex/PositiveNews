@@ -4,6 +4,7 @@ using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs.FeedPreferences;
 using PositiveNews.Application.Features.FeedPreferences;
 using PositiveNews.Application.Queries.FeedPreferences;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.QueryHandlers.FeedPreferences;
 
@@ -27,7 +28,7 @@ public sealed class GetUserFeedPreferencesQueryHandler(IUserFeedPreferencesReadR
         return Result<UserFeedPreferencesDto>.Success(new UserFeedPreferencesDto(
             Array.Empty<string>(),
             Array.Empty<int>(),
-            0.5m,
+            FeedPreferenceDefaults.MinPositivity,
             FeedPreferenceSortMapper.DefaultApiSort));
     }
 }

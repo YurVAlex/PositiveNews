@@ -21,13 +21,13 @@ public sealed class DeactivateAccountCommandHandler(
         if (user is null)
         {
             return Result.Failure(
-                new Error("Auth.UserNotFound", "User account was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Auth.UserNotFound, "User account was not found.", ErrorType.NotFound));
         }
 
         if (!user.IsActive)
         {
             return Result.Failure(
-                new Error("Auth.AccountInactive", "Account is already deactivated.", ErrorType.Conflict));
+                new Error(ErrorCodes.Auth.AccountInactive, "Account is already deactivated.", ErrorType.Conflict));
         }
 
         try
@@ -37,7 +37,7 @@ public sealed class DeactivateAccountCommandHandler(
         catch (InvalidUserStateException ex)
         {
             return Result.Failure(
-                new Error("Auth.AccountInactive", ex.Message, ErrorType.Conflict));
+                new Error(ErrorCodes.Auth.AccountInactive, ex.Message, ErrorType.Conflict));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

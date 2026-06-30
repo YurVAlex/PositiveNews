@@ -34,7 +34,7 @@ public sealed class UpdateUserFeedPreferencesCommandHandler(
             {
                 return Result<UserFeedPreferencesDto>.Failure(
                     new Error(
-                        "FeedPreferences.TopicNotFound",
+                        ErrorCodes.FeedPreferences.TopicNotFound,
                         $"Requested topic(s) were not found: {string.Join(", ", missingTopics)}.",
                         ErrorType.NotFound));
             }
@@ -50,7 +50,7 @@ public sealed class UpdateUserFeedPreferencesCommandHandler(
             {
                 return Result<UserFeedPreferencesDto>.Failure(
                     new Error(
-                        "FeedPreferences.SourceNotFound",
+                        ErrorCodes.FeedPreferences.SourceNotFound,
                         $"Requested source(s) were not found: {string.Join(", ", missingSourceIds)}.",
                         ErrorType.NotFound));
             }
@@ -81,7 +81,7 @@ public sealed class UpdateUserFeedPreferencesCommandHandler(
         if (saved is null)
         {
             return Result<UserFeedPreferencesDto>.Failure(
-                new Error("FeedPreferences.SaveFailed", "Preferences could not be loaded after save.", ErrorType.Unexpected));
+                new Error(ErrorCodes.FeedPreferences.SaveFailed, "Preferences could not be loaded after save.", ErrorType.Unexpected));
         }
 
         return Result<UserFeedPreferencesDto>.Success(saved);

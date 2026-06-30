@@ -38,12 +38,12 @@ public sealed class LoginUserCommandHandler(
         if (user is null || string.IsNullOrWhiteSpace(user.PasswordHash))
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidCredentials", "Invalid email or password.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password.", ErrorType.Unauthorized));
         }
         if (!user.IsActive)
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidCredentials", "The user has been deleted or blocked.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.InvalidCredentials, "The user has been deleted or blocked.", ErrorType.Unauthorized));
         }
 
         if (!passwordHasherService.VerifyPassword(user, user.PasswordHash, request.Password))
@@ -51,7 +51,7 @@ public sealed class LoginUserCommandHandler(
             user.RecordFailedLogin();
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidCredentials", "Invalid email or password.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.InvalidCredentials, "Invalid email or password.", ErrorType.Unauthorized));
         }
 
         user.RecordSuccessfulLogin();

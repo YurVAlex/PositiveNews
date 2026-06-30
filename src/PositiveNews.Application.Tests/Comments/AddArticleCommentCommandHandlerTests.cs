@@ -1,4 +1,5 @@
 using FluentAssertions;
+using PositiveNews.Application.Common;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
@@ -57,7 +58,7 @@ public class AddArticleCommentCommandHandlerTests
         var result = await sut.Handle(new AddArticleCommentCommand(1, 2, "Hello"), CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Code.Should().Be("Article.NotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Article.NotFound);
         commentWriteRepository.DidNotReceive().Add(Arg.Any<Comment>());
     }
 }

@@ -17,7 +17,7 @@ public sealed class GetAdminCommentDetailQueryHandler(ICommentReadRepository com
         if (comment is null)
         {
             return Result<CommentAdminDetailDto>.Failure(new Error(
-                "Admin.CommentNotFound",
+                ErrorCodes.Admin.CommentNotFound,
                 $"Comment with id '{request.CommentId}' was not found.",
                 ErrorType.NotFound));
         }

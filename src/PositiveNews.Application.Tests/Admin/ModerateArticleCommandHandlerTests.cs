@@ -36,7 +36,7 @@ public class ModerateArticleCommandHandlerTests
             CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.ArticleNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.ArticleNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 
@@ -186,7 +186,7 @@ public class ModerateArticleCommandHandlerTests
             CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Admin.ArticleUnchanged");
+        result.Error.Code.Should().Be(ErrorCodes.Admin.ArticleUnchanged);
         result.Error.Type.Should().Be(ErrorType.Validation);
         await unitOfWork.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
         auditLogWriteRepository.DidNotReceive().Add(Arg.Any<AuditLog>());

@@ -23,7 +23,7 @@ public sealed class ModerateArticleCommandHandler(
         if (article is null)
         {
             return Result.Failure(new Error(
-                "Admin.ArticleNotFound",
+                ErrorCodes.Admin.ArticleNotFound,
                 $"Article with id '{request.ArticleId}' was not found.",
                 ErrorType.NotFound));
         }
@@ -161,7 +161,7 @@ public sealed class ModerateArticleCommandHandler(
         if (!hasChange)
         {
             return Result.Failure(new Error(
-                "Admin.ArticleUnchanged",
+                ErrorCodes.Admin.ArticleUnchanged,
                 "No moderation or metadata changes were provided.",
                 ErrorType.Validation));
         }

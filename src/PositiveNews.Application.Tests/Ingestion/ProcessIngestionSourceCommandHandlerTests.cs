@@ -197,7 +197,7 @@ public class ProcessIngestionSourceCommandHandlerTests
             CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.DomainInvariantViolation");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.DomainInvariantViolation);
         run!.Status.Should().Be(IngestionStatus.Failed);
     }
 

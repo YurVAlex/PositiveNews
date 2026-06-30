@@ -1,3 +1,4 @@
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Exceptions;
 
 namespace PositiveNews.Domain.Entities;
@@ -14,7 +15,7 @@ public class UserFeedPreference
     public long UserId { get; private set; }
 
     /// <summary>Minimum positivity score [0,1] for feed items.</summary>
-    public decimal MinPositivity { get; private set; } = 0.5m;
+    public decimal MinPositivity { get; private set; } = FeedPreferenceDefaults.MinPositivity;
 
     /// <summary>Sort mode identifier (e.g. Date).</summary>
     public string SortBy { get; private set; } = "Date";
@@ -31,7 +32,7 @@ public class UserFeedPreference
     /// <summary>
     /// Creates default preferences for the given user id.
     /// </summary>
-    public static UserFeedPreference Create(long userId, decimal minPositivity = 0.5m, string sortBy = "Date")
+    public static UserFeedPreference Create(long userId, decimal minPositivity = FeedPreferenceDefaults.MinPositivity, string sortBy = "Date")
     {
         if (minPositivity < 0m || minPositivity > 1m)
             throw new DomainException($"MinPositivity must be between 0 and 1 (got {minPositivity}).");

@@ -16,7 +16,7 @@ internal sealed class UserFeedPreferenceConfiguration : IEntityTypeConfiguration
         builder.ToTable("UserFeedPreferences", SchemaNames.Identity);
 
         builder.HasKey(p => p.UserId);
-        builder.Property(p => p.MinPositivity).HasColumnType("decimal(3,2)").HasDefaultValue(0.5m);
+        builder.Property(p => p.MinPositivity).HasColumnType("decimal(3,2)").HasDefaultValue(FeedPreferenceDefaults.MinPositivity);
         builder.Property(p => p.SortBy).HasMaxLength(50).HasDefaultValue("Date");
         builder.Property(p => p.LanguageCode).HasMaxLength(10);
         builder.Property(p => p.RegionCode).HasMaxLength(10);

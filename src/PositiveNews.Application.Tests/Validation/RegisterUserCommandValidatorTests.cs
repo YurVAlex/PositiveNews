@@ -1,5 +1,6 @@
 using FluentAssertions;
 using PositiveNews.Application.Commands.Auth;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.Tests.Validation;
 
@@ -36,12 +37,12 @@ public class RegisterUserCommandValidatorTests
     [Fact]
     public void Validate_Should_Fail_When_NameTooLong()
     {
-        var name = new string('n', 101);
+        var name = new string('n', FieldLengths.User.Name + 1);
 
         var result = _validator.Validate(new RegisterUserCommand("user@example.com", name, "Password1!"));
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("<= 100"));
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains($"<= {FieldLengths.User.Name}"));
     }
 
     [Fact]

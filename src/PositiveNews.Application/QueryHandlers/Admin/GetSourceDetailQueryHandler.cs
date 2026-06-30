@@ -19,14 +19,14 @@ public sealed class GetSourceDetailQueryHandler(ISourceReadRepository sourceRead
         if (request.SourceId <= 0)
         {
             return Result<SourceAdminDetailDto>.Failure(
-                new Error("Admin.SourceIdInvalid", "Source id must be a positive integer.", ErrorType.Validation));
+                new Error(ErrorCodes.Admin.SourceIdInvalid, "Source id must be a positive integer.", ErrorType.Validation));
         }
 
         var detail = await sourceReadRepository.GetAdminSourceDetailAsync(request.SourceId, cancellationToken);
         if (detail is null)
         {
             return Result<SourceAdminDetailDto>.Failure(
-                new Error("Admin.SourceNotFound", $"Source with id '{request.SourceId}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Admin.SourceNotFound, $"Source with id '{request.SourceId}' was not found.", ErrorType.NotFound));
         }
 
         return Result<SourceAdminDetailDto>.Success(detail);

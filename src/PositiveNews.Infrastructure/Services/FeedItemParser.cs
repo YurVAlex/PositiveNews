@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Ingestion;
 using PositiveNews.Application.Interfaces;
 using System.Xml.Linq;
 
@@ -54,7 +55,7 @@ public class FeedItemParser : IFeedItemParser
 
         if (categories.Count == 0)
         {
-            categories = ["Default"];
+            categories = [IngestionCatalogConstants.DefaultTopicName];
         }
 
         _logger.LogDebug("Extracted categories: {Categories}", string.Join(", ", categories));

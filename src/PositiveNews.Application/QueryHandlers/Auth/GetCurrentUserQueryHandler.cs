@@ -25,7 +25,7 @@ public sealed class GetCurrentUserQueryHandler(IUserReadRepository userReadRepos
         if (user is null || !user.IsActive)
         {
             return Result<UserProfileModel>.Failure(
-                new Error("Auth.UserUnavailable", "Current user is unavailable.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.UserUnavailable, "Current user is unavailable.", ErrorType.Unauthorized));
         }
 
         return Result<UserProfileModel>.Success(new UserProfileModel

@@ -2,10 +2,13 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Common;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.DTOs.Articles;
+using PositiveNews.Application.Options;
 using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Web.Api;
 using PositiveNews.Web.Api.Models;
@@ -20,6 +23,9 @@ public class ArticlesApiControllerTests
     private static readonly string[] TopicsTech = ["Tech"];
     private static readonly string[] BrokenTopics = ["Spaces", "Health", "YurVAlex"];
 
+    private static IOptions<ArticleFeedOptions> DefaultFeedOptions()
+        => Options.Create(new ArticleFeedOptions { DefaultPageSize = PaginationConstants.DefaultPageSize });
+
     [Fact]
     public async Task GetFeed_Should_ReturnArticleFeedResponse_When_HandlerSucceeds()
     {
@@ -29,7 +35,7 @@ public class ArticlesApiControllerTests
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(page)));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         using var cts = new CancellationTokenSource();
         var result = await sut.GetFeed(
@@ -56,7 +62,7 @@ public class ArticlesApiControllerTests
             .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Failure(
                 new Error("Validation.Failed", "Validation failed.", ErrorType.Validation))));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         using var cts = new CancellationTokenSource();
         var result = await sut.GetFeed(
@@ -82,7 +88,7 @@ public class ArticlesApiControllerTests
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(TestDataBuilders.ArticleFeedPage())));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         await sut.GetFeed(
             new GetArticleFeedRequest { Page = 1, Topic = TopicsTech, Source = [2], Sort = "preferences" },
@@ -104,7 +110,7 @@ public class ArticlesApiControllerTests
             .Send(Arg.Any<GetArticleFeedQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Success(TestDataBuilders.ArticleFeedPage())));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         await sut.GetFeed(
             new GetArticleFeedRequest { Page = 2, Topic = TopicsTech, Sort = "POSITIVITY" },
@@ -128,7 +134,7 @@ public class ArticlesApiControllerTests
             .Returns(Task.FromResult(Result<ArticleFeedPageResult>.Failure(
                 new Error("ArticleFeed.PageNotFound", "missing", ErrorType.NotFound))));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         var result = await sut.GetFeed(new GetArticleFeedRequest { Page = 5 }, CancellationToken.None);
 
@@ -145,7 +151,7 @@ public class ArticlesApiControllerTests
             .Send(Arg.Any<GetArticleDetailQuery>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Result<ArticleDetailDto>.Success(detail)));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         var result = await sut.GetById(42, CancellationToken.None);
 
@@ -165,7 +171,7 @@ public class ArticlesApiControllerTests
             .Returns(Task.FromResult(Result<ArticleDetailDto>.Failure(
                 new Error("Article.Missing", "gone", ErrorType.NotFound))));
 
-        var sut = new ArticlesApiController(mediator) { ControllerContext = ControllerContextFactory.Create() };
+        var sut = new ArticlesApiController(mediator, DefaultFeedOptions()) { ControllerContext = ControllerContextFactory.Create() };
 
         var result = await sut.GetById(99, CancellationToken.None);
 

@@ -151,7 +151,7 @@ public class PersistIngestedArticlesCommandHandlerTests
             CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Ingestion.DomainInvariantViolation");
+        result.Error.Code.Should().Be(ErrorCodes.Ingestion.DomainInvariantViolation);
         result.Error.Type.Should().Be(ErrorType.Conflict);
         await batchSaver.DidNotReceive().SaveAddedArticlesAsync(Arg.Any<IReadOnlyList<ArticleMetadata>>(), Arg.Any<CancellationToken>());
     }

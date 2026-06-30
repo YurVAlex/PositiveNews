@@ -1,8 +1,8 @@
 using FluentAssertions;
+using PositiveNews.Application.Common;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
-using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Application.QueryHandlers.Articles;
@@ -27,7 +27,7 @@ public class GetArticleFeedQueryHandlerTests
         var result = await sut.Handle(new GetArticleFeedQuery(1, ["Space", "Unknown"]), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("ArticleFeed.TopicNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.ArticleFeed.TopicNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
         await articleReadRepository
             .DidNotReceive()
@@ -49,7 +49,7 @@ public class GetArticleFeedQueryHandlerTests
         var result = await sut.Handle(new GetArticleFeedQuery(1, SourceIds: [1, 99]), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("ArticleFeed.SourceNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.ArticleFeed.SourceNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
         await articleReadRepository
             .DidNotReceive()
@@ -80,7 +80,7 @@ public class GetArticleFeedQueryHandlerTests
         var result = await sut.Handle(new GetArticleFeedQuery(3, ["Space"]), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("ArticleFeed.PageNotFound");
+        result.Error.Code.Should().Be(ErrorCodes.ArticleFeed.PageNotFound);
         result.Error.Type.Should().Be(ErrorType.NotFound);
     }
 

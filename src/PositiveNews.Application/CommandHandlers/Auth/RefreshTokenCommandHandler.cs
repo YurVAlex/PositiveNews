@@ -35,14 +35,14 @@ public sealed class RefreshTokenCommandHandler(
         if (existingRefreshToken is null)
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.InvalidRefreshToken", "Invalid or expired refresh token.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.InvalidRefreshToken, "Invalid or expired refresh token.", ErrorType.Unauthorized));
         }
 
         var user = existingRefreshToken.User;
         if (!user.IsActive)
         {
             return Result<AuthResultModel>.Failure(
-                new Error("Auth.UserInactive", "The user has been deleted or blocked.", ErrorType.Unauthorized));
+                new Error(ErrorCodes.Auth.UserInactive, "The user has been deleted or blocked.", ErrorType.Unauthorized));
         }
 
         // Revoke the old refresh token

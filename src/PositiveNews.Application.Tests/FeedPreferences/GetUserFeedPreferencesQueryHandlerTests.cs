@@ -4,6 +4,7 @@ using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs.FeedPreferences;
 using PositiveNews.Application.QueryHandlers.FeedPreferences;
 using PositiveNews.Application.Queries.FeedPreferences;
+using PositiveNews.Domain.Constants;
 
 namespace PositiveNews.Application.Tests.FeedPreferences;
 
@@ -21,7 +22,7 @@ public class GetUserFeedPreferencesQueryHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.TopicNames.Should().BeEmpty();
         result.Value.SourceIds.Should().BeEmpty();
-        result.Value.MinPositivity.Should().Be(0.5m);
+        result.Value.MinPositivity.Should().Be(FeedPreferenceDefaults.MinPositivity);
         result.Value.SortBy.Should().Be("date");
     }
 

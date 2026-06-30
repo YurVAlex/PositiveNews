@@ -26,7 +26,7 @@ public class LoginUserCommandHandlerTests
         var result = await handler.Handle(new LoginUserCommand(" USER@example.com ", "any"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.InvalidCredentials");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.InvalidCredentials);
         result.Error.Type.Should().Be(ErrorType.Unauthorized);
         tokenService.DidNotReceive().CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
         tokenService.DidNotReceive().GetAccessTokenExpiryUtc();
@@ -45,7 +45,7 @@ public class LoginUserCommandHandlerTests
         var result = await handler.Handle(new LoginUserCommand("user@example.com", "secret"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.InvalidCredentials");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.InvalidCredentials);
         passwordHasher.DidNotReceive().VerifyPassword(Arg.Any<User>(), Arg.Any<string>(), Arg.Any<string>());
         tokenService.DidNotReceive().CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
     }
@@ -66,7 +66,7 @@ public class LoginUserCommandHandlerTests
         var result = await handler.Handle(new LoginUserCommand("user@example.com", "Password1!"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.InvalidCredentials");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.InvalidCredentials);
         result.Error.Message.Should().Be("The user has been deleted or blocked.");
         passwordHasher.DidNotReceive().VerifyPassword(Arg.Any<User>(), Arg.Any<string>(), Arg.Any<string>());
         tokenService.DidNotReceive().CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());
@@ -88,7 +88,7 @@ public class LoginUserCommandHandlerTests
         var result = await handler.Handle(new LoginUserCommand(" USER@example.com ", "wrong"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.InvalidCredentials");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.InvalidCredentials);
         user.FailedLoginCount.Should().Be(1);
         await unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
         tokenService.DidNotReceive().CreateAccessToken(Arg.Any<User>(), Arg.Any<IReadOnlyCollection<string>>());

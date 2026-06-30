@@ -1,6 +1,7 @@
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Ingestion;
 using PositiveNews.Application.Interfaces;
 
 namespace PositiveNews.Infrastructure.Services;
@@ -63,7 +64,7 @@ public class FeedItemEnricher : IFeedItemEnricher
             result.Add(expanded);
 
         if (result.Count == 0)
-            Add("Default");
+            Add(IngestionCatalogConstants.DefaultTopicName);
 
         return dto with { Topics = result.ToList() };
     }

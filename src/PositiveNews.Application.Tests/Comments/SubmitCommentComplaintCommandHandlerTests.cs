@@ -1,4 +1,5 @@
 using FluentAssertions;
+using PositiveNews.Application.Common;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
@@ -64,7 +65,7 @@ public class SubmitCommentComplaintCommandHandlerTests
             CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Code.Should().Be("Comment.SelfComplaint");
+        result.Error.Code.Should().Be(ErrorCodes.Comment.SelfComplaint);
         complaintWriteRepository.DidNotReceive().Add(Arg.Any<Complaint>());
     }
 
@@ -93,6 +94,6 @@ public class SubmitCommentComplaintCommandHandlerTests
             CancellationToken.None);
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Code.Should().Be("Complaint.AlreadySubmitted");
+        result.Error.Code.Should().Be(ErrorCodes.Complaint.AlreadySubmitted);
     }
 }

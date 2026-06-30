@@ -1,4 +1,5 @@
 using FluentAssertions;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Domain.Exceptions;
 
@@ -12,7 +13,7 @@ public class UserFeedPreferenceTests
         var pref = UserFeedPreference.Create(1);
 
         pref.UserId.Should().Be(1);
-        pref.MinPositivity.Should().Be(0.5m);
+        pref.MinPositivity.Should().Be(FeedPreferenceDefaults.MinPositivity);
         pref.SortBy.Should().Be("Date");
     }
 

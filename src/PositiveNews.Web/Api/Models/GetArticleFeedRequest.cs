@@ -21,6 +21,11 @@ public sealed class GetArticleFeedRequest
     public int[]? Source { get; init; }
 
     /// <summary>
+    /// Gets optional page size; when omitted, the configured default is applied at mapping time.
+    /// </summary>
+    public int? PageSize { get; init; }
+
+    /// <summary>
     /// Gets optional sort mode (for example: <c>positivity</c>, <c>preferences</c>).
     /// </summary>
     public string? Sort { get; init; }

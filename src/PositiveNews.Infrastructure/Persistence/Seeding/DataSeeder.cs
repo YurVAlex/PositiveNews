@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Infrastructure.Configuration;
 
@@ -151,7 +152,7 @@ public static class DataSeeder
 
     private static async Task SeedAdminUserAsync(AppDbContext context, ILogger logger)
     {
-        var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+        var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.Admin);
         if (adminRole is null)
         {
             logger.LogWarning("Admin role is missing. Cannot seed admin user.");

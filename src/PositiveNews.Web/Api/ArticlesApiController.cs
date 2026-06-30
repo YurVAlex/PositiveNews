@@ -1,5 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using PositiveNews.Application.Options;
 using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Web.Api.Mapping;
 using PositiveNews.Web.Api.Models;
@@ -10,9 +12,10 @@ namespace PositiveNews.Web.Api;
 /// HTTP API for browsing article feeds and retrieving article details.
 /// </summary>
 /// <param name="mediator">MediatR pipeline for article queries.</param>
+/// <param name="feedOptions">Article feed paging configuration.</param>
 [ApiController]
 [Route("api/articles")]
-public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
+public sealed class ArticlesApiController(IMediator mediator, IOptions<ArticleFeedOptions> feedOptions) : ControllerBase
 {
 
     /// <summary>
@@ -30,7 +33,7 @@ public sealed class ArticlesApiController(IMediator mediator) : ControllerBase
         [FromQuery] GetArticleFeedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(request.ToGetArticleFeedQuery(), cancellationToken);
+        var result = await mediator.Send(request.ToGetArticleFeedQuery(feedOptions.Value), cancellationToken);
         return result
             .Map(feed => feed.ToArticleFeedResponse())
             .ToActionResult(this);

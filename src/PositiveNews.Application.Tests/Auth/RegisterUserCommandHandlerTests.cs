@@ -7,6 +7,7 @@ using PositiveNews.Application.Abstractions.Security;
 using PositiveNews.Application.CommandHandlers.Auth;
 using PositiveNews.Application.Commands.Auth;
 using PositiveNews.Application.Common;
+using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 
 namespace PositiveNews.Application.Tests.Auth;
@@ -24,7 +25,7 @@ public class RegisterUserCommandHandlerTests
         var result = await handler.Handle(new RegisterUserCommand(" USER@example.com ", "Jane", "Password1!"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.EmailAlreadyExists");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.EmailAlreadyExists);
         result.Error.Type.Should().Be(ErrorType.Conflict);
         await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -35,14 +36,14 @@ public class RegisterUserCommandHandlerTests
         var userReadRepository = Substitute.For<IUserReadRepository>();
         var roleReadRepository = Substitute.For<IRoleReadRepository>();
         userReadRepository.EmailExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
-        roleReadRepository.FindByNameAsync("User", Arg.Any<CancellationToken>()).Returns((Role?)null);
+        roleReadRepository.FindByNameAsync(RoleNames.User, Arg.Any<CancellationToken>()).Returns((Role?)null);
         var unitOfWork = Substitute.For<IUnitOfWork>();
         var handler = CreateHandler(userReadRepository, roleReadRepository: roleReadRepository, unitOfWork: unitOfWork);
 
         var result = await handler.Handle(new RegisterUserCommand("user@example.com", "Jane", "Password1!"), CancellationToken.None);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("Auth.RoleMissing");
+        result.Error.Code.Should().Be(ErrorCodes.Auth.RoleMissing);
         result.Error.Type.Should().Be(ErrorType.Unexpected);
         await unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
@@ -63,7 +64,7 @@ public class RegisterUserCommandHandlerTests
         var expiresAt = DateTime.UtcNow.AddHours(1);
 
         userReadRepository.EmailExistsAsync("user@example.com", Arg.Any<CancellationToken>()).Returns(false);
-        roleReadRepository.FindByNameAsync("User", Arg.Any<CancellationToken>()).Returns(role);
+        roleReadRepository.FindByNameAsync(RoleNames.User, Arg.Any<CancellationToken>()).Returns(role);
         passwordHasher.HashPassword(Arg.Any<User>(), "Password1!").Returns("hashed-password");
         tokenService.CreateAccessToken(Arg.Any<User>(), Arg.Is<IReadOnlyCollection<string>>(r => r.Single() == "User")).Returns("access-token");
         tokenService.GetAccessTokenExpiryUtc().Returns(expiresAt);

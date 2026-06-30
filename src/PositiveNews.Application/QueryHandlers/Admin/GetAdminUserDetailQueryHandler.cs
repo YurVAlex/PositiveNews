@@ -16,7 +16,7 @@ public sealed class GetAdminUserDetailQueryHandler(IUserReadRepository userReadR
         if (user is null)
         {
             return Result<PositiveNews.Application.DTOs.Admin.UserAdminDetailDto>.Failure(new Error(
-                "Admin.UserNotFound",
+                ErrorCodes.Admin.UserNotFound,
                 $"User with id '{request.UserId}' was not found.",
                 ErrorType.NotFound));
         }

@@ -16,13 +16,13 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("Users", SchemaNames.Identity);
 
         builder.HasKey(u => u.Id);
-        builder.Property(u => u.Email).HasMaxLength(300).IsRequired();
+        builder.Property(u => u.Email).HasMaxLength(FieldLengths.User.Email).IsRequired();
         builder.HasIndex(u => u.Email).IsUnique();
         builder.Property(u => u.EmailConfirmed).HasDefaultValue(false);
-        builder.Property(u => u.Name).HasMaxLength(200).IsRequired();
+        builder.Property(u => u.Name).HasMaxLength(FieldLengths.User.Name).IsRequired();
         builder.Property(u => u.PasswordHash).HasColumnType("nvarchar(max)");
         builder.Property(u => u.FailedLoginCount).HasDefaultValue(0);
-        builder.Property(u => u.AvatarPictureUrl).HasMaxLength(1000);
+        builder.Property(u => u.AvatarPictureUrl).HasMaxLength(FieldLengths.User.AvatarUrl);
         builder.Property(u => u.CreatedAt).HasDefaultValueSql("sysutcdatetime()");
         builder.Property(u => u.IsActive).HasDefaultValue(true);
 

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using PositiveNews.Application.Ingestion;
 using PositiveNews.Infrastructure.Services;
 using System.Xml.Linq;
 
@@ -51,7 +52,7 @@ public class FeedItemParserTests
 
         var dto = CreateSut().Parse(item);
 
-        dto.Topics.Should().Equal("Default");
+        dto.Topics.Should().Equal(IngestionCatalogConstants.DefaultTopicName);
     }
 
     [Fact]

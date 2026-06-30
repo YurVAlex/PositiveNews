@@ -32,7 +32,7 @@ public sealed class GetArticleDetailQueryHandler(
         if (article is null)
         {
             return Result<ArticleDetailDto>.Failure(
-                new Error("Article.NotFound", $"Article with id '{request.Id}' was not found.", ErrorType.NotFound));
+                new Error(ErrorCodes.Article.NotFound, $"Article with id '{request.Id}' was not found.", ErrorType.NotFound));
         }
 
         if (await articleWriteRepository.TryIncrementViewCountAsync(request.Id, cancellationToken))
