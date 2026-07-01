@@ -1,7 +1,7 @@
 using MediatR;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 using PositiveNews.Application.Queries.Auth;
 
 namespace PositiveNews.Application.QueryHandlers.Auth;

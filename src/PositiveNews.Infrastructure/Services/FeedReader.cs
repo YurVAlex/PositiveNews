@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Xml.Linq;
 
 namespace PositiveNews.Infrastructure.Services;

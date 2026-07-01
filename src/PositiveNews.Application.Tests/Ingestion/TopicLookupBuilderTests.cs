@@ -1,5 +1,5 @@
 using FluentAssertions;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.Services.Ingestion;
 
 namespace PositiveNews.Application.Tests.Ingestion;

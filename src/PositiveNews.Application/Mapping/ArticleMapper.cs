@@ -1,4 +1,4 @@
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Domain.Entities;
 using Riok.Mapperly.Abstractions;

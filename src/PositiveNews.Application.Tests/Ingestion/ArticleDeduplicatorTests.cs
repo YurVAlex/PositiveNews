@@ -1,5 +1,6 @@
 using FluentAssertions;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Services.Ingestion;
 
 namespace PositiveNews.Application.Tests.Ingestion;

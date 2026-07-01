@@ -1,11 +1,11 @@
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.Commands.Ingestion;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Ingestion;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.Queries.Ingestion;
 using PositiveNews.Domain.Exceptions;
 

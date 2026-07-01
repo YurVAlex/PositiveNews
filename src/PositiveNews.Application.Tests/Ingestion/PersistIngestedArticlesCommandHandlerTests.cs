@@ -6,8 +6,8 @@ using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.CommandHandlers.Ingestion;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Ingestion;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.Tests.TestSupport;
 using PositiveNews.Domain.Entities;
 

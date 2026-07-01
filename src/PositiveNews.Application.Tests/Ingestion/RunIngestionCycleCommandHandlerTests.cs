@@ -7,7 +7,7 @@ using NSubstitute.ExceptionExtensions;
 using PositiveNews.Application.CommandHandlers.Ingestion;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.Queries.Ingestion;
 using PositiveNews.Application.Tests.TestSupport;
 using PositiveNews.Domain.Exceptions;

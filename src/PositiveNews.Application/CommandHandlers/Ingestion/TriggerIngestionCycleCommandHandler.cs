@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.Common;
 

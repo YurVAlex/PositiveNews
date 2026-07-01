@@ -1,7 +1,7 @@
 using MediatR;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.Queries.Ingestion;
 
 namespace PositiveNews.Application.QueryHandlers.Ingestion;

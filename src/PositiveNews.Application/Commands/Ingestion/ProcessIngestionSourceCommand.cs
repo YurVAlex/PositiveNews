@@ -2,7 +2,7 @@ using MediatR;
 
 using PositiveNews.Application.Common;
 
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 
 
 
@@ -29,4 +29,3 @@ public sealed record ProcessIngestionSourceCommand(
     TopicLookup TopicLookup,
 
     IngestionSettingsSnapshot IngestionSettings) : IRequest<Result<int>>;
-

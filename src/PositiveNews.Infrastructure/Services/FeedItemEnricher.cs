@@ -1,8 +1,8 @@
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Ingestion;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Constants;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 
 namespace PositiveNews.Infrastructure.Services;
 

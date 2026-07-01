@@ -5,7 +5,7 @@ using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Commands.FeedPreferences;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs.FeedPreferences;
-using PositiveNews.Application.Features.FeedPreferences;
+using PositiveNews.Application.Mapping;
 
 namespace PositiveNews.Application.CommandHandlers.FeedPreferences;
 

@@ -1,7 +1,7 @@
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Xml.Linq;
 
 namespace PositiveNews.Application.Services.Ingestion;

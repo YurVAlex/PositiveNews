@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using PositiveNews.Application.Commands.Auth;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 using PositiveNews.Application.Queries.Auth;
 using PositiveNews.Web.Api;
 using PositiveNews.Web.Api.Models;

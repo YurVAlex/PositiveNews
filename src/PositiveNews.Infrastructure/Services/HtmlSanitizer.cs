@@ -1,6 +1,6 @@
 using HtmlAgilityPack;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Text;
 
 namespace PositiveNews.Infrastructure.Services;

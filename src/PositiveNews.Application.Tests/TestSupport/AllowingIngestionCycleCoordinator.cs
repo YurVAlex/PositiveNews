@@ -1,4 +1,4 @@
-using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 
 namespace PositiveNews.Application.Tests.TestSupport;
 

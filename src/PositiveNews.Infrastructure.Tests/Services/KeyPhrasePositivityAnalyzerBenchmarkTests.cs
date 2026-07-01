@@ -1,4 +1,5 @@
 using FluentAssertions;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure.Tests.Services;
@@ -8,7 +9,7 @@ public class KeyPhrasePositivityAnalyzerBenchmarkTests
     private const double MinimumSpearmanCorrelation = 0.40;
 
     private static readonly KeyPhrasePositivityAnalyzer Analyzer = new();
-    private static readonly Application.DTOs.PositivityAnalizerKeyPhrases Lexicon =
+    private static readonly PositivityAnalizerKeyPhrases Lexicon =
         PositivityAnalyzerProductionLexicon.Create();
 
     public static TheoryData<string, decimal, string?> LabeledSamples

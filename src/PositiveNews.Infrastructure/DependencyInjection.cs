@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PositiveNews.Application.Abstractions.Ingestion;
-using PositiveNews.Application.Constants;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.Options;
+using PositiveNews.Application.Constants;
 using PositiveNews.Application.Abstractions.Persistence;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Write;
 using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Abstractions.Security;
-using PositiveNews.Application.Interfaces;
 using PositiveNews.Application.Services.Ingestion;
 using PositiveNews.Infrastructure.BackgroundJobs;
 using PositiveNews.Infrastructure.Configuration;

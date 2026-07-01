@@ -3,8 +3,8 @@ using PositiveNews.Application.Common;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
-using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Queries.Articles;
+using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.QueryHandlers.Articles;
 using System.Linq;
 

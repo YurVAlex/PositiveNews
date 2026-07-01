@@ -1,6 +1,6 @@
 using MediatR;
 
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.Abstractions.Persistence.Models;
 
 
 
@@ -27,4 +27,3 @@ public sealed record FindExistingArticleKeysQuery(
     IReadOnlyCollection<string> Urls,
 
     IReadOnlyCollection<string> Titles) : IRequest<ExistingArticleKeys>;
-

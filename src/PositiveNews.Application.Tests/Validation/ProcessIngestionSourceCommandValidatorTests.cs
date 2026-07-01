@@ -1,6 +1,6 @@
 using FluentAssertions;
 using PositiveNews.Application.Commands.Ingestion;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.Tests.TestSupport;
 
 namespace PositiveNews.Application.Tests.Validation;

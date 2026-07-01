@@ -1,8 +1,8 @@
 using FluentAssertions;
 using HtmlAgilityPack;
 using NSubstitute;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Infrastructure.Services;
 
 namespace PositiveNews.Infrastructure.Tests.Services;

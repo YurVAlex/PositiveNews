@@ -1,8 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 
 namespace PositiveNews.Infrastructure.Services;
 

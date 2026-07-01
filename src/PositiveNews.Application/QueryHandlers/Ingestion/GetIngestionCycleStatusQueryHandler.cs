@@ -1,5 +1,5 @@
 using MediatR;
-using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.Queries.Ingestion;
 

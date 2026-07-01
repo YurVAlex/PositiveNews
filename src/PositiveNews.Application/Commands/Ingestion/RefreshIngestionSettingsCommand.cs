@@ -1,5 +1,5 @@
 using MediatR;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 
 namespace PositiveNews.Application.Commands.Ingestion;
 

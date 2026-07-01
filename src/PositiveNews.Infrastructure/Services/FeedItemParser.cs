@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Ingestion;
-using PositiveNews.Application.Interfaces;
+using Microsoft.Extensions.Logging;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Constants;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Xml.Linq;
 
 namespace PositiveNews.Infrastructure.Services;

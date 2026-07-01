@@ -2,7 +2,7 @@ using MediatR;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.Common;
 using PositiveNews.Application.DTOs.FeedPreferences;
-using PositiveNews.Application.Features.FeedPreferences;
+using PositiveNews.Application.Mapping;
 using PositiveNews.Application.Queries.FeedPreferences;
 using PositiveNews.Domain.Constants;
 

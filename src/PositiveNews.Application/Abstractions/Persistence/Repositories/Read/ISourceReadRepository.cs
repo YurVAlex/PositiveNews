@@ -1,4 +1,4 @@
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 

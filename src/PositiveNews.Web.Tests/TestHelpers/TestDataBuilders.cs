@@ -1,6 +1,6 @@
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.DTOs.Articles;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 
 namespace PositiveNews.Web.Tests.TestHelpers;
 

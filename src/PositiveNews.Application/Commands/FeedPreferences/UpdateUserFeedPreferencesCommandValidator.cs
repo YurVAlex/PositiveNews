@@ -1,5 +1,5 @@
 using FluentValidation;
-using PositiveNews.Application.Features.FeedPreferences;
+using PositiveNews.Application.Mapping;
 
 namespace PositiveNews.Application.Commands.FeedPreferences;
 

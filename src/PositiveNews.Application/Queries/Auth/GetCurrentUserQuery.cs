@@ -1,6 +1,6 @@
 using MediatR;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 
 namespace PositiveNews.Application.Queries.Auth;
 

@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using PositiveNews.Application.Abstractions.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Application.Commands.Ingestion;
 using PositiveNews.Application.Common;
 using PositiveNews.Infrastructure.BackgroundJobs;

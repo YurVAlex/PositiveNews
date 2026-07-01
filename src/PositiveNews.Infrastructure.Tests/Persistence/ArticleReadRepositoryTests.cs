@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using PositiveNews.Application.Abstractions.Persistence.Models;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
+using PositiveNews.Application.Queries.Articles;
 using PositiveNews.Domain.Entities;
 using PositiveNews.Infrastructure.Persistence;
 using PositiveNews.Infrastructure.Persistence.Repositories.Read;

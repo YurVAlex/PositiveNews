@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PositiveNews.Application.Commands.Ingestion;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 
 namespace PositiveNews.Application.CommandHandlers.Ingestion;
 

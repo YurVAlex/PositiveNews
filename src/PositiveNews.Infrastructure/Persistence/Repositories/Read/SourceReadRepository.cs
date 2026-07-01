@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 using PositiveNews.Application.Mapping;

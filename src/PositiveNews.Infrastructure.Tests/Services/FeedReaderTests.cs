@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Infrastructure.Services;
 using PositiveNews.Infrastructure.Tests.TestHelpers;
 

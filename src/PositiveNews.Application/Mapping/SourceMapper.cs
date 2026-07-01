@@ -1,5 +1,5 @@
 using System.Linq;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Domain.Entities;
 using Riok.Mapperly.Abstractions;
 

@@ -5,7 +5,7 @@ using PositiveNews.Application.Abstractions.Persistence.UnitOfWork;
 using PositiveNews.Application.Abstractions.Security;
 using PositiveNews.Application.Commands.Auth;
 using PositiveNews.Application.Common;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 using PositiveNews.Domain.Constants;
 using PositiveNews.Domain.Entities;
 

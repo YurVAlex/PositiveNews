@@ -1,4 +1,4 @@
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 
 namespace PositiveNews.Infrastructure.Tests.Services;
 

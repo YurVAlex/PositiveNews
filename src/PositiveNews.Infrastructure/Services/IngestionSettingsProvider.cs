@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using PositiveNews.Application.DTOs;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.DTOs.Ingestion;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using PositiveNews.Infrastructure.Configuration;
 
 namespace PositiveNews.Infrastructure.Services;

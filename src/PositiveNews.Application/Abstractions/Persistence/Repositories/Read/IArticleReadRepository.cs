@@ -1,5 +1,4 @@
 using PositiveNews.Application.Abstractions.Persistence.Models;
-using PositiveNews.Application.DTOs;
 using PositiveNews.Application.DTOs.Admin;
 using PositiveNews.Application.DTOs.Articles;
 

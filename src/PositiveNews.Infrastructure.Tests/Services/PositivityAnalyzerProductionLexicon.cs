@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using PositiveNews.Application.DTOs;
+using PositiveNews.Application.DTOs.Ingestion;
 using PositiveNews.Infrastructure.Configuration;
 using PositiveNews.Infrastructure.Services;
 

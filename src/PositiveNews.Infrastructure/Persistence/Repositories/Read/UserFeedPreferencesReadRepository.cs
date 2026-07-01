@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PositiveNews.Application.Abstractions.Persistence.Repositories.Read;
 using PositiveNews.Application.DTOs.FeedPreferences;
-using PositiveNews.Application.Features.FeedPreferences;
+using PositiveNews.Application.Mapping;
 
 namespace PositiveNews.Infrastructure.Persistence.Repositories.Read;
 

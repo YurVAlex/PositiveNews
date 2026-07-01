@@ -1,6 +1,6 @@
 ﻿using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;

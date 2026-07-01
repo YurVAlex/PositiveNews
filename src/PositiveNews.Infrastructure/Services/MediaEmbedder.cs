@@ -1,5 +1,5 @@
 using HtmlAgilityPack;
-using PositiveNews.Application.Interfaces;
+using PositiveNews.Application.Abstractions.IngestionPipeline;
 using System.Text;
 using System.Text.RegularExpressions;
 

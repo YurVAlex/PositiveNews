@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using PositiveNews.Application.Ingestion;
+using PositiveNews.Application.Constants;
 using PositiveNews.Infrastructure.Services;
 using System.Xml.Linq;
 

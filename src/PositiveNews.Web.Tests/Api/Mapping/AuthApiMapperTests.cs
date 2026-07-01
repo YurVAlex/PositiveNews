@@ -1,5 +1,5 @@
 using FluentAssertions;
-using PositiveNews.Application.Features.Auth.Models;
+using PositiveNews.Application.DTOs.Auth;
 using PositiveNews.Web.Api.Mapping;
 using PositiveNews.Web.Tests.TestHelpers;
 
