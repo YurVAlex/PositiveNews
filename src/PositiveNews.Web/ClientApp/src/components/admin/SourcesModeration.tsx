@@ -84,6 +84,20 @@ export function SourcesModeration() {
     setSubmitMessage(null)
   }
 
+  const handleCloseDetail = () => {
+    setSelectedSourceId(null)
+    setDetail(null)
+    setSubmitMessage(null)
+    setError(null)
+    setFormState({
+      trustScore: 0,
+      isActive: false,
+      feedUrl: '',
+      reason: '',
+      note: '',
+    })
+  }
+
   const handleFormChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = event.target as HTMLInputElement | HTMLTextAreaElement
     const value = target.value
@@ -110,8 +124,9 @@ export function SourcesModeration() {
 
     try {
       await updateSource(token, selectedSourceId, formState)
-      setSubmitMessage('Source updated successfully.')
       await loadSources()
+      handleCloseDetail()
+      setSubmitMessage('Source updated successfully.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update source')
     } finally {

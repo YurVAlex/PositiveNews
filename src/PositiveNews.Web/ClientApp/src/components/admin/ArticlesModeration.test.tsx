@@ -124,4 +124,24 @@ describe('ArticlesModeration', () => {
 
     expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
   })
+
+  it('closes details and skips detail refetch after Apply', async () => {
+    const user = userEvent.setup()
+
+    render(<ArticlesModeration />)
+
+    await user.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument())
+    await user.click(screen.getByText('Article One'))
+    await waitFor(() => expect(screen.getByLabelText('Title')).toBeInTheDocument())
+
+    const detailCallsBeforeApply = api.fetchAdminArticleDetail.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: 'Apply' }))
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Article moderation saved successfully.'))
+    expect(screen.queryByLabelText('Title')).not.toBeInTheDocument()
+    expect(api.fetchAdminArticles).toHaveBeenCalledTimes(2)
+    expect(api.fetchAdminArticleDetail.mock.calls.length).toBe(detailCallsBeforeApply)
+  })
 })

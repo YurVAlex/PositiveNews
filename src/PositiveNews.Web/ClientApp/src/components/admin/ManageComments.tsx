@@ -146,20 +146,9 @@ export function ManageComments() {
     setSubmitMessage(null)
 
     try {
-      const wasActive = formState.isActive
       await updateAdminComment(token, commentDetail.id, formState)
       await loadCommentsTable()
-      if (wasActive) {
-        await loadCommentDetail(commentDetail.id)
-      } else {
-        setSelectedCommentId(null)
-        setCommentDetail(null)
-        setFormState({
-          isActive: true,
-          reason: '',
-          note: '',
-        })
-      }
+      handleCloseDetail()
       setSubmitMessage('Comment updated successfully.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save comment changes')

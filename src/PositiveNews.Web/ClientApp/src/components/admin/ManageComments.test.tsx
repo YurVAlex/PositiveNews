@@ -100,6 +100,8 @@ describe('ManageComments', () => {
     await user.click(screen.getByText('42'))
     await waitFor(() => expect(screen.getByDisplayValue('A thoughtful comment')).toBeInTheDocument())
 
+    const detailCallsBeforeApply = api.fetchAdminCommentDetail.mock.calls.length
+
     await user.click(screen.getByLabelText('Is active'))
     await user.type(screen.getByLabelText('Reason'), 'policy')
     await user.click(screen.getByRole('button', { name: 'Apply' }))
@@ -109,7 +111,10 @@ describe('ManageComments', () => {
       isActive: false,
       reason: 'policy',
     }))
-    expect(screen.getByRole('status')).toHaveTextContent('Comment updated successfully.')
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Comment updated successfully.'))
+    expect(screen.queryByDisplayValue('A thoughtful comment')).not.toBeInTheDocument()
+    expect(api.fetchAdminComments).toHaveBeenCalledTimes(2)
+    expect(api.fetchAdminCommentDetail.mock.calls.length).toBe(detailCallsBeforeApply)
   })
 
   it('shows validation message for invalid id without calling detail API', async () => {

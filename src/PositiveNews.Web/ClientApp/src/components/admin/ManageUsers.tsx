@@ -139,17 +139,10 @@ export function ManageUsers() {
 
     try {
       await updateAdminUser(token, selectedUserId, formState)
+      const items = await fetchAdminUsers(token, searchTerm.trim())
+      setUsers(items)
+      handleClose()
       setSubmitMessage('User updated successfully.')
-      void fetchAdminUsers(token, searchTerm.trim()).then((items) => setUsers(items))
-      void fetchAdminUserDetail(token, selectedUserId).then((detail) => {
-        setSelectedUserDetail(detail)
-        setFormState({
-          isActive: detail.isActive,
-          emailConfirmed: detail.emailConfirmed,
-          reason: '',
-          note: '',
-        })
-      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save user changes')
     } finally {

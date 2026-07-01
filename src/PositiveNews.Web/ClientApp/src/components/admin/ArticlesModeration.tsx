@@ -161,21 +161,10 @@ export function ArticlesModeration() {
 
     try {
       await moderateArticle(token, selectedArticleId, formState)
+      const items = await fetchAdminArticles(token, searchTerm.trim())
+      setArticles(items)
+      handleCancel()
       setSubmitMessage('Article moderation saved successfully.')
-      void fetchAdminArticles(token, searchTerm.trim()).then((items) => setArticles(items))
-      void fetchAdminArticleDetail(token, selectedArticleId).then((detail) => {
-        setSelectedArticleDetail(detail)
-        setFormState({
-          isActive: detail.isActive,
-          title: detail.title,
-          imageTag: detail.imageTag ?? '',
-          positivityScore: detail.positivityScore ?? null,
-          summaryShort: detail.summaryShort ?? '',
-          contentRaw: detail.contentRaw ?? '',
-          reason: '',
-          note: '',
-        })
-      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save moderation changes')
     } finally {

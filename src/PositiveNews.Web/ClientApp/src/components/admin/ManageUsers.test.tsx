@@ -79,7 +79,10 @@ describe('ManageUsers', () => {
 
     await waitFor(() => expect(api.updateAdminUser).toHaveBeenCalled())
     expect(api.updateAdminUser).toHaveBeenCalledWith('test-token', 1, expect.objectContaining({ emailConfirmed: true }))
-    expect(screen.getByRole('status')).toHaveTextContent('User updated successfully.')
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('User updated successfully.'))
+    expect(screen.queryByDisplayValue('jane@example.com')).not.toBeInTheDocument()
+    expect(api.fetchAdminUsers).toHaveBeenCalledTimes(2)
+    expect(api.fetchAdminUserDetail).toHaveBeenCalledTimes(1)
   })
 
   it('clears search results and selection when Clear is clicked', async () => {
